@@ -1,1 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cinzel:wght@400;600;700&display=swap');
 @import "tailwindcss";
+
+@theme {
+  /*Colores para Fear */
+  --color-fear-primary: #2D1B1E;
+  --color-fear-secondary: #3D287A;
+  --color-fear-light: #684FA8;
+
+  /*Colores para Hope */
+  --color-hope-primary: #E8640C;
+  --color-hope-secondary: #C9962A;
+  --color-hope-yellow: #F5C842;
+
+  /*Colores para las cards */
+  --color-card-bg: #F5EDD8;
+  --color-card-border: #B8860B;
+  --color-card-text: #1A1A1A;
+
+  /*Colores de la interfaz */
+  --color-ui-bg: #1C1C2E;
+  --color-ui-surface: #2E2E42;
+  --color-ui-surface2: #3E3E56;
+  --color-ui-text: #F0EDE6;
+  --color-ui-muted: #9E9BBF;
+
+  /*Fuentes */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Cinzel', serif;
+
+}
+
+body {
+  background-color: #1C1C2E;
+  color: #F0EDE6;
+  font-family: 'Inter', system-ui, sans-serif;
+  margin: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
