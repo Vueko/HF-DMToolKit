@@ -1,11 +1,5 @@
 import { create } from 'zustand'
-
-interface Scene {
-    id: string;
-    title: string;
-    summary: string;
-    status: 'upcoming' | 'active' | 'completed';
-}
+import type { Scene } from '../types'
 
 interface SessionState {
     currentSceneId: string | null;

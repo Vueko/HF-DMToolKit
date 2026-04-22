@@ -1,11 +1,5 @@
 import { create } from 'zustand';
-
-interface Track {
-    id: string;
-    title: string;
-    url: string;
-    mood?: 'calm' | 'tense' | 'epic' | 'mystery' | 'ambient'
-}
+import type { Track } from '../types';
 
 interface MusicState {
     currentTrack: Track | null;
