@@ -36,8 +36,9 @@ body {
   color: #F0EDE6;
   font-family: 'Inter', system-ui, sans-serif;
   margin: 0;
+  height: 100%;
 }
 
 #root {
-  min-height: 100vh;
+  height: 100%;
 }

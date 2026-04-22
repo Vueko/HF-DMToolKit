@@ -8,18 +8,22 @@ import DMScreen from './pages/DMScreen'
 import MusicPlayer from './pages/MusicPlayer'
 import CampaignJournal from './pages/CampaignJournal'
 import CampaignMap from './pages/CampaignMap'
-
+import MusicBar from './components/MusicBar'
 
 function Layout() {
   return (
-    <div className="flex min-h-screen bg-ui-bg">
-      <Sidebar />
-      <main className="flex-1 p-6">
-        <Outlet />
-      </main>
+    <div className="flex flex-col h-screen bg-ui-bg">
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <main className="flex-1 p-6 bg-ui-canvas overflow-y-auto">
+          <Outlet />
+        </main>
+      </div>
+      <MusicBar />
     </div>
   )
 }
+
 
 function App() {
   return (
