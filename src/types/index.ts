@@ -1,8 +1,9 @@
 export interface Scene {
-    id: string;
-    title: string;
-    summary: string;
-    status: 'upcoming' | 'active' | 'completed';
+    id: string
+    title: string
+    status: 'upcoming' | 'active' | 'completed'
+    flag: string
+    count: number
 }
 
 export interface Track {
