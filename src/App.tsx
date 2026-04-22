@@ -1,15 +1,27 @@
+import { Routes, Route } from 'react-router-dom'
+import DMDashboard from './pages/DMDashboard'
+import SceneTracker from './pages/SceneTracker'
+import FearTracker from './pages/FearTracker'
+import EnvironmentCards from './pages/EnvironmentCards'
+import DMScreen from './pages/DMScreen'
+import MusicPlayer from './pages/MusicPlayer'
+import CampaignJournal from './pages/CampaignJournal'
+import CampaignMap from './pages/CampaignMap'
 
 function App() {
-
   return (
-    <div className="bg-ui-bg min-h-screen flex items-center justify-center">
-      <div className="bg-ui-surface p-8 rounded-xl border border-fear-light">
-        <h1 className="text-hope-yellow font-display text-4xl font-bold">DaggerHeart Toolkit</h1>
-        <p className="text-ui-muted mt-2">Los colores estan funcionando correctamente</p>
-      </div>
-    </div>
+    <Routes>
+      <Route path="/" element={<DMDashboard />} />
+      <Route path="/dashboard" element={<DMDashboard />} />
+      <Route path="/scenes" element={<SceneTracker />} />
+      <Route path="/fear" element={<FearTracker />} />
+      <Route path="/cards" element={<EnvironmentCards />} />
+      <Route path="/dm-screen" element={<DMScreen />} />
+      <Route path="/music" element={<MusicPlayer />} />
+      <Route path="/journal" element={<CampaignJournal />} />
+      <Route path="/map" element={<CampaignMap />} />
+    </Routes>
   )
-
 }
 
 export default App
