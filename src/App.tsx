@@ -8,6 +8,7 @@ import DMScreen from './pages/DMScreen'
 import MusicPlayer from './pages/MusicPlayer'
 import CampaignJournal from './pages/CampaignJournal'
 import CampaignMap from './pages/CampaignMap'
+import Campaigns from './pages/Campaigns'
 import MusicBar from './components/MusicBar'
 
 function Layout() {
@@ -30,6 +31,7 @@ function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<DMDashboard />} />
+        <Route path="/campaigns" element={<Campaigns />} />
         <Route path="/scenes" element={<SceneTracker />} />
         <Route path="/fear" element={<FearTracker />} />
         <Route path="/cards" element={<EnvironmentCards />} />

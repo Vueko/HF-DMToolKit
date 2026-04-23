@@ -2,9 +2,9 @@ import { NavLink } from 'react-router-dom';
 
 const navItems = [
     { path: '/', label: 'Dashboard' },
+    { path: '/campaigns', label: 'Campaigns' },
     { path: '/scenes', label: 'Scene Tracker' },
-    { path: '/fear', label: 'Fear Tracker' },
-    { path: '/cards', label: 'Environment Cards' },
+    { path: '/cards', label: 'Cards' },
     { path: '/dm-screen', label: 'DM Screen' },
     { path: '/music', label: 'Music Player' },
     { path: '/journal', label: 'Campaign Journal' },
