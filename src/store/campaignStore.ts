@@ -28,6 +28,8 @@ interface CampaignState {
     addLoreEntry: (campaignId: string, entry: LoreEntry) => void
     updateLoreEntry: (campaignId: string, entryId: string, updates: Partial<LoreEntry>) => void
     removeLoreEntry: (campaignId: string, entryId: string) => void
+
+    updateCampaignRules: (campaignId: string, rules: string) => void
 }
 
 function updateCampaign(campaigns: Campaign[], id: string, updater: (c: Campaign) => Campaign): Campaign[] {
@@ -182,6 +184,14 @@ export const useCampaignStore = create<CampaignState>()(
                     campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
                         ...c,
                         lore: (c.lore || []).filter((l) => l.id !== entryId),
+                    })),
+                })),
+
+            updateCampaignRules: (campaignId, rules) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        dmScreenRules: rules,
                     })),
                 })),
         }),

@@ -63,6 +63,7 @@ export interface Campaign {
     scenes: Scene[]
     sessions: Session[]
     lore: LoreEntry[]
+    dmScreenRules?: string
 }
 
 export type LoreCategory = 'continent' | 'city' | 'faction' | 'npc' | 'character_journal' | 'handout'
