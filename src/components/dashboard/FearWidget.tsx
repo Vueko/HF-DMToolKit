@@ -4,8 +4,7 @@ function FearWidget() {
     const { fearCount, addFear, removeFear, resetFear } = useFearStore()
 
     return (
-        <div className="bg-fear-primary rounded-xl p-5 flex flex-col gap-4">
-
+        <div className="bg-fear-primary rounded-xl p-5 flex flex-col gap-4 h-full">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <span>💀</span>
@@ -19,30 +18,32 @@ function FearWidget() {
                 </button>
             </div>
 
-            <div className="flex items-center justify-between px-4">
-                <button
-                    onClick={() => removeFear(1)}
-                    className="w-12 h-12 rounded-full bg-fear-secondary hover:bg-fear-light text-ui-text text-2xl font-bold transition-colors flex items-center justify-center"
-                >
-                    −
-                </button>
+            <div className="flex-1 flex flex-col justify-center py-4">
+                <div className="flex items-center justify-between px-4">
+                    <button
+                        onClick={() => removeFear(1)}
+                        className="w-12 h-12 rounded-full bg-fear-secondary hover:bg-fear-light text-ui-text text-2xl font-bold transition-colors flex items-center justify-center"
+                    >
+                        −
+                    </button>
 
-                <span className="text-8xl font-bold text-ui-text font-display select-none">
-                    {fearCount}
-                </span>
+                    <span className="text-8xl font-bold text-ui-text font-display select-none">
+                        {fearCount}
+                    </span>
 
-                <button
-                    onClick={() => addFear(1)}
-                    className="w-12 h-12 rounded-full bg-fear-light hover:bg-fear-secondary text-ui-text text-2xl font-bold transition-colors flex items-center justify-center"
-                >
-                    +
-                </button>
+                    <button
+                        onClick={() => addFear(1)}
+                        disabled={fearCount >= 12}
+                        className="w-12 h-12 rounded-full bg-fear-light hover:bg-fear-secondary text-ui-text text-2xl font-bold transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                        +
+                    </button>
+                </div>
             </div>
 
             <p className="text-ui-muted text-xs text-center">
                 Current session fear level
             </p>
-
         </div>
     )
 }

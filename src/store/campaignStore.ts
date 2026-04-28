@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Campaign, Session, Scene, SessionCardInstance } from '../types'
+import type { Campaign, Session, Scene, SessionCardInstance, LoreEntry } from '../types'
 
 interface CampaignState {
     campaigns: Campaign[]
@@ -24,6 +24,10 @@ interface CampaignState {
     addCardToSession: (campaignId: string, sessionId: string, instance: SessionCardInstance) => void
     removeCardFromSession: (campaignId: string, sessionId: string, instanceId: string) => void
     updateCardInstance: (campaignId: string, sessionId: string, instanceId: string, updates: Partial<SessionCardInstance>) => void
+
+    addLoreEntry: (campaignId: string, entry: LoreEntry) => void
+    updateLoreEntry: (campaignId: string, entryId: string, updates: Partial<LoreEntry>) => void
+    removeLoreEntry: (campaignId: string, entryId: string) => void
 }
 
 function updateCampaign(campaigns: Campaign[], id: string, updater: (c: Campaign) => Campaign): Campaign[] {
@@ -155,6 +159,30 @@ export const useCampaignStore = create<CampaignState>()(
                             ),
                         }))
                     ),
+                })),
+
+            addLoreEntry: (campaignId, entry) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        lore: [...(c.lore || []), entry],
+                    })),
+                })),
+
+            updateLoreEntry: (campaignId, entryId, updates) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        lore: (c.lore || []).map((l) => (l.id === entryId ? { ...l, ...updates } : l)),
+                    })),
+                })),
+
+            removeLoreEntry: (campaignId, entryId) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        lore: (c.lore || []).filter((l) => l.id !== entryId),
+                    })),
                 })),
         }),
         { name: 'dh-campaigns' }

@@ -2,7 +2,6 @@ import { Routes, Route, Outlet } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import DMDashboard from './pages/DMDashboard'
 import SceneTracker from './pages/SceneTracker'
-import FearTracker from './pages/FearTracker'
 import EnvironmentCards from './pages/EnvironmentCards'
 import DMScreen from './pages/DMScreen'
 import MusicPlayer from './pages/MusicPlayer'
@@ -33,7 +32,6 @@ function App() {
         <Route index element={<DMDashboard />} />
         <Route path="/campaigns" element={<Campaigns />} />
         <Route path="/scenes" element={<SceneTracker />} />
-        <Route path="/fear" element={<FearTracker />} />
         <Route path="/cards" element={<EnvironmentCards />} />
         <Route path="/dm-screen" element={<DMScreen />} />
         <Route path="/music" element={<MusicPlayer />} />

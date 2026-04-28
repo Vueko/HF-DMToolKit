@@ -1,21 +1,20 @@
 import { useState } from 'react'
 import { useCampaignStore } from '../../store/campaignStore'
 import type { Scene } from '../../types'
+import { SharedMarkdown } from '../SharedMarkdown'
 
 function SceneWidget() {
     const {
         campaigns,
         currentCampaignId,
         currentSessionId,
-        addScene,
         updateScene,
         addSceneToSession,
         removeSceneFromSession,
     } = useCampaignStore()
 
-    const [isAdding, setIsAdding] = useState(false)
-    const [newTitle, setNewTitle] = useState('')
-    const [newFlag, setNewFlag] = useState('')
+    const [editingScene, setEditingScene] = useState<Scene | null>(null)
+    const [descriptionMode, setDescriptionMode] = useState<'write' | 'preview'>('write')
 
     const currentCampaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
     const currentSession = currentCampaign?.sessions.find((s) => s.id === currentSessionId) ?? null
@@ -29,20 +28,11 @@ function SceneWidget() {
         (s) => !currentSession?.sceneIds.includes(s.id)
     )
 
-    function handleAddScene() {
-        if (!newTitle.trim() || !currentCampaignId || !currentSessionId) return
-        const scene: Scene = {
-            id: crypto.randomUUID(),
-            title: newTitle.trim(),
-            status: 'upcoming',
-            flag: newFlag.trim(),
-            count: 0,
+    const handleUpdateScene = (id: string, updates: Partial<Scene>) => {
+        updateScene(currentCampaignId, id, updates)
+        if (editingScene?.id === id) {
+            setEditingScene({ ...editingScene, ...updates })
         }
-        addScene(currentCampaignId, scene)
-        addSceneToSession(currentCampaignId, currentSessionId, scene.id)
-        setNewTitle('')
-        setNewFlag('')
-        setIsAdding(false)
     }
 
     if (!currentCampaignId || !currentSessionId) {
@@ -101,7 +91,7 @@ function SceneWidget() {
                         className={`rounded-lg border-l-2 px-3 py-3 transition-colors ${statusColors[scene.status]}`}
                     >
                         <div className="flex items-center gap-3">
-                            <span className="text-ui-text text-sm font-medium flex-1 min-w-0 truncate">
+                            <span className="text-ui-text text-base font-bold font-display flex-1 min-w-0">
                                 {scene.title}
                             </span>
 
@@ -128,23 +118,38 @@ function SceneWidget() {
 
                             <button
                                 onClick={() => updateScene(currentCampaignId, scene.id, { status: nextStatus[scene.status] })}
-                                className={`text-xs px-2 py-1 rounded-lg font-medium shrink-0 transition-all ${badgeStyles[scene.status]}`}
+                                className={`text-[10px] px-2 py-1 rounded-lg font-bold uppercase tracking-wider shrink-0 transition-all ${badgeStyles[scene.status]}`}
                             >
                                 {statusLabels[scene.status]}
                             </button>
 
                             <button
-                                onClick={() => removeSceneFromSession(currentCampaignId, currentSessionId, scene.id)}
-                                className="text-ui-muted hover:text-red-400 transition-colors shrink-0 text-xs"
+                                onClick={() => {
+                                    setEditingScene(scene)
+                                    setDescriptionMode(scene.description ? 'preview' : 'write')
+                                }}
+                                className="text-ui-muted hover:text-hope-primary transition-colors shrink-0 text-[10px] uppercase font-bold"
                             >
-                                Remove
+                                Edit
+                            </button>
+
+                            <button
+                                onClick={() => removeSceneFromSession(currentCampaignId, currentSessionId, scene.id)}
+                                className="text-ui-muted hover:text-fear-light transition-colors shrink-0 text-[10px] uppercase font-bold"
+                            >
+                                ✕
                             </button>
                         </div>
 
                         {scene.flag && (
-                            <p className="text-ui-muted text-xs mt-1.5 italic pl-0.5">
+                            <p className="text-ui-muted text-sm mt-1.5 italic pl-0.5 opacity-80 font-medium">
                                 {scene.flag}
                             </p>
+                        )}
+                        {scene.description && (
+                            <div className="mt-3 prose max-w-none text-xs bg-ui-bg/30 rounded-lg p-3 border border-ui-surface2/50">
+                                <SharedMarkdown>{scene.description}</SharedMarkdown>
+                            </div>
                         )}
                     </div>
                 ))}
@@ -167,46 +172,62 @@ function SceneWidget() {
                 </div>
             )}
 
-            {isAdding ? (
-                <div className="flex flex-col gap-2">
-                    <input
-                        type="text"
-                        value={newTitle}
-                        onChange={(e) => setNewTitle(e.target.value)}
-                        placeholder="Scene name..."
-                        autoFocus
-                        className="bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg outline-none border border-ui-surface2 focus:border-fear-light"
-                    />
-                    <input
-                        type="text"
-                        value={newFlag}
-                        onChange={(e) => setNewFlag(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddScene()}
-                        placeholder="Flag: what triggers this scene? (optional)"
-                        className="bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg outline-none border border-ui-surface2 focus:border-fear-light"
-                    />
-                    <div className="flex gap-2">
-                        <button
-                            onClick={handleAddScene}
-                            className="flex-1 py-2 bg-fear-light hover:bg-fear-secondary text-ui-text text-sm rounded-lg transition-colors"
-                        >
-                            Add Scene
-                        </button>
-                        <button
-                            onClick={() => setIsAdding(false)}
-                            className="px-4 py-2 text-ui-muted hover:text-ui-text text-sm rounded-lg transition-colors"
-                        >
-                            Cancel
-                        </button>
+            {editingScene && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ui-bg/80 backdrop-blur-sm">
+                    <div className="bg-ui-surface w-full max-w-2xl rounded-2xl border border-ui-surface2 shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="flex items-center justify-between p-6 border-b border-ui-surface2">
+                            <h2 className="text-xl font-display font-semibold text-ui-text">Edit Scene</h2>
+                            <button onClick={() => setEditingScene(null)} className="text-ui-muted hover:text-ui-text transition-colors">✕</button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
+                            <div className="flex flex-col gap-2">
+                                <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">Scene Title</label>
+                                <input
+                                    type="text"
+                                    value={editingScene.title}
+                                    onChange={(e) => handleUpdateScene(editingScene.id, { title: e.target.value })}
+                                    className="bg-ui-bg border border-ui-surface2 rounded-lg px-4 py-2.5 text-ui-text text-sm focus:border-hope-primary outline-none transition-colors"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">Trigger Flag</label>
+                                <input
+                                    type="text"
+                                    value={editingScene.flag || ''}
+                                    onChange={(e) => handleUpdateScene(editingScene.id, { flag: e.target.value })}
+                                    className="bg-ui-bg border border-ui-surface2 rounded-lg px-4 py-2.5 text-ui-text text-sm focus:border-hope-primary outline-none transition-colors"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2 flex-1 min-h-[200px]">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">Description</label>
+                                    <div className="flex bg-ui-bg border border-ui-surface2 rounded p-0.5">
+                                        <button onClick={() => setDescriptionMode('write')} className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${descriptionMode === 'write' ? 'bg-ui-surface text-ui-text shadow-sm' : 'text-ui-muted hover:text-ui-text'}`}>Write</button>
+                                        <button onClick={() => setDescriptionMode('preview')} className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${descriptionMode === 'preview' ? 'bg-ui-surface text-ui-text shadow-sm' : 'text-ui-muted hover:text-ui-text'}`}>Preview</button>
+                                    </div>
+                                </div>
+                                {descriptionMode === 'write' ? (
+                                    <textarea
+                                        value={editingScene.description || ''}
+                                        onChange={(e) => handleUpdateScene(editingScene.id, { description: e.target.value })}
+                                        className="bg-ui-bg border border-ui-surface2 rounded-lg px-4 py-3 text-ui-text text-sm focus:border-hope-primary outline-none transition-colors flex-1 resize-none font-mono"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-ui-surface border border-ui-surface2 rounded-xl p-4 overflow-y-auto prose max-w-none text-ui-text">
+                                        {editingScene.description ? (
+                                            <SharedMarkdown>{editingScene.description}</SharedMarkdown>
+                                        ) : (
+                                            <p className="italic opacity-50 text-sm">Nothing written yet.</p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="p-6 border-t border-ui-surface2 flex justify-end bg-ui-surface/50 rounded-b-2xl">
+                            <button onClick={() => setEditingScene(null)} className="px-6 py-2 text-sm bg-hope-primary hover:bg-hope-gold text-white rounded-lg transition-colors font-medium">Close</button>
+                        </div>
                     </div>
                 </div>
-            ) : (
-                <button
-                    onClick={() => setIsAdding(true)}
-                    className="w-full py-2 text-sm text-hope-primary hover:text-hope-gold border border-dashed border-ui-surface2 hover:border-hope-primary rounded-lg transition-colors"
-                >
-                    + New Scene
-                </button>
             )}
 
         </div>

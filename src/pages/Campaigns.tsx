@@ -27,6 +27,7 @@ function Campaigns() {
             name: newCampaignName.trim(),
             scenes: [],
             sessions: [],
+            lore: [],
         }
         addCampaign(campaign)
         setNewCampaignName('')

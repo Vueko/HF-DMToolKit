@@ -1,4 +1,4 @@
-import ReactMarkdown from 'react-markdown'
+import { SharedMarkdown } from '../SharedMarkdown'
 import { useCampaignStore } from '../../store/campaignStore'
 import { useCardsStore } from '../../store/cardsStore'
 
@@ -56,7 +56,7 @@ function ActiveCardsWidget() {
                                                 <button onClick={() => removeCardFromSession(currentCampaignId, currentSessionId, instance.instanceId)} className="text-ui-muted hover:text-red-400 transition-colors text-xs">✕</button>
                                             </div>
                                             <div className="text-card-text text-sm opacity-80 [&_strong]:opacity-100 [&_strong]:font-semibold [&_em]:italic [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h1]:font-bold [&_h2]:font-semibold leading-relaxed">
-                                                <ReactMarkdown>{card.description || '_No description_'}</ReactMarkdown>
+                                                <SharedMarkdown>{card.description || '_No description_'}</SharedMarkdown>
                                             </div>
                                         </div>
                                     )
@@ -95,7 +95,9 @@ function ActiveCardsWidget() {
                                         </div>
 
                                         {card.description && (
-                                            <p className="text-card-text text-sm opacity-80 leading-relaxed">{card.description}</p>
+                                            <div className="text-card-text text-sm opacity-80 leading-relaxed [&_strong]:opacity-100 [&_strong]:font-semibold [&_em]:italic [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4">
+                                                <SharedMarkdown>{card.description}</SharedMarkdown>
+                                            </div>
                                         )}
 
                                         <div className="flex flex-col gap-2">

@@ -4,6 +4,7 @@ export interface Scene {
     status: 'upcoming' | 'active' | 'completed'
     flag: string
     count: number
+    description?: string
 }
 
 export interface Track {
@@ -61,12 +62,26 @@ export interface Campaign {
     name: string
     scenes: Scene[]
     sessions: Session[]
+    lore: LoreEntry[]
 }
 
-export interface JournalEntry {
+export type LoreCategory = 'continent' | 'city' | 'faction' | 'npc' | 'character_journal' | 'handout'
+
+export interface LoreEntry {
     id: string
     title: string
-    content: string
+    category: LoreCategory
+
+    continentId?: string
+    cityId?: string
+    factionId?: string
+    relatedLocationIds?: string[]
+
+    sceneId?: string
+    imageUrl?: string
+
+    publicContent: string
+    secretContent: string
     createdAt: string
     tags: string[]
 }

@@ -3,7 +3,7 @@
 
 @theme {
   /*Colores para Fear */
-  --color-fear-primary: #2D1B1E;
+  --color-fear-primary: #1A1129;
   --color-fear-secondary: #3D287A;
   --color-fear-light: #684FA8;
 
@@ -41,4 +41,97 @@ body {
 
 #root {
   height: 100%;
+}
+
+/* Markdown Typography */
+.prose {
+  @apply text-sm leading-relaxed;
+}
+
+/* Color de texto contextual para el Markdown */
+:where(.ui-bg, .ui-surface, .ui-canvas, .bg-ui-bg, .bg-ui-surface) .prose {
+  @apply text-ui-text;
+}
+
+.bg-card-bg .prose {
+  @apply text-card-text;
+}
+
+.prose p {
+  @apply mb-4 last:mb-0;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  @apply font-display font-bold mt-8 mb-4 text-ui-text;
+}
+
+.prose h1 {
+  @apply text-3xl text-hope-yellow border-b border-ui-surface2 pb-2 tracking-wide;
+}
+
+.prose h2 {
+  @apply text-2xl text-hope-secondary tracking-wide;
+}
+
+.prose h3 {
+  @apply text-xl text-hope-primary;
+}
+
+.prose h4 {
+  @apply text-lg opacity-90;
+}
+
+.prose ul {
+  @apply list-disc list-outside ml-6 mb-5 space-y-1 opacity-90;
+}
+
+.prose ol {
+  @apply list-decimal list-outside ml-6 mb-5 space-y-1 opacity-90;
+}
+
+.prose li {
+  @apply pl-1;
+}
+
+.prose strong {
+  @apply font-semibold text-hope-secondary;
+}
+
+.prose em {
+  @apply italic text-ui-text opacity-90;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-hope-primary pl-5 py-2 my-6 italic text-ui-muted bg-ui-surface2/30 rounded-r-lg;
+}
+
+.prose blockquote p {
+  @apply mb-0;
+}
+
+.prose hr {
+  @apply border-t border-ui-surface2 my-8;
+}
+
+.prose-secret h1 {
+  @apply text-fear-light border-fear-light/30;
+}
+
+.prose-secret h2 {
+  @apply text-fear-light;
+}
+
+.prose-secret h3 {
+  @apply text-fear-secondary;
+}
+
+.prose-secret strong {
+  @apply text-fear-light;
+}
+
+.prose-secret blockquote {
+  @apply border-fear-light bg-fear-light/10 text-fear-light/80;
 }
