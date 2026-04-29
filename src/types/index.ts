@@ -66,6 +66,24 @@ export interface Session {
     cardInstances: SessionCardInstance[]
 }
 
+export interface MapPoint {
+    x: number
+    y: number
+}
+
+export interface MapMarker extends MapPoint {
+    id: string
+    label: string
+    loreId?: string
+    color?: string
+}
+
+export interface CampaignMapData {
+    image?: string
+    markers: MapMarker[]
+    path: MapPoint[]
+}
+
 export interface Campaign {
     id: string
     name: string
@@ -73,6 +91,7 @@ export interface Campaign {
     sessions: Session[]
     lore: LoreEntry[]
     playlists: Playlist[]
+    map?: CampaignMapData
     dmScreenRules?: string
 }
 

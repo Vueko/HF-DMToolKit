@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Campaign, Session, Scene, SessionCardInstance, LoreEntry, Track, Playlist } from '../types'
+import type { Campaign, Session, Scene, SessionCardInstance, LoreEntry, Track, Playlist, CampaignMapData } from '../types'
 
 interface CampaignState {
     campaigns: Campaign[]
@@ -38,6 +38,7 @@ interface CampaignState {
     removeTrackFromPlaylist: (campaignId: string, playlistId: string, trackId: string) => void
     reorderTracksInPlaylist: (campaignId: string, playlistId: string, tracks: Track[]) => void
     updateTrackInPlaylist: (campaignId: string, playlistId: string, trackId: string, updates: Partial<Track>) => void
+    updateCampaignMap: (campaignId: string, map: Partial<CampaignMapData>) => void
 }
 
 function updateCampaign(campaigns: Campaign[], id: string, updater: (c: Campaign) => Campaign): Campaign[] {
@@ -270,6 +271,19 @@ export const useCampaignStore = create<CampaignState>()(
                                 ? { ...p, tracks: p.tracks.map((t) => t.id === trackId ? { ...t, ...updates } : t) }
                                 : p
                         ),
+                    })),
+                })),
+
+            updateCampaignMap: (campaignId, mapData) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        map: {
+                            markers: c.map?.markers || [],
+                            path: c.map?.path || [],
+                            ...c.map,
+                            ...mapData
+                        },
                     })),
                 })),
         }),

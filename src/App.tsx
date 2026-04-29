@@ -24,7 +24,6 @@ function Layout() {
   )
 }
 
-
 function App() {
   return (
     <Routes>

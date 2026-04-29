@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useCampaignStore } from '../store/campaignStore'
 import type { Campaign, Session } from '../types'
 
@@ -19,6 +19,52 @@ function Campaigns() {
     const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null)
 
     const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId) ?? null
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const handleExport = () => {
+        const data = {
+            'dh-campaigns': localStorage.getItem('dh-campaigns'),
+            'dh-music': localStorage.getItem('dh-music'),
+            'dh-fear': localStorage.getItem('dh-fear'),
+            'dh-cards': localStorage.getItem('dh-cards'),
+        }
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `daggerheart-backup-${new Date().toISOString().split('T')[0]}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+    }
+
+    const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        const reader = new FileReader()
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target?.result as string)
+                let imported = false
+                
+                if (data['dh-campaigns']) { localStorage.setItem('dh-campaigns', data['dh-campaigns']); imported = true; }
+                if (data['dh-music']) { localStorage.setItem('dh-music', data['dh-music']); imported = true; }
+                if (data['dh-fear']) { localStorage.setItem('dh-fear', data['dh-fear']); imported = true; }
+                if (data['dh-cards']) { localStorage.setItem('dh-cards', data['dh-cards']); imported = true; }
+                
+                if (imported) {
+                    alert('Data imported successfully! The application will now reload.')
+                    window.location.reload()
+                } else {
+                    alert('No valid DaggerHeart data found in this file.')
+                }
+            } catch {
+                alert('Invalid backup file.')
+            }
+        }
+        reader.readAsText(file)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+    }
 
     function handleAddCampaign() {
         if (!newCampaignName.trim()) return
@@ -56,9 +102,34 @@ function Campaigns() {
     return (
         <div className="flex flex-col gap-6">
 
-            <div>
-                <h1 className="text-ui-text font-display text-2xl font-bold">Campaigns</h1>
-                <p className="text-ui-muted text-sm">Manage your campaigns and sessions</p>
+            <div className="flex items-start justify-between">
+                <div>
+                    <h1 className="text-ui-text font-display text-2xl font-bold">Campaigns</h1>
+                    <p className="text-ui-muted text-sm">Manage your campaigns and sessions</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <input
+                        type="file"
+                        accept=".json"
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={handleImport}
+                    />
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-4 py-2 bg-ui-surface2 hover:bg-ui-surface border border-ui-surface2 text-ui-text text-sm rounded-lg transition-colors shadow-sm"
+                        title="Import data from another device"
+                    >
+                        ↓ Import Data
+                    </button>
+                    <button
+                        onClick={handleExport}
+                        className="px-4 py-2 bg-ui-surface2 hover:bg-ui-surface border border-ui-surface2 text-ui-text text-sm rounded-lg transition-colors shadow-sm"
+                        title="Export all data to a JSON file"
+                    >
+                        ↑ Export Data
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6">

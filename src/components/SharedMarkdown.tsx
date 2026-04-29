@@ -28,7 +28,7 @@ export function SharedMarkdown({ children }: SharedMarkdownProps) {
     return (
         <ReactMarkdown
             components={{
-                a: ({ node, href, children, ...props }) => {
+                a: ({ href, children, ...props }) => {
                     if (href?.startsWith('/journal?entryId=')) {
                         return (
                             <a

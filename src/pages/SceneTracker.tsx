@@ -15,6 +15,20 @@ function SceneTracker() {
     const [descriptionMode, setDescriptionMode] = useState<'write' | 'preview'>('write')
     const [selectedSessionFilter, setSelectedSessionFilter] = useState<string>('all')
 
+    const visibleScenes = useMemo(() => {
+        const scenes = currentCampaign?.scenes || []
+        if (selectedSessionFilter === 'all') {
+            return scenes
+        }
+        if (selectedSessionFilter === 'unassigned') {
+            const assignedIds = new Set(currentCampaign?.sessions.flatMap(s => s.sceneIds) || [])
+            return scenes.filter(s => !assignedIds.has(s.id))
+        }
+        const session = currentCampaign?.sessions.find(s => s.id === selectedSessionFilter)
+        if (!session) return []
+        return scenes.filter(s => session.sceneIds.includes(s.id))
+    }, [currentCampaign?.scenes, currentCampaign?.sessions, selectedSessionFilter])
+
     if (!currentCampaignId || !currentCampaign) {
         return (
             <div className="flex-1 flex items-center justify-center">
@@ -26,20 +40,7 @@ function SceneTracker() {
         )
     }
 
-    const allScenes = currentCampaign.scenes || []
 
-    const visibleScenes = useMemo(() => {
-        if (selectedSessionFilter === 'all') {
-            return allScenes
-        }
-        if (selectedSessionFilter === 'unassigned') {
-            const assignedIds = new Set(currentCampaign.sessions.flatMap(s => s.sceneIds))
-            return allScenes.filter(s => !assignedIds.has(s.id))
-        }
-        const session = currentCampaign.sessions.find(s => s.id === selectedSessionFilter)
-        if (!session) return []
-        return allScenes.filter(s => session.sceneIds.includes(s.id))
-    }, [allScenes, selectedSessionFilter, currentCampaign.sessions])
 
     const upcoming = visibleScenes.filter((s) => s.status === 'upcoming')
     const active = visibleScenes.filter((s) => s.status === 'active')

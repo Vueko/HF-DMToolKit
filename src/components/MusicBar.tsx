@@ -13,8 +13,8 @@ function formatTime(secs: number): string {
 function MusicBar() {
     const audioRef = useRef<HTMLAudioElement>(null)
     const blobUrlRef = useRef<string | null>(null)
-    const isLoadingRef = useRef(false)  // true while a track is being loaded
-    const isPlayingRef = useRef(false)  // mirrors store value, safe to read in async callbacks
+    const isLoadingRef = useRef(false)
+    const isPlayingRef = useRef(false)
 
     const [currentTime, setLocalCurrentTime] = useState(0)
     const [duration, setLocalDuration] = useState(0)
@@ -73,14 +73,16 @@ function MusicBar() {
         if (isPlayingRef.current) {
             audio.play().catch(() => setIsPlaying(false))
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => {
         if (!currentTrack) return
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLocalCurrentTime(0)
         setLocalDuration(0)
         loadTrack(currentTrack.storedId)
-    }, [currentTrack?.storedId])
+    }, [currentTrack, loadTrack])
 
     useEffect(() => {
         if (isLoadingRef.current) return
@@ -92,7 +94,7 @@ function MusicBar() {
         } else if (!isPlaying && !audio.paused) {
             audio.pause()
         }
-    }, [isPlaying])
+    }, [isPlaying, currentTrack, setIsPlaying])
 
     useEffect(() => {
         if (audioRef.current) audioRef.current.volume = volume

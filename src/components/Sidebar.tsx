@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink } from 'react-router-dom'
 
 const navItems = [
     { path: '/', label: 'Dashboard' },
@@ -11,15 +11,13 @@ const navItems = [
     { path: '/map', label: 'Campaign Map' },
 ]
 
-
 function Sidebar() {
     return (
         <aside className="w-64 min-h-screen bg-ui-canvas flex flex-col p-4 gap-1">
             <h2 className="text-hope-yellow font-display text-xl font-bold mb-6 px-2">
-                <span className="font-cinzel tracking-widest">DaggerHeart</span><br />
+                <span className="font-cinzel tracking-widest">HFTK</span><br />
                 <span className="font-inter text-ui-muted text-sm">DM Toolkit</span>
             </h2>
-
 
             {navItems.map((item) => (
                 <NavLink
@@ -35,8 +33,8 @@ function Sidebar() {
                     <span>{item.label}</span>
                 </NavLink>
             ))}
-        </aside >
+        </aside>
     )
 }
 
-export default Sidebar;
+export default Sidebar

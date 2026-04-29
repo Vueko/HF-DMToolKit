@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react'
 import { useCampaignStore } from '../../store/campaignStore'
 import { useMusicStore } from '../../store/musicStore'
 import type { Track } from '../../types'
@@ -16,14 +17,14 @@ function MoodWidget() {
     const { campaigns, currentCampaignId } = useCampaignStore()
     const { activePlaylistId, currentTrackIndex, isPlaying, setActivePlaylistId, setCurrentTrackIndex, setIsPlaying } = useMusicStore()
 
-    const campaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
-    const playlists = campaign?.playlists ?? []
+    const campaign = useMemo(() => campaigns.find((c) => c.id === currentCampaignId) ?? null, [campaigns, currentCampaignId])
+    const playlists = useMemo(() => campaign?.playlists ?? [], [campaign?.playlists])
 
     const activePlaylist = playlists.find((p) => p.id === activePlaylistId) ?? null
     const activeTrack: Track | null = activePlaylist?.tracks[currentTrackIndex] ?? null
     const currentMood = activeTrack?.mood ?? null
 
-    const handleMoodPlay = (mood: Mood) => {
+    const handleMoodPlay = useCallback((mood: Mood) => {
         const candidates: { playlistId: string; trackIndex: number }[] = []
         for (const pl of playlists) {
             pl.tracks.forEach((track, idx) => {
@@ -35,6 +36,7 @@ function MoodWidget() {
         const filtered = candidates.length > 1
             ? candidates.filter((c) => !(c.playlistId === activePlaylistId && c.trackIndex === currentTrackIndex))
             : candidates
+        
         const pick = filtered[Math.floor(Math.random() * filtered.length)]
 
         const store = useMusicStore.getState()
@@ -43,7 +45,7 @@ function MoodWidget() {
         setActivePlaylistId(pick.playlistId)
         setCurrentTrackIndex(pick.trackIndex)
         setIsPlaying(true)
-    }
+    }, [playlists, activePlaylistId, currentTrackIndex, setActivePlaylistId, setCurrentTrackIndex, setIsPlaying])
 
     const hasTracks = (mood: Mood) =>
         playlists.some((pl) => pl.tracks.some((t) => t.mood === mood))
