@@ -29,6 +29,7 @@ function SceneWidget() {
     )
 
     const handleUpdateScene = (id: string, updates: Partial<Scene>) => {
+        if (!currentCampaignId) return
         updateScene(currentCampaignId, id, updates)
         if (editingScene?.id === id) {
             setEditingScene({ ...editingScene, ...updates })

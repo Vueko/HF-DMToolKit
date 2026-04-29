@@ -52,9 +52,10 @@ function EnvironmentCards() {
         const newCard = {
             id: crypto.randomUUID(),
             type: 'environment' as const,
-            title: 'New Location',
+            title: 'New Environment',
             description: '',
-            category: 'location' as const,
+            category: 'Exploration',
+            tier: 1 as const,
             tags: [],
         }
         addEnvironmentCard(newCard)
@@ -68,10 +69,12 @@ function EnvironmentCards() {
             title: 'New Adversary',
             description: '',
             difficulty: 10,
+            tier: 1 as const,
+            role: 'Standard',
             tags: [],
             hp: { max: 10 },
             stress: { max: 5 },
-            thresholds: { minor: 3, major: 6, severe: 12 },
+            thresholds: { minor: 5, severe: 15 },
         }
         addAdversaryCard(newCard)
         setExpandedId(newCard.id)
@@ -180,34 +183,95 @@ function EnvironmentCards() {
                                 </div>
                             </div>
 
-                            {!isExpanded && card.type === 'environment' && card.description && (
-                                <div className="text-ui-muted text-sm [&_strong]:text-ui-text [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h1]:text-ui-text [&_h1]:font-bold [&_h2]:text-ui-text [&_h2]:font-semibold">
-                                    <ReactMarkdown>{card.description}</ReactMarkdown>
-                                </div>
+                            {!isExpanded && card.type === 'environment' && (
+                                <>
+                                    <div className="flex gap-2 text-xs uppercase font-bold text-ui-muted mb-2">
+                                        <span className="bg-ui-surface2 px-2 py-1 rounded">Tier {card.tier || 1}</span>
+                                        {card.category && <span className="bg-ui-surface2 px-2 py-1 rounded">{card.category}</span>}
+                                    </div>
+                                    {card.description && (
+                                        <div className="text-ui-muted text-sm [&_strong]:text-ui-text [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h1]:text-ui-text [&_h1]:font-bold [&_h2]:text-ui-text [&_h2]:font-semibold">
+                                            <ReactMarkdown>{card.description}</ReactMarkdown>
+                                        </div>
+                                    )}
+                                </>
                             )}
 
                             {!isExpanded && card.type === 'adversary' && (
-                                <div className="grid grid-cols-3 gap-2 text-xs text-ui-muted">
-                                    <span>Difficulty: {card.difficulty}</span>
-                                    <span>HP Max: {card.hp.max}</span>
-                                    <span>Stress Max: {card.stress.max}</span>
-                                    <span>Minor: {card.thresholds.minor}</span>
-                                    <span>Major: {card.thresholds.major}</span>
-                                    <span>Severe: {card.thresholds.severe}</span>
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex gap-2 text-xs uppercase font-bold text-ui-muted">
+                                        <span className="bg-ui-surface2 px-2 py-1 rounded">Tier {card.tier || 1}</span>
+                                        {card.role && <span className="bg-ui-surface2 px-2 py-1 rounded">{card.role}</span>}
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-xs text-ui-muted">
+                                        <span>Difficulty: {card.difficulty}</span>
+                                        <span>HP Max: {card.hp.max}</span>
+                                        <span>Stress Max: {card.stress.max}</span>
+                                        <span>Minor: &lt;{card.thresholds.minor}</span>
+                                        <span>Major: {card.thresholds.minor}-{card.thresholds.severe - 1}</span>
+                                        <span>Severe: {card.thresholds.severe}+</span>
+                                    </div>
                                 </div>
                             )}
 
                             {isExpanded && (
                                 <div className="flex flex-col gap-4 border-t border-ui-surface2 pt-3">
 
-                                    <div className="flex flex-col gap-1">
-                                        <label className="text-ui-muted text-xs">Title</label>
-                                        <input
-                                            type="text"
-                                            value={card.title}
-                                            onChange={(e) => updateCard(card.id, { title: e.target.value })}
-                                            className="bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg outline-none border border-ui-surface2 focus:border-fear-light"
-                                        />
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div className="flex flex-col gap-1 md:col-span-1">
+                                            <label className="text-ui-muted text-xs">Title</label>
+                                            <input
+                                                type="text"
+                                                value={card.title}
+                                                onChange={(e) => updateCard(card.id, { title: e.target.value })}
+                                                className="bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg outline-none border border-ui-surface2 focus:border-fear-light"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-ui-muted text-xs">Tier</label>
+                                            <select
+                                                value={card.tier || 1}
+                                                onChange={(e) => updateCard(card.id, { tier: +e.target.value as 1|2|3|4 })}
+                                                className="bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg outline-none border border-ui-surface2 focus:border-fear-light"
+                                            >
+                                                <option value={1}>Tier 1</option>
+                                                <option value={2}>Tier 2</option>
+                                                <option value={3}>Tier 3</option>
+                                                <option value={4}>Tier 4</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-ui-muted text-xs">Type</label>
+                                            {card.type === 'environment' ? (
+                                                <select
+                                                    value={card.category || 'Exploration'}
+                                                    onChange={(e) => updateCard(card.id, { category: e.target.value })}
+                                                    className="bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg outline-none border border-ui-surface2 focus:border-fear-light"
+                                                >
+                                                    <option value="Exploration">Exploration</option>
+                                                    <option value="Social">Social</option>
+                                                    <option value="Traversal">Traversal</option>
+                                                    <option value="Event">Event</option>
+                                                </select>
+                                            ) : (
+                                                <select
+                                                    value={card.role || 'Standard'}
+                                                    onChange={(e) => updateCard(card.id, { role: e.target.value })}
+                                                    className="bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg outline-none border border-ui-surface2 focus:border-fear-light"
+                                                >
+                                                    <option value="Bruiser">Bruiser</option>
+                                                    <option value="Horde">Horde</option>
+                                                    <option value="Leader">Leader</option>
+                                                    <option value="Minion">Minion</option>
+                                                    <option value="Ranged">Ranged</option>
+                                                    <option value="Skulk">Skulk</option>
+                                                    <option value="Social">Social</option>
+                                                    <option value="Solo">Solo</option>
+                                                    <option value="Standard">Standard</option>
+                                                    <option value="Support">Support</option>
+                                                </select>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="flex flex-col gap-1">
@@ -259,9 +323,9 @@ function EnvironmentCards() {
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-3 gap-3">
+                                            <div className="grid grid-cols-2 gap-3">
                                                 <div className="flex flex-col gap-1">
-                                                    <label className="text-ui-muted text-xs">Minor Threshold</label>
+                                                    <label className="text-ui-muted text-xs">Minor Threshold (&lt;X)</label>
                                                     <input
                                                         type="number"
                                                         value={card.thresholds.minor}
@@ -270,16 +334,7 @@ function EnvironmentCards() {
                                                     />
                                                 </div>
                                                 <div className="flex flex-col gap-1">
-                                                    <label className="text-ui-muted text-xs">Major Threshold</label>
-                                                    <input
-                                                        type="number"
-                                                        value={card.thresholds.major}
-                                                        onChange={(e) => updateCard(card.id, { thresholds: { ...card.thresholds, major: +e.target.value } })}
-                                                        className="bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg outline-none border border-ui-surface2 focus:border-fear-light"
-                                                    />
-                                                </div>
-                                                <div className="flex flex-col gap-1">
-                                                    <label className="text-ui-muted text-xs">Severe Threshold</label>
+                                                    <label className="text-ui-muted text-xs">Severe Threshold (X+)</label>
                                                     <input
                                                         type="number"
                                                         value={card.thresholds.severe}

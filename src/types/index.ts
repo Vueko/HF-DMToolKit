@@ -11,31 +11,40 @@ export interface Track {
     id: string
     title: string
     artist: string
-    url: string
+    storedId: string
+    duration?: number
     mood?: 'calm' | 'tense' | 'epic' | 'mystery' | 'ambient'
+}
+
+export interface Playlist {
+    id: string
+    name: string
+    tracks: Track[]
 }
 
 interface BaseCard {
     id: string
     title: string
     tags: string[]
+    tier?: 1 | 2 | 3 | 4
 }
 
 export interface EnvironmentCard extends BaseCard {
     type: 'environment'
     description: string
-    category: 'location' | 'event' | 'weather' | 'hazard'
+    category: 'Exploration' | 'Social' | 'Traversal' | 'Event' | string // fallback for old data
 }
 
 export interface AdversaryCard extends BaseCard {
     type: 'adversary'
     description: string
     difficulty: number
+    role?: 'Bruiser' | 'Horde' | 'Leader' | 'Minion' | 'Ranged' | 'Skulk' | 'Social' | 'Solo' | 'Standard' | 'Support' | string
     hp: { max: number }
     stress: { max: number }
     thresholds: {
         minor: number
-        major: number
+        major?: number
         severe: number
     }
 }
@@ -63,6 +72,7 @@ export interface Campaign {
     scenes: Scene[]
     sessions: Session[]
     lore: LoreEntry[]
+    playlists: Playlist[]
     dmScreenRules?: string
 }
 

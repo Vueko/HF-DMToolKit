@@ -55,6 +55,10 @@ function ActiveCardsWidget() {
                                                 <span className="text-card-text font-semibold text-sm">{card.title}</span>
                                                 <button onClick={() => removeCardFromSession(currentCampaignId, currentSessionId, instance.instanceId)} className="text-ui-muted hover:text-red-400 transition-colors text-xs">✕</button>
                                             </div>
+                                            <div className="flex gap-2 text-xs uppercase font-bold text-ui-muted">
+                                                <span className="bg-ui-surface2 px-2 py-1 rounded">Tier {card.tier || 1}</span>
+                                                {card.category && <span className="bg-ui-surface2 px-2 py-1 rounded">{card.category}</span>}
+                                            </div>
                                             <div className="text-card-text text-sm opacity-80 [&_strong]:opacity-100 [&_strong]:font-semibold [&_em]:italic [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h1]:font-bold [&_h2]:font-semibold leading-relaxed">
                                                 <SharedMarkdown>{card.description || '_No description_'}</SharedMarkdown>
                                             </div>
@@ -94,6 +98,11 @@ function ActiveCardsWidget() {
                                             </div>
                                         </div>
 
+                                        <div className="flex gap-2 text-xs uppercase font-bold text-ui-muted">
+                                            <span className="bg-ui-surface2 px-2 py-1 rounded">Tier {card.tier || 1}</span>
+                                            {card.role && <span className="bg-ui-surface2 px-2 py-1 rounded">{card.role}</span>}
+                                        </div>
+
                                         {card.description && (
                                             <div className="text-card-text text-sm opacity-80 leading-relaxed [&_strong]:opacity-100 [&_strong]:font-semibold [&_em]:italic [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4">
                                                 <SharedMarkdown>{card.description}</SharedMarkdown>
@@ -121,9 +130,21 @@ function ActiveCardsWidget() {
                                                 <span className="text-card-text text-xs w-10 text-right">{instance.stressCurrent}/{card.stress.max}</span>
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-1 text-xs text-card-text opacity-60 pt-1 border-t border-card-border">
-                                                <span>Difficulty: {card.difficulty}</span>
-                                                <span>Min: {card.thresholds.minor} / Maj: {card.thresholds.major} / Sev: {card.thresholds.severe}</span>
+                                            <div className="flex flex-col gap-1 pt-1 border-t border-card-border">
+                                                <div className="flex items-center justify-between text-xs text-card-text opacity-60">
+                                                    <span>Difficulty: {card.difficulty}</span>
+                                                </div>
+                                                <div className="flex gap-1.5 text-xs font-semibold text-ui-muted">
+                                                    <span className="bg-ui-surface2 px-2 py-0.5 rounded">
+                                                        Minor &lt;{card.thresholds.minor}
+                                                    </span>
+                                                    <span className="bg-ui-surface2 px-2 py-0.5 rounded">
+                                                        Major {card.thresholds.minor}-{card.thresholds.severe - 1}
+                                                    </span>
+                                                    <span className="bg-ui-surface2 px-2 py-0.5 rounded">
+                                                        Severe {card.thresholds.severe}+
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

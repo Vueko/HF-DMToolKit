@@ -1,6 +1,7 @@
 import FearWidget from '../components/dashboard/FearWidget'
 import SceneWidget from '../components/dashboard/SceneWidget'
 import ActiveCardsWidget from '../components/dashboard/ActiveCardsWidget'
+import MoodWidget from '../components/dashboard/MoodWidget'
 import { useCampaignStore } from '../store/campaignStore'
 import { Link } from 'react-router-dom'
 
@@ -24,14 +25,17 @@ function DMDashboard() {
                         <p className="text-ui-muted text-sm">No active session</p>
                     )}
                 </div>
-                {!currentSession && (
-                    <Link
-                        to="/campaigns"
-                        className="text-xs px-3 py-2 bg-fear-light hover:bg-fear-secondary text-ui-text rounded-lg transition-colors"
-                    >
-                        Set Active Session
-                    </Link>
-                )}
+                <div className="flex items-center gap-3">
+                    <MoodWidget />
+                    {!currentSession && (
+                        <Link
+                            to="/campaigns"
+                            className="text-xs px-3 py-2 bg-fear-light hover:bg-fear-secondary text-ui-text rounded-lg transition-colors"
+                        >
+                            Set Active Session
+                        </Link>
+                    )}
+                </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

@@ -28,6 +28,7 @@ function Campaigns() {
             scenes: [],
             sessions: [],
             lore: [],
+            playlists: [],
         }
         addCampaign(campaign)
         setNewCampaignName('')

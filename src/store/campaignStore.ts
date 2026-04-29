@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Campaign, Session, Scene, SessionCardInstance, LoreEntry } from '../types'
+import type { Campaign, Session, Scene, SessionCardInstance, LoreEntry, Track, Playlist } from '../types'
 
 interface CampaignState {
     campaigns: Campaign[]
@@ -30,6 +30,14 @@ interface CampaignState {
     removeLoreEntry: (campaignId: string, entryId: string) => void
 
     updateCampaignRules: (campaignId: string, rules: string) => void
+
+    addPlaylist: (campaignId: string, playlist: Playlist) => void
+    removePlaylist: (campaignId: string, playlistId: string) => void
+    renamePlaylist: (campaignId: string, playlistId: string, name: string) => void
+    addTrackToPlaylist: (campaignId: string, playlistId: string, track: Track) => void
+    removeTrackFromPlaylist: (campaignId: string, playlistId: string, trackId: string) => void
+    reorderTracksInPlaylist: (campaignId: string, playlistId: string, tracks: Track[]) => void
+    updateTrackInPlaylist: (campaignId: string, playlistId: string, trackId: string, updates: Partial<Track>) => void
 }
 
 function updateCampaign(campaigns: Campaign[], id: string, updater: (c: Campaign) => Campaign): Campaign[] {
@@ -192,6 +200,76 @@ export const useCampaignStore = create<CampaignState>()(
                     campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
                         ...c,
                         dmScreenRules: rules,
+                    })),
+                })),
+
+            addPlaylist: (campaignId, playlist) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        playlists: [...(c.playlists ?? []), playlist],
+                    })),
+                })),
+
+            removePlaylist: (campaignId, playlistId) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        playlists: (c.playlists ?? []).filter((p) => p.id !== playlistId),
+                    })),
+                })),
+
+            renamePlaylist: (campaignId, playlistId, name) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        playlists: (c.playlists ?? []).map((p) =>
+                            p.id === playlistId ? { ...p, name } : p
+                        ),
+                    })),
+                })),
+
+            addTrackToPlaylist: (campaignId, playlistId, track) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        playlists: (c.playlists ?? []).map((p) =>
+                            p.id === playlistId ? { ...p, tracks: [...p.tracks, track] } : p
+                        ),
+                    })),
+                })),
+
+            removeTrackFromPlaylist: (campaignId, playlistId, trackId) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        playlists: (c.playlists ?? []).map((p) =>
+                            p.id === playlistId
+                                ? { ...p, tracks: p.tracks.filter((t) => t.id !== trackId) }
+                                : p
+                        ),
+                    })),
+                })),
+
+            reorderTracksInPlaylist: (campaignId, playlistId, tracks) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        playlists: (c.playlists ?? []).map((p) =>
+                            p.id === playlistId ? { ...p, tracks } : p
+                        ),
+                    })),
+                })),
+
+            updateTrackInPlaylist: (campaignId, playlistId, trackId, updates) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        playlists: (c.playlists ?? []).map((p) =>
+                            p.id === playlistId
+                                ? { ...p, tracks: p.tracks.map((t) => t.id === trackId ? { ...t, ...updates } : t) }
+                                : p
+                        ),
                     })),
                 })),
         }),
