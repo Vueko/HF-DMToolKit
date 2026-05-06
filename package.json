@@ -43,7 +43,7 @@
   },
   "build": {
     "appId": "com.daggerheart.toolkit",
-    "productName": "DaggerHeart Toolkit",
+    "productName": "HF DMToolKit",
     "copyright": "Copyright © 2025 Carlos",
     "directories": {
       "output": "release"
