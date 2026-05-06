@@ -13,12 +13,7 @@ const navItems = [
 
 function Sidebar() {
     return (
-        <aside className="w-64 min-h-screen bg-ui-canvas flex flex-col p-4 gap-1">
-            <h2 className="text-hope-yellow font-display text-xl font-bold mb-6 px-2">
-                <span className="font-cinzel tracking-widest">HFTK</span><br />
-                <span className="font-inter text-ui-muted text-sm">DM Toolkit</span>
-            </h2>
-
+        <aside className="w-64 bg-ui-canvas flex flex-col px-4 pt-3 pb-4 gap-1 border-r border-ui-surface/30">
             {navItems.map((item) => (
                 <NavLink
                     key={item.path}

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { electronStorage } from '../utils/electronStorage'
 
 interface FearState {
     fearCount: number
@@ -16,6 +17,6 @@ export const useFearStore = create<FearState>()(
             removeFear: (amount) => set((state) => ({ fearCount: Math.max(0, state.fearCount - amount) })),
             resetFear: () => set({ fearCount: 0 }),
         }),
-        { name: 'dh-fear' }
+        { name: 'dh-fear', storage: createJSONStorage(() => electronStorage) }
     )
 )

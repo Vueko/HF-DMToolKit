@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { electronStorage } from '../utils/electronStorage'
 
 interface MusicState {
     currentTrackIndex: number
@@ -57,6 +58,7 @@ export const useMusicStore = create<MusicState>()(
         }),
         {
             name: 'dh-music',
+            storage: createJSONStorage(() => electronStorage),
             partialize: (s) => ({ volume: s.volume, loop: s.loop, shuffle: s.shuffle, activePlaylistId: s.activePlaylistId }),
         }
     )

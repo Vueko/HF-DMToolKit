@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { electronStorage } from '../utils/electronStorage'
 import type { Campaign, Session, Scene, SessionCardInstance, LoreEntry, Track, Playlist, CampaignMapData } from '../types'
 
 interface CampaignState {
@@ -287,6 +288,6 @@ export const useCampaignStore = create<CampaignState>()(
                     })),
                 })),
         }),
-        { name: 'dh-campaigns' }
+        { name: 'dh-campaigns', storage: createJSONStorage(() => electronStorage) }
     )
 )

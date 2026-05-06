@@ -1,5 +1,6 @@
 import { Routes, Route, Outlet } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
+import TitleBar from './components/TitleBar'
 import DMDashboard from './pages/DMDashboard'
 import SceneTracker from './pages/SceneTracker'
 import EnvironmentCards from './pages/EnvironmentCards'
@@ -13,6 +14,7 @@ import MusicBar from './components/MusicBar'
 function Layout() {
   return (
     <div className="flex flex-col h-screen bg-ui-bg">
+      <TitleBar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <main className="flex-1 p-6 bg-ui-canvas overflow-y-auto">
