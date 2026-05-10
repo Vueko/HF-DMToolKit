@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useCampaignStore } from '../store/campaignStore'
 
 const navItems = [
     { path: '/', label: 'Dashboard' },
@@ -10,10 +11,12 @@ const navItems = [
     { path: '/music', label: 'Music Player' },
     { path: '/journal', label: 'Campaign Journal' },
     { path: '/map', label: 'Campaign Map' },
-
 ]
 
 function Sidebar() {
+    const { campaigns, currentCampaignId } = useCampaignStore()
+    const currentCampaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
+
     return (
         <aside className="w-64 bg-ui-canvas flex flex-col px-4 pt-3 pb-4 gap-1 border-r border-ui-surface/30">
             {navItems.map((item) => (
@@ -30,6 +33,12 @@ function Sidebar() {
                     <span>{item.label}</span>
                 </NavLink>
             ))}
+            <div className="mt-auto pt-3 border-t border-ui-surface/30">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted px-3 mb-1">Campaña</p>
+                <p className="text-xs text-ui-text px-3 truncate">
+                    {currentCampaign?.name ?? 'Sin campaña activa'}
+                </p>
+            </div>
         </aside>
     )
 }
