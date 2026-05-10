@@ -2,7 +2,8 @@ import { app, BrowserWindow, Menu, shell, ipcMain, dialog, session } from 'elect
 import { join } from 'path'
 import * as fs from 'fs'
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+// Allows UUIDs and simple slug IDs (e.g. "shared-map"), blocks path traversal
+const SAFE_ID_RE = /^[a-zA-Z0-9_\-]{1,80}$/
 
 class DataStore {
   private readonly filePath: string
@@ -65,7 +66,7 @@ function createWindow(): void {
 
   if (!app.isPackaged) {
     mainWindow.loadURL('http://localhost:5173')
-    mainWindow.webContents.openDevTools()
+    mainWindow.webContents.openDevTools({ mode: 'detach' })
   } else {
     mainWindow.loadFile(join(__dirname, '../dist/index.html'))
   }
@@ -116,31 +117,31 @@ app.whenReady().then(() => {
   ipcMain.on('store:delete', (_, key: string) => store.delete(key))
 
   ipcMain.handle('fs:save-audio', (_, id: string, data: Uint8Array) => {
-    if (!UUID_RE.test(id)) return
+    if (!SAFE_ID_RE.test(id)) return
     fs.writeFileSync(join(audioDir, id), Buffer.from(data))
   })
   ipcMain.handle('fs:get-audio', (_, id: string): Uint8Array | null => {
-    if (!UUID_RE.test(id)) return null
+    if (!SAFE_ID_RE.test(id)) return null
     const p = join(audioDir, id)
     return fs.existsSync(p) ? fs.readFileSync(p) : null
   })
   ipcMain.handle('fs:delete-audio', (_, id: string) => {
-    if (!UUID_RE.test(id)) return
+    if (!SAFE_ID_RE.test(id)) return
     const p = join(audioDir, id)
     if (fs.existsSync(p)) fs.unlinkSync(p)
   })
 
   ipcMain.handle('fs:save-map-image', (_, id: string, data: Uint8Array) => {
-    if (!UUID_RE.test(id)) return
+    if (!SAFE_ID_RE.test(id)) return
     fs.writeFileSync(join(mapsDir, id), Buffer.from(data))
   })
   ipcMain.handle('fs:get-map-image', (_, id: string): Uint8Array | null => {
-    if (!UUID_RE.test(id)) return null
+    if (!SAFE_ID_RE.test(id)) return null
     const p = join(mapsDir, id)
     return fs.existsSync(p) ? fs.readFileSync(p) : null
   })
   ipcMain.handle('fs:delete-map-image', (_, id: string) => {
-    if (!UUID_RE.test(id)) return
+    if (!SAFE_ID_RE.test(id)) return
     const p = join(mapsDir, id)
     if (fs.existsSync(p)) fs.unlinkSync(p)
   })

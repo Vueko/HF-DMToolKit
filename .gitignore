@@ -24,3 +24,7 @@ release
 *.njsproj
 *.sln
 *.sw?
+
+# Local docs and brainstorming
+docs/
+.superpowers/

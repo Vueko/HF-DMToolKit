@@ -9,6 +9,7 @@ import MusicPlayer from './pages/MusicPlayer'
 import CampaignJournal from './pages/CampaignJournal'
 import CampaignMap from './pages/CampaignMap'
 import Campaigns from './pages/Campaigns'
+import EncounterBuilder from './pages/EncounterBuilder'
 import MusicBar from './components/MusicBar'
 
 function Layout() {
@@ -34,6 +35,7 @@ function App() {
         <Route path="/campaigns" element={<Campaigns />} />
         <Route path="/scenes" element={<SceneTracker />} />
         <Route path="/cards" element={<EnvironmentCards />} />
+        <Route path="/encounter" element={<EncounterBuilder />} />
         <Route path="/dm-screen" element={<DMScreen />} />
         <Route path="/music" element={<MusicPlayer />} />
         <Route path="/journal" element={<CampaignJournal />} />

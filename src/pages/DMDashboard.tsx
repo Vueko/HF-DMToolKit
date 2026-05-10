@@ -2,6 +2,7 @@ import FearWidget from '../components/dashboard/FearWidget'
 import SceneWidget from '../components/dashboard/SceneWidget'
 import ActiveCardsWidget from '../components/dashboard/ActiveCardsWidget'
 import MoodWidget from '../components/dashboard/MoodWidget'
+import EncounterWidget from '../components/dashboard/EncounterWidget'
 import { useCampaignStore } from '../store/campaignStore'
 import { Link } from 'react-router-dom'
 
@@ -43,6 +44,9 @@ function DMDashboard() {
                 <FearWidget />
                 <div className="col-span-2">
                     <ActiveCardsWidget />
+                </div>
+                <div className="col-span-2">
+                    <EncounterWidget />
                 </div>
             </div>
 

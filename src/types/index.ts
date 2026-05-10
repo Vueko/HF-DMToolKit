@@ -63,6 +63,7 @@ export interface Session {
     name: string
     number: number
     sceneIds: string[]
+    encounterIds: string[]
     cardInstances: SessionCardInstance[]
 }
 
@@ -84,6 +85,35 @@ export interface CampaignMapData {
     path: MapPoint[]
 }
 
+export type EncounterAdjustment =
+    | 'easy_short'
+    | 'two_plus_solos'
+    | 'bonus_damage'
+    | 'lower_tier'
+    | 'no_heavy_roles'
+    | 'dangerous_long'
+
+export interface EncounterEntry {
+    cardId: string
+    count: number
+}
+
+export interface EncounterCardInstance {
+    instanceId: string
+    cardId: string
+    hpCurrent: number
+    stressCurrent: number
+}
+
+export interface Encounter {
+    id: string
+    name: string
+    pcCount: number
+    adjustments: EncounterAdjustment[]
+    entries: EncounterEntry[]
+    instances?: EncounterCardInstance[]
+}
+
 export interface Campaign {
     id: string
     name: string
@@ -93,6 +123,8 @@ export interface Campaign {
     playlists: Playlist[]
     map?: CampaignMapData
     dmScreenRules?: string
+    encounters?: Encounter[]
+    activeEncounterId?: string
 }
 
 export type LoreCategory = 'continent' | 'city' | 'faction' | 'npc' | 'character_journal' | 'handout'

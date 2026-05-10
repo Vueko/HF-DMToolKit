@@ -5,10 +5,12 @@ const navItems = [
     { path: '/campaigns', label: 'Campaigns' },
     { path: '/scenes', label: 'Scene Tracker' },
     { path: '/cards', label: 'Cards' },
+    { path: '/encounter', label: 'Encounter Builder' },
     { path: '/dm-screen', label: 'DM Screen' },
     { path: '/music', label: 'Music Player' },
     { path: '/journal', label: 'Campaign Journal' },
     { path: '/map', label: 'Campaign Map' },
+
 ]
 
 function Sidebar() {

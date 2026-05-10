@@ -28,7 +28,7 @@ export function SharedMarkdown({ children }: SharedMarkdownProps) {
     return (
         <ReactMarkdown
             components={{
-                a: ({ href, children, ...props }) => {
+                a: ({ href, children }) => {
                     if (href?.startsWith('/journal?entryId=')) {
                         return (
                             <a
@@ -44,7 +44,9 @@ export function SharedMarkdown({ children }: SharedMarkdownProps) {
                             </a>
                         )
                     }
-                    return <a href={href} target="_blank" rel="noreferrer" className="text-hope-primary hover:text-hope-gold underline" {...props}>{children}</a>
+                    const isSafe = href?.startsWith('https://') || href?.startsWith('http://')
+                    if (!isSafe) return <span className="text-hope-primary underline">{children}</span>
+                    return <a href={href} target="_blank" rel="noreferrer" className="text-hope-primary hover:text-hope-gold underline">{children}</a>
                 }
             }}
         >

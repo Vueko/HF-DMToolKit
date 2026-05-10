@@ -90,6 +90,7 @@ function Campaigns() {
             name: newSessionName.trim(),
             number: sessionCount + 1,
             sceneIds: [],
+            encounterIds: [],
             cardInstances: [],
         }
         addSession(selectedCampaignId, session)

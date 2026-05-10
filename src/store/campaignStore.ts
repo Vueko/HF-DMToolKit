@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { electronStorage } from '../utils/electronStorage'
-import type { Campaign, Session, Scene, SessionCardInstance, LoreEntry, Track, Playlist, CampaignMapData } from '../types'
+import type { Campaign, Session, Scene, SessionCardInstance, LoreEntry, Track, Playlist, CampaignMapData, Encounter, EncounterCardInstance } from '../types'
 
 interface CampaignState {
     campaigns: Campaign[]
@@ -40,6 +40,14 @@ interface CampaignState {
     reorderTracksInPlaylist: (campaignId: string, playlistId: string, tracks: Track[]) => void
     updateTrackInPlaylist: (campaignId: string, playlistId: string, trackId: string, updates: Partial<Track>) => void
     updateCampaignMap: (campaignId: string, map: Partial<CampaignMapData>) => void
+
+    addEncounter: (campaignId: string, encounter: Encounter) => void
+    removeEncounter: (campaignId: string, encounterId: string) => void
+    updateEncounter: (campaignId: string, encounterId: string, updates: Partial<Encounter>) => void
+    setActiveEncounter: (campaignId: string, encounterId: string | null) => void
+    updateEncounterInstance: (campaignId: string, encounterId: string, instanceId: string, updates: Partial<EncounterCardInstance>) => void
+    addEncounterToSession: (campaignId: string, sessionId: string, encounterId: string) => void
+    removeEncounterFromSession: (campaignId: string, sessionId: string, encounterId: string) => void
 }
 
 function updateCampaign(campaigns: Campaign[], id: string, updater: (c: Campaign) => Campaign): Campaign[] {
@@ -286,6 +294,85 @@ export const useCampaignStore = create<CampaignState>()(
                             ...mapData
                         },
                     })),
+                })),
+
+            addEncounter: (campaignId, encounter) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        encounters: [...(c.encounters ?? []), encounter],
+                    })),
+                })),
+
+            removeEncounter: (campaignId, encounterId) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        encounters: (c.encounters ?? []).filter((e) => e.id !== encounterId),
+                        activeEncounterId: c.activeEncounterId === encounterId ? undefined : c.activeEncounterId,
+                        sessions: c.sessions.map((s) => ({
+                            ...s,
+                            encounterIds: (s.encounterIds ?? []).filter((id) => id !== encounterId),
+                        })),
+                    })),
+                })),
+
+            updateEncounter: (campaignId, encounterId, updates) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        encounters: (c.encounters ?? []).map((e) =>
+                            e.id === encounterId ? { ...e, ...updates } : e
+                        ),
+                    })),
+                })),
+
+            setActiveEncounter: (campaignId, encounterId) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        activeEncounterId: encounterId ?? undefined,
+                    })),
+                })),
+
+            updateEncounterInstance: (campaignId, encounterId, instanceId, updates) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        encounters: (c.encounters ?? []).map((e) =>
+                            e.id === encounterId
+                                ? {
+                                    ...e,
+                                    instances: (e.instances ?? []).map((i) =>
+                                        i.instanceId === instanceId ? { ...i, ...updates } : i
+                                    ),
+                                }
+                                : e
+                        ),
+                    })),
+                })),
+
+            addEncounterToSession: (campaignId, sessionId, encounterId) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) =>
+                        updateSession(c, sessionId, (s) => {
+                            const ids = s.encounterIds ?? []
+                            return {
+                                ...s,
+                                encounterIds: ids.includes(encounterId) ? ids : [...ids, encounterId],
+                            }
+                        })
+                    ),
+                })),
+
+            removeEncounterFromSession: (campaignId, sessionId, encounterId) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) =>
+                        updateSession(c, sessionId, (s) => ({
+                            ...s,
+                            encounterIds: (s.encounterIds ?? []).filter((id) => id !== encounterId),
+                        }))
+                    ),
                 })),
         }),
         { name: 'dh-campaigns', storage: createJSONStorage(() => electronStorage) }
