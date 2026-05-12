@@ -1,10 +1,12 @@
+import { Link } from 'react-router-dom'
 import FearWidget from '../components/dashboard/FearWidget'
 import SceneWidget from '../components/dashboard/SceneWidget'
 import ActiveCardsWidget from '../components/dashboard/ActiveCardsWidget'
 import MoodWidget from '../components/dashboard/MoodWidget'
 import EncounterWidget from '../components/dashboard/EncounterWidget'
+import PlayerScreenWidget from '../components/dashboard/PlayerScreenWidget'
+import PrepChecklist from '../components/dashboard/PrepChecklist'
 import { useCampaignStore } from '../store/campaignStore'
-import { Link } from 'react-router-dom'
 
 function DMDashboard() {
     const { campaigns, currentCampaignId, currentSessionId } = useCampaignStore()
@@ -12,9 +14,33 @@ function DMDashboard() {
     const currentCampaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
     const currentSession = currentCampaign?.sessions.find((s) => s.id === currentSessionId) ?? null
 
+    // State 2: campaign exists but no active session — inline check so TypeScript narrows currentCampaign to Campaign
+    if (currentCampaign !== null && currentSession === null) {
+        return <PrepChecklist campaign={currentCampaign} />
+    }
+
+    const hasCampaign = currentCampaign !== null
+
     return (
         <div className="flex flex-col gap-6">
 
+            {/* State 1: no campaign — show banner above header */}
+            {!hasCampaign && (
+                <div className="flex items-center justify-between gap-4 bg-ui-surface border border-fear-light/40 rounded-xl px-4 py-3">
+                    <div>
+                        <p className="text-ui-text text-sm font-medium">Para empezar, creá tu primera campaña</p>
+                        <p className="text-ui-muted text-xs">Campaigns → Nueva campaña → Nueva sesión</p>
+                    </div>
+                    <Link
+                        to="/campaigns"
+                        className="bg-fear-light hover:bg-fear-secondary text-ui-text px-4 py-2 rounded-lg transition-colors font-medium text-sm whitespace-nowrap"
+                    >
+                        Ir a Campaigns →
+                    </Link>
+                </div>
+            )}
+
+            {/* Header — shown in State 1 and State 3 */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-ui-text font-display text-2xl font-bold">DM Dashboard</h1>
@@ -26,27 +52,17 @@ function DMDashboard() {
                         <p className="text-ui-muted text-sm">No active session</p>
                     )}
                 </div>
-                <div className="flex items-center gap-3">
-                    <MoodWidget />
-                    {!currentSession && (
-                        <Link
-                            to="/campaigns"
-                            className="text-xs px-3 py-2 bg-fear-light hover:bg-fear-secondary text-ui-text rounded-lg transition-colors"
-                        >
-                            Set Active Session
-                        </Link>
-                    )}
-                </div>
+                <MoodWidget />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Widget grid — dimmed in State 1, fully active in State 3 */}
+            <div className={`grid grid-cols-2 gap-4 ${!hasCampaign ? 'opacity-40 pointer-events-none' : ''}`}>
                 <SceneWidget />
                 <FearWidget />
+                <ActiveCardsWidget />
+                <EncounterWidget />
                 <div className="col-span-2">
-                    <ActiveCardsWidget />
-                </div>
-                <div className="col-span-2">
-                    <EncounterWidget />
+                    <PlayerScreenWidget />
                 </div>
             </div>
 

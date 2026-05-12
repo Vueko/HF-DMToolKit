@@ -23,7 +23,7 @@ const ACCENT_COLORS = [
 function getRoleCost(role?: string) { return ROLE_COST[role ?? ''] ?? 2 }
 
 function EncounterWidget() {
-    const { campaigns, currentCampaignId, updateEncounterInstance, updateEncounter } = useCampaignStore()
+    const { campaigns, currentCampaignId, currentSessionId, updateEncounterInstance, updateEncounter, setActiveEncounter } = useCampaignStore()
     const { cards } = useCardsStore()
 
     const adversaryCards = useMemo(
@@ -34,6 +34,10 @@ function EncounterWidget() {
     const campaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
     const encounter = campaign?.encounters?.find((e) => e.id === campaign.activeEncounterId) ?? null
     const instances = encounter?.instances ?? []
+
+    const currentSession = campaign?.sessions.find((s) => s.id === currentSessionId) ?? null
+    const sessionEncounterIds = currentSession?.encounterIds ?? []
+    const sessionEncounters = (campaign?.encounters ?? []).filter((e) => sessionEncounterIds.includes(e.id))
 
     const totalPoints = useMemo(() => {
         if (!encounter) return 0
@@ -64,7 +68,7 @@ function EncounterWidget() {
 
     if (!encounter) {
         return (
-            <div className="bg-ui-surface rounded-xl border border-ui-surface2 p-4 flex items-center justify-between">
+            <div className="bg-ui-surface rounded-xl border border-ui-surface2/60 p-4 flex items-center justify-between">
                 <div>
                     <p className="text-ui-text text-sm font-semibold">Encounter Tracker</p>
                     <p className="text-ui-muted text-xs">No active encounter — set one in Encounter Builder</p>
@@ -80,7 +84,25 @@ function EncounterWidget() {
     }
 
     return (
-        <div className="bg-ui-surface rounded-xl border border-ui-surface2 p-4 flex flex-col gap-3">
+        <div className="bg-ui-surface rounded-xl border border-ui-surface2/60 p-4 flex flex-col gap-3">
+
+            {sessionEncounters.length > 1 && (
+                <div className="flex gap-1.5 flex-wrap shrink-0">
+                    {sessionEncounters.map((e) => (
+                        <button
+                            key={e.id}
+                            onClick={() => setActiveEncounter(currentCampaignId!, e.id)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                                e.id === campaign!.activeEncounterId
+                                    ? 'bg-fear-light text-ui-canvas'
+                                    : 'bg-ui-surface2 text-ui-muted hover:text-ui-text hover:bg-ui-surface2/80'
+                            }`}
+                        >
+                            {e.name}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {/* Header */}
             <div className="flex items-center justify-between gap-4 shrink-0">
@@ -118,9 +140,8 @@ function EncounterWidget() {
                     }
                 </p>
             ) : (
-                <div className="overflow-x-auto">
-                    <div className="flex gap-3 pb-1" style={{ width: 'max-content' }}>
-                        {instances.map((instance, idx) => {
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
+                    {instances.map((instance, idx) => {
                             const card = adversaryCards.find((c) => c.id === instance.cardId)
                             if (!card) return null
 
@@ -149,7 +170,7 @@ function EncounterWidget() {
                             return (
                                 <div
                                     key={instance.instanceId}
-                                    className={`bg-card-bg rounded-lg px-4 py-3 border border-card-border border-l-2 ${accentColor} flex flex-col gap-2.5 w-56 shrink-0 ${isDead ? 'opacity-50' : ''}`}
+                                    className={`bg-card-bg rounded-lg px-4 py-3 border border-card-border border-l-2 ${accentColor} flex flex-col gap-2.5 ${isDead ? 'opacity-50' : ''}`}
                                 >
                                     {/* Title */}
                                     <div className="flex items-start justify-between gap-1">
@@ -219,7 +240,6 @@ function EncounterWidget() {
                                 </div>
                             )
                         })}
-                    </div>
                 </div>
             )}
         </div>

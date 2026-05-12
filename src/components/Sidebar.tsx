@@ -11,6 +11,7 @@ const navItems = [
     { path: '/music', label: 'Music Player' },
     { path: '/journal', label: 'Campaign Journal' },
     { path: '/map', label: 'Campaign Map' },
+    { path: '/soundboard', label: 'Soundboard' },
 ]
 
 function Sidebar() {

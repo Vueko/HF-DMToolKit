@@ -11,6 +11,11 @@ import CampaignMap from './pages/CampaignMap'
 import Campaigns from './pages/Campaigns'
 import EncounterBuilder from './pages/EncounterBuilder'
 import MusicBar from './components/MusicBar'
+import { SoundboardProvider } from './context/SoundboardContext'
+import AmbientBar from './components/AmbientBar'
+import SoundQuickBar from './components/SoundQuickBar'
+import Soundboard from './pages/Soundboard'
+import PlayerScreen from './pages/PlayerScreen'
 
 function Layout() {
   return (
@@ -22,26 +27,32 @@ function Layout() {
           <Outlet />
         </main>
       </div>
+      <SoundQuickBar />
       <MusicBar />
+      <AmbientBar />
     </div>
   )
 }
 
 function App() {
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route index element={<DMDashboard />} />
-        <Route path="/campaigns" element={<Campaigns />} />
-        <Route path="/scenes" element={<SceneTracker />} />
-        <Route path="/cards" element={<EnvironmentCards />} />
-        <Route path="/encounter" element={<EncounterBuilder />} />
-        <Route path="/dm-screen" element={<DMScreen />} />
-        <Route path="/music" element={<MusicPlayer />} />
-        <Route path="/journal" element={<CampaignJournal />} />
-        <Route path="/map" element={<CampaignMap />} />
-      </Route>
-    </Routes>
+    <SoundboardProvider>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<DMDashboard />} />
+          <Route path="/campaigns" element={<Campaigns />} />
+          <Route path="/scenes" element={<SceneTracker />} />
+          <Route path="/cards" element={<EnvironmentCards />} />
+          <Route path="/encounter" element={<EncounterBuilder />} />
+          <Route path="/dm-screen" element={<DMScreen />} />
+          <Route path="/music" element={<MusicPlayer />} />
+          <Route path="/journal" element={<CampaignJournal />} />
+          <Route path="/map" element={<CampaignMap />} />
+          <Route path="/soundboard" element={<Soundboard />} />
+        </Route>
+        <Route path="/player-screen" element={<PlayerScreen />} />
+      </Routes>
+    </SoundboardProvider>
   )
 }
 

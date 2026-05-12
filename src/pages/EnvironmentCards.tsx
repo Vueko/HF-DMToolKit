@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useCardsStore } from '../store/cardsStore'
 import { useCampaignStore } from '../store/campaignStore'
 import ReactMarkdown from 'react-markdown'
@@ -12,8 +12,28 @@ function EnvironmentCards() {
 
     const [activeTab, setActiveTab] = useState<Tab>('environment')
     const [expandedId, setExpandedId] = useState<string | null>(null)
+    const [search, setSearch] = useState('')
+    const [typeFilter, setTypeFilter] = useState('')
+    const [tierFilter, setTierFilter] = useState('')
 
-    const filteredCards = cards.filter((c) => c.type === activeTab)
+    useEffect(() => {
+        setSearch('')
+        setTypeFilter('')
+        setTierFilter('')
+    }, [activeTab])
+
+    const filteredCards = useMemo(() => {
+        return cards.filter((c) => {
+            if (c.type !== activeTab) return false
+            if (search && !c.title.toLowerCase().includes(search.toLowerCase())) return false
+            if (tierFilter && String(c.tier ?? 1) !== tierFilter) return false
+            if (typeFilter) {
+                if (c.type === 'environment' && c.category !== typeFilter) return false
+                if (c.type === 'adversary' && c.role !== typeFilter) return false
+            }
+            return true
+        })
+    }, [cards, activeTab, search, typeFilter, tierFilter])
 
     const currentCampaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
     const currentSession = currentCampaign?.sessions.find((s) => s.id === currentSessionId) ?? null
@@ -111,12 +131,60 @@ function EnvironmentCards() {
                 ))}
             </div>
 
-            <button
-                onClick={activeTab === 'environment' ? handleAddEnvCard : handleAddAdversary}
-                className="self-start px-4 py-2 bg-fear-light hover:bg-fear-secondary text-ui-text text-sm rounded-lg transition-colors"
-            >
-                + Add {activeTab === 'environment' ? 'Environment Card' : 'Adversary'}
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+                <button
+                    onClick={activeTab === 'environment' ? handleAddEnvCard : handleAddAdversary}
+                    className="px-4 py-2 bg-fear-light hover:bg-fear-secondary text-ui-text text-sm rounded-lg transition-colors"
+                >
+                    + Add {activeTab === 'environment' ? 'Environment Card' : 'Adversary'}
+                </button>
+                <input
+                    type="text"
+                    placeholder="Search by name…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="flex-1 min-w-[160px] bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg outline-none border border-ui-surface2 focus:border-fear-light placeholder:text-ui-muted"
+                />
+                <select
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                    className="bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg outline-none border border-ui-surface2 focus:border-fear-light"
+                >
+                    <option value="">All {activeTab === 'environment' ? 'Categories' : 'Roles'}</option>
+                    {activeTab === 'environment' ? (
+                        <>
+                            <option value="Exploration">Exploration</option>
+                            <option value="Social">Social</option>
+                            <option value="Traversal">Traversal</option>
+                            <option value="Event">Event</option>
+                        </>
+                    ) : (
+                        <>
+                            <option value="Bruiser">Bruiser</option>
+                            <option value="Horde">Horde</option>
+                            <option value="Leader">Leader</option>
+                            <option value="Minion">Minion</option>
+                            <option value="Ranged">Ranged</option>
+                            <option value="Skulk">Skulk</option>
+                            <option value="Social">Social</option>
+                            <option value="Solo">Solo</option>
+                            <option value="Standard">Standard</option>
+                            <option value="Support">Support</option>
+                        </>
+                    )}
+                </select>
+                <select
+                    value={tierFilter}
+                    onChange={(e) => setTierFilter(e.target.value)}
+                    className="bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg outline-none border border-ui-surface2 focus:border-fear-light"
+                >
+                    <option value="">All Tiers</option>
+                    <option value="1">Tier 1</option>
+                    <option value="2">Tier 2</option>
+                    <option value="3">Tier 3</option>
+                    <option value="4">Tier 4</option>
+                </select>
+            </div>
 
             <div className="flex flex-col gap-3">
                 {filteredCards.length === 0 && (

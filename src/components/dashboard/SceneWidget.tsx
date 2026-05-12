@@ -38,7 +38,7 @@ function SceneWidget() {
 
     if (!currentCampaignId || !currentSessionId) {
         return (
-            <div className="bg-ui-surface rounded-xl p-5 flex flex-col gap-3">
+            <div className="bg-ui-surface rounded-xl border border-ui-surface2/60 p-5 flex flex-col gap-3">
                 <h3 className="text-ui-text font-display font-semibold">Scene Tracker</h3>
                 <p className="text-ui-muted text-sm text-center py-4">
                     No active session. Go to Campaigns to set one.
@@ -72,7 +72,7 @@ function SceneWidget() {
     }
 
     return (
-        <div className="bg-ui-surface rounded-xl p-5 flex flex-col gap-3">
+        <div className="bg-ui-surface rounded-xl border border-ui-surface2/60 p-5 flex flex-col gap-3">
 
             <div className="flex items-center justify-between">
                 <h3 className="text-ui-text font-display font-semibold">Scene Tracker</h3>

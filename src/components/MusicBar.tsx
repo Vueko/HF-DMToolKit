@@ -73,12 +73,10 @@ function MusicBar() {
         if (isPlayingRef.current) {
             audio.play().catch(() => setIsPlaying(false))
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => {
         if (!currentTrack) return
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLocalCurrentTime(0)
         setLocalDuration(0)
         loadTrack(currentTrack.storedId)
@@ -132,8 +130,8 @@ function MusicBar() {
 
             <div className="h-16 bg-ui-surface border-t border-ui-surface2 flex items-center px-6 shrink-0 gap-4">
                 <div className="flex items-center gap-3 w-[28%] min-w-0">
-                    <div className="w-9 h-9 rounded bg-ui-surface2 flex items-center justify-center text-ui-muted text-base shrink-0">
-                        🎵
+                    <div className="w-9 h-9 rounded bg-linear-to-br from-fear-secondary to-fear-light flex items-center justify-center text-ui-canvas/70 text-sm font-bold shrink-0 select-none">
+                        ♩
                     </div>
                     <div className="flex flex-col min-w-0">
                         <span className="text-ui-text text-sm font-medium truncate">
@@ -159,21 +157,21 @@ function MusicBar() {
                             disabled={playlist.length === 0}
                             className="text-ui-muted hover:text-ui-text transition-colors text-base disabled:opacity-30"
                         >
-                            ⏮
+                            ◀
                         </button>
                         <button
                             onClick={() => useMusicStore.getState().togglePlay()}
                             disabled={playlist.length === 0}
-                            className="w-8 h-8 rounded-full bg-hope-primary hover:bg-hope-gold flex items-center justify-center text-white transition-colors disabled:opacity-30 text-sm"
+                            className="w-8 h-8 rounded-full bg-hope-primary hover:bg-hope-secondary flex items-center justify-center text-white transition-colors disabled:opacity-30 text-sm"
                         >
-                            {isPlaying ? '⏸' : '▶'}
+                            {isPlaying ? '‖' : '▶'}
                         </button>
                         <button
                             onClick={() => next(playlist.length)}
                             disabled={playlist.length === 0}
                             className="text-ui-muted hover:text-ui-text transition-colors text-base disabled:opacity-30"
                         >
-                            ⏭
+                            ▶
                         </button>
                         <button
                             onClick={toggleLoop}
@@ -200,7 +198,7 @@ function MusicBar() {
                 </div>
 
                 <div className="flex items-center gap-2 w-[18%] justify-end">
-                    <span className="text-ui-muted text-sm">🔊</span>
+                    <span className="text-ui-muted text-[10px] uppercase tracking-wide shrink-0">Vol</span>
                     <input
                         type="range"
                         min={0}

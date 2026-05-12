@@ -14,7 +14,7 @@ function ActiveCardsWidget() {
 
     if (!currentCampaignId || !currentSessionId) {
         return (
-            <div className="bg-ui-surface rounded-xl p-5 flex flex-col gap-3">
+            <div className="bg-ui-surface rounded-xl border border-ui-surface2/60 p-5 flex flex-col gap-3">
                 <h3 className="text-ui-text font-display font-semibold">Active Cards</h3>
                 <p className="text-ui-muted text-sm text-center py-4">No active session. Go to Campaigns to set one.</p>
             </div>
@@ -22,7 +22,7 @@ function ActiveCardsWidget() {
     }
 
     return (
-        <div className="bg-ui-surface rounded-xl p-5 flex flex-col gap-4">
+        <div className="bg-ui-surface rounded-xl border border-ui-surface2/60 p-5 flex flex-col gap-4">
 
             <div className="flex items-center justify-between">
                 <h3 className="text-ui-text font-display font-semibold">Active Cards</h3>
@@ -32,13 +32,12 @@ function ActiveCardsWidget() {
             {envInstances.length === 0 ? (
                 <p className="text-ui-muted text-sm text-center py-4">No environment cards in this session. Add from the Cards page.</p>
             ) : (
-                <div className="overflow-x-auto">
-                    <div className="flex gap-3 items-start pb-1" style={{ width: 'max-content' }}>
-                        {envInstances.map((instance) => {
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3 items-start">
+                    {envInstances.map((instance) => {
                             const card = cards.find((c) => c.id === instance.cardId)
                             if (!card || card.type !== 'environment') return null
                             return (
-                                <div key={instance.instanceId} className="bg-card-bg rounded-lg px-4 py-4 border border-card-border flex flex-col gap-2 w-64">
+                                <div key={instance.instanceId} className="bg-card-bg rounded-lg px-4 py-4 border border-card-border flex flex-col gap-2">
                                     <div className="flex items-center justify-between">
                                         <span className="text-card-text font-semibold text-sm">{card.title}</span>
                                         <button onClick={() => removeCardFromSession(currentCampaignId, currentSessionId, instance.instanceId)} className="text-ui-muted hover:text-red-400 transition-colors text-xs">✕</button>
@@ -53,7 +52,6 @@ function ActiveCardsWidget() {
                                 </div>
                             )
                         })}
-                    </div>
                 </div>
             )}
 

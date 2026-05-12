@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { electronStorage } from '../utils/electronStorage'
-import type { Campaign, Session, Scene, SessionCardInstance, LoreEntry, Track, Playlist, CampaignMapData, Encounter, EncounterCardInstance } from '../types'
+import type { Campaign, Session, Scene, SessionCardInstance, LoreEntry, Track, Playlist, CampaignMapData, Encounter, EncounterCardInstance, PlayerScreenImage } from '../types'
 
 interface CampaignState {
     campaigns: Campaign[]
@@ -48,6 +48,10 @@ interface CampaignState {
     updateEncounterInstance: (campaignId: string, encounterId: string, instanceId: string, updates: Partial<EncounterCardInstance>) => void
     addEncounterToSession: (campaignId: string, sessionId: string, encounterId: string) => void
     removeEncounterFromSession: (campaignId: string, sessionId: string, encounterId: string) => void
+
+    addPlayerScreenImage: (campaignId: string, image: PlayerScreenImage) => void
+    removePlayerScreenImage: (campaignId: string, imageId: string) => void
+    setActiveMap: (campaignId: string, storedId: string | null) => void
 }
 
 function updateCampaign(campaigns: Campaign[], id: string, updater: (c: Campaign) => Campaign): Campaign[] {
@@ -373,6 +377,30 @@ export const useCampaignStore = create<CampaignState>()(
                             encounterIds: (s.encounterIds ?? []).filter((id) => id !== encounterId),
                         }))
                     ),
+                })),
+
+            addPlayerScreenImage: (campaignId, image) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        playerScreenImages: [...(c.playerScreenImages ?? []), image],
+                    })),
+                })),
+
+            removePlayerScreenImage: (campaignId, imageId) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        playerScreenImages: (c.playerScreenImages ?? []).filter((img) => img.id !== imageId),
+                    })),
+                })),
+
+            setActiveMap: (campaignId, storedId) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        activeMapStoredId: storedId,
+                    })),
                 })),
         }),
         { name: 'dh-campaigns', storage: createJSONStorage(() => electronStorage) }

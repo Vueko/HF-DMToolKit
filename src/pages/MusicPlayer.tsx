@@ -15,11 +15,11 @@ function formatDuration(secs?: number): string {
 }
 
 const MOOD_COLORS: Record<string, string> = {
-    calm: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    tense: 'bg-red-500/20 text-red-300 border-red-500/30',
-    epic: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-    mystery: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-    ambient: 'bg-green-500/20 text-green-300 border-green-500/30',
+    calm: 'bg-hope-secondary/20 text-hope-secondary border-hope-secondary/30',
+    tense: 'bg-hope-primary/20 text-hope-primary border-hope-primary/30',
+    epic: 'bg-hope-yellow/20 text-hope-yellow border-hope-yellow/30',
+    mystery: 'bg-fear-light/20 text-fear-light border-fear-light/30',
+    ambient: 'bg-ui-muted/20 text-ui-muted border-ui-muted/30',
 }
 
 const MOOD_OPTIONS: Mood[] = ['calm', 'tense', 'epic', 'mystery', 'ambient']
@@ -161,7 +161,7 @@ function MusicPlayer() {
                             />
                             <button
                                 onClick={handleCreatePlaylist}
-                                className="text-xs bg-hope-primary hover:bg-hope-gold text-white px-2 py-1.5 rounded-lg transition-colors font-bold"
+                                className="text-xs bg-hope-primary hover:bg-hope-secondary text-white px-2 py-1.5 rounded-lg transition-colors font-bold"
                             >
                                 +
                             </button>
@@ -185,9 +185,7 @@ function MusicPlayer() {
                                         isViewed ? 'bg-ui-surface border border-ui-surface2' : 'hover:bg-ui-surface/60 border border-transparent'
                                     }`}
                                 >
-                                    <span className={`text-sm ${isActive ? 'text-hope-primary' : 'text-ui-muted'}`}>
-                                        {isActive ? '♪' : '♩'}
-                                    </span>
+                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-0.5 ${isActive ? 'bg-hope-primary' : 'bg-ui-surface2'}`} />
                                     {editingPlaylistId === pl.id ? (
                                         <input
                                             autoFocus
@@ -209,7 +207,7 @@ function MusicPlayer() {
                                             onClick={(e) => { e.stopPropagation(); setEditingPlaylistId(pl.id); setEditingName(pl.name) }}
                                             className="text-ui-muted hover:text-ui-text text-[10px] transition-colors"
                                             title="Rename"
-                                        >✏</button>
+                                        >✎</button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleRemovePlaylist(pl.id) }}
                                             className="text-ui-muted hover:text-red-400 text-[10px] transition-colors"
@@ -225,7 +223,9 @@ function MusicPlayer() {
                 <main className="flex-1 flex flex-col overflow-hidden">
                     {!viewedPlaylist ? (
                         <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 text-ui-muted p-8">
-                            <span className="text-5xl">🎵</span>
+                            <div className="w-14 h-14 rounded-full bg-linear-to-br from-fear-secondary to-fear-light flex items-center justify-center text-ui-canvas/70 text-2xl select-none">
+                                ♩
+                            </div>
                             <p className="font-medium">Create a playlist to get started</p>
                             <p className="text-xs">Use the panel on the left to create your first playlist.</p>
                         </div>
@@ -251,7 +251,9 @@ function MusicPlayer() {
                                         className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-ui-surface2 rounded-xl gap-3 cursor-pointer hover:border-hope-primary transition-colors group"
                                         onClick={() => fileInputRef.current?.click()}
                                     >
-                                        <span className="text-3xl">🎵</span>
+                                        <div className="w-10 h-10 rounded-full bg-ui-surface2 group-hover:bg-fear-light/20 flex items-center justify-center text-xl text-ui-muted transition-colors select-none">
+                                            ♩
+                                        </div>
                                         <p className="text-ui-muted group-hover:text-ui-text text-sm transition-colors">Click to import audio files</p>
                                         <p className="text-ui-muted text-xs">.mp3, .ogg, .wav, .flac supported</p>
                                     </div>
@@ -271,7 +273,7 @@ function MusicPlayer() {
                                                 >
                                                     <div className="w-7 flex items-center justify-center shrink-0">
                                                         {active && isPlaying ? (
-                                                            <span className="text-hope-primary">⏸</span>
+                                                            <span className="text-hope-primary text-sm font-bold">‖</span>
                                                         ) : active ? (
                                                             <span className="text-hope-primary">▶</span>
                                                         ) : (

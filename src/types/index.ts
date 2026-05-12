@@ -114,6 +114,12 @@ export interface Encounter {
     instances?: EncounterCardInstance[]
 }
 
+export interface PlayerScreenImage {
+    id: string
+    name: string
+    storedId: string
+}
+
 export interface Campaign {
     id: string
     name: string
@@ -125,6 +131,8 @@ export interface Campaign {
     dmScreenRules?: string
     encounters?: Encounter[]
     activeEncounterId?: string
+    playerScreenImages?: PlayerScreenImage[]
+    activeMapStoredId?: string | null
 }
 
 export type LoreCategory = 'continent' | 'city' | 'faction' | 'npc' | 'character_journal' | 'handout'
@@ -146,4 +154,19 @@ export interface LoreEntry {
     secretContent: string
     createdAt: string
     tags: string[]
+}
+
+export interface Sound {
+    id: string
+    name: string
+    storedId: string
+    type: 'oneshot' | 'ambient'
+    categoryId: string
+    mood?: 'calm' | 'tense' | 'epic' | 'mystery' | 'ambient'
+}
+
+export interface SoundCategory {
+    id: string
+    name: string
+    order: number
 }

@@ -242,7 +242,7 @@ function EncounterBuilder() {
                 <div className="flex gap-4 flex-1 min-h-0">
 
                     {/* Session Sidebar */}
-                    <div className="w-48 shrink-0 flex flex-col gap-2 overflow-y-auto">
+                    <div className="w-64 shrink-0 flex flex-col gap-2 overflow-y-auto">
                         <p className="text-ui-muted text-xs uppercase font-bold tracking-wider px-1">Sessions</p>
                         {sessions.length === 0 && (
                             <p className="text-ui-muted text-xs px-1 italic">No sessions yet.</p>
@@ -271,7 +271,7 @@ function EncounterBuilder() {
                                                     <button
                                                         key={enc.id}
                                                         onClick={() => setSelectedId(enc.id)}
-                                                        className={`text-left px-2 py-1 rounded text-[11px] transition-colors truncate ${
+                                                        className={`text-left px-2 py-1 rounded text-[11px] transition-colors break-words ${
                                                             displayId === enc.id
                                                                 ? 'bg-fear-light/20 text-ui-text font-semibold'
                                                                 : 'text-ui-muted hover:text-ui-text hover:bg-ui-surface2'
@@ -294,7 +294,7 @@ function EncounterBuilder() {
                                         <button
                                             key={enc.id}
                                             onClick={() => setSelectedId(enc.id)}
-                                            className={`text-left px-2 py-1 rounded text-[11px] transition-colors truncate ${
+                                            className={`text-left px-2 py-1 rounded text-[11px] transition-colors break-words ${
                                                 displayId === enc.id
                                                     ? 'bg-fear-light/20 text-ui-text font-semibold'
                                                     : 'text-ui-muted hover:text-ui-text hover:bg-ui-surface2'

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, shell, ipcMain, dialog, session } from 'electron'
+import { app, BrowserWindow, Menu, shell, ipcMain, dialog, session, screen } from 'electron'
 import { join } from 'path'
 import * as fs from 'fs'
 
@@ -44,6 +44,7 @@ function ensureDir(dir: string): void {
 }
 
 let mainWindow: BrowserWindow | null = null
+let playerWin: BrowserWindow | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -62,7 +63,10 @@ function createWindow(): void {
 
   mainWindow.on('maximize', () => mainWindow?.webContents.send('window:maximized', true))
   mainWindow.on('unmaximize', () => mainWindow?.webContents.send('window:maximized', false))
-  mainWindow.on('closed', () => { mainWindow = null })
+  mainWindow.on('closed', () => {
+    mainWindow = null
+    if (playerWin && !playerWin.isDestroyed()) playerWin.close()
+  })
 
   if (!app.isPackaged) {
     mainWindow.loadURL('http://localhost:5173')
@@ -80,6 +84,39 @@ function createWindow(): void {
     } catch { }
     return { action: 'deny' }
   })
+}
+
+function createPlayerWindow(): void {
+    if (playerWin && !playerWin.isDestroyed()) {
+        playerWin.focus()
+        return
+    }
+    const displays = screen.getAllDisplays()
+    const target = displays.length > 1 ? displays[1] : displays[0]
+    const { x, y, width, height } = target.bounds
+    playerWin = new BrowserWindow({
+        x,
+        y,
+        width,
+        height,
+        frame: false,
+        webPreferences: {
+            preload: join(__dirname, 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false,
+        },
+        show: false,
+    })
+    playerWin.on('closed', () => {
+        playerWin = null
+        mainWindow?.webContents.send('player:closed')
+    })
+    if (!app.isPackaged) {
+        playerWin.loadURL('http://localhost:5173/#/player-screen')
+    } else {
+        playerWin.loadFile(join(__dirname, '../dist/index.html'), { hash: '/player-screen' })
+    }
+    playerWin.once('ready-to-show', () => playerWin?.show())
 }
 
 app.whenReady().then(() => {
@@ -101,8 +138,10 @@ app.whenReady().then(() => {
   const store = new DataStore()
   const audioDir = join(app.getPath('userData'), 'audio')
   const mapsDir = join(app.getPath('userData'), 'maps')
+  const playerScreenDir = join(app.getPath('userData'), 'player-screen')
   ensureDir(audioDir)
   ensureDir(mapsDir)
+  ensureDir(playerScreenDir)
 
   ipcMain.on('window:minimize', () => mainWindow?.minimize())
   ipcMain.on('window:maximize', () => {
@@ -162,6 +201,54 @@ app.whenReady().then(() => {
   ipcMain.handle('dialog:open', (_, opts) => {
     if (!mainWindow) return { canceled: true, filePaths: [] }
     return dialog.showOpenDialog(mainWindow, opts)
+  })
+
+  ipcMain.on('player:open', () => createPlayerWindow())
+  ipcMain.on('player:close', () => {
+    if (playerWin && !playerWin.isDestroyed()) playerWin.close()
+  })
+  ipcMain.on('player:set-map', (_, storedId: string) => {
+    if (playerWin && !playerWin.isDestroyed()) {
+      playerWin.webContents.send('player:set-map', storedId)
+    }
+  })
+  ipcMain.on('player:clear-map', () => {
+    if (playerWin && !playerWin.isDestroyed()) {
+      playerWin.webContents.send('player:clear-map')
+    }
+  })
+  ipcMain.on('player:show-overlay', (_, storedId: string, name: string) => {
+    if (playerWin && !playerWin.isDestroyed()) {
+      playerWin.webContents.send('player:show-overlay', storedId, name)
+    }
+  })
+  ipcMain.on('player:clear-overlay', () => {
+    if (playerWin && !playerWin.isDestroyed()) {
+      playerWin.webContents.send('player:clear-overlay')
+    }
+  })
+  ipcMain.handle('player:is-open', () => playerWin !== null && !playerWin.isDestroyed())
+
+  ipcMain.handle('player:capture-map', async (_, rect: { x: number; y: number; width: number; height: number }) => {
+    if (!mainWindow || mainWindow.isDestroyed() || !playerWin || playerWin.isDestroyed()) return
+    const image = await mainWindow.webContents.capturePage(rect)
+    fs.writeFileSync(join(playerScreenDir, 'campaign-map-snapshot'), image.toPNG())
+    playerWin.webContents.send('player:show-overlay', 'campaign-map-snapshot', 'Campaign Map')
+  })
+
+  ipcMain.handle('fs:save-player-image', (_, id: string, data: Uint8Array) => {
+    if (!SAFE_ID_RE.test(id)) return
+    fs.writeFileSync(join(playerScreenDir, id), Buffer.from(data))
+  })
+  ipcMain.handle('fs:get-player-image', (_, id: string): Uint8Array | null => {
+    if (!SAFE_ID_RE.test(id)) return null
+    const p = join(playerScreenDir, id)
+    return fs.existsSync(p) ? fs.readFileSync(p) : null
+  })
+  ipcMain.handle('fs:delete-player-image', (_, id: string) => {
+    if (!SAFE_ID_RE.test(id)) return
+    const p = join(playerScreenDir, id)
+    if (fs.existsSync(p)) fs.unlinkSync(p)
   })
 
   createWindow()
