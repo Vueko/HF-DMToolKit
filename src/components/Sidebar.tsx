@@ -34,11 +34,24 @@ function Sidebar() {
                     <span>{item.label}</span>
                 </NavLink>
             ))}
-            <div className="mt-auto pt-3 border-t border-ui-surface/30">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted px-3 mb-1">Campaña</p>
-                <p className="text-xs text-ui-text px-3 truncate">
-                    {currentCampaign?.name ?? 'Sin campaña activa'}
-                </p>
+            <div className="mt-auto flex flex-col gap-1">
+                <NavLink
+                    to="/settings"
+                    className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive
+                            ? 'bg-fear-light text-ui-text font-medium'
+                            : 'text-ui-muted hover:text-ui-text hover:bg-ui-surface2'
+                        }`
+                    }
+                >
+                    <span>⚙ Settings</span>
+                </NavLink>
+                <div className="pt-3 border-t border-ui-surface/30">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted px-3 mb-1">Campaña</p>
+                    <p className="text-xs text-ui-text px-3 truncate">
+                        {currentCampaign?.name ?? 'Sin campaña activa'}
+                    </p>
+                </div>
             </div>
         </aside>
     )

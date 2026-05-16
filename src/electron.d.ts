@@ -40,7 +40,8 @@ declare global {
                 }) => Promise<{ canceled: boolean; filePaths: string[] }>
             }
             player: {
-                open: () => void
+                open: (displayIndex?: number) => void
+                getDisplays: () => Promise<{ index: number; label: string; isPrimary: boolean }[]>
                 close: () => void
                 setMap: (storedId: string) => void
                 clearMap: () => void
@@ -48,8 +49,14 @@ declare global {
                 clearOverlay: () => void
                 isOpen: () => Promise<boolean>
                 captureMap: (rect: { x: number; y: number; width: number; height: number }) => Promise<void>
+                setCampaignMap: (storedId: string) => void
+                setFog: (zones: import('./types').FogZone[]) => void
+                setViewport: (viewport: import('./types').PlayerViewport) => void
+                getWindowBounds: () => Promise<{ width: number; height: number } | null>
+                ready: () => void
+                setFear: (count: number) => void
             }
-            on: (channel: 'player:set-map' | 'player:clear-map' | 'player:show-overlay' | 'player:clear-overlay' | 'player:closed', cb: (...args: unknown[]) => void) => () => void
+            on: (channel: 'player:set-map' | 'player:clear-map' | 'player:show-overlay' | 'player:clear-overlay' | 'player:closed' | 'player:set-fog' | 'player:set-viewport' | 'player:set-campaign-map' | 'player:set-fear', cb: (...args: unknown[]) => void) => () => void
         }
     }
 }

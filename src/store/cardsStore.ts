@@ -7,6 +7,7 @@ interface CardsState {
     cards: Card[]
     addEnvironmentCard: (card: EnvironmentCard) => void
     addAdversaryCard: (card: AdversaryCard) => void
+    bulkAddCards: (newCards: Card[]) => void
     removeCard: (id: string) => void
     updateCard: (id: string, updates: Partial<Card>) => void
 }
@@ -21,6 +22,9 @@ export const useCardsStore = create<CardsState>()(
 
             addAdversaryCard: (card) =>
                 set((state) => ({ cards: [...state.cards, card] })),
+
+            bulkAddCards: (newCards) =>
+                set((state) => ({ cards: [...state.cards, ...newCards] })),
 
             removeCard: (id) =>
                 set((state) => ({ cards: state.cards.filter((c) => c.id !== id) })),

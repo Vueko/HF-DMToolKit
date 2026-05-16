@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 
-const PLAYER_CHANNELS = ['player:set-map', 'player:clear-map', 'player:show-overlay', 'player:clear-overlay', 'player:closed'] as const
+const PLAYER_CHANNELS = ['player:set-map', 'player:clear-map', 'player:show-overlay', 'player:clear-overlay', 'player:closed', 'player:set-fog', 'player:set-viewport', 'player:set-campaign-map', 'player:set-fear'] as const
 
 contextBridge.exposeInMainWorld('electron', {
     platform: process.platform,
@@ -57,7 +57,9 @@ contextBridge.exposeInMainWorld('electron', {
     },
 
     player: {
-        open: () => ipcRenderer.send('player:open'),
+        open: (displayIndex?: number) => ipcRenderer.send('player:open', displayIndex),
+        getDisplays: (): Promise<{ index: number; label: string; isPrimary: boolean }[]> =>
+            ipcRenderer.invoke('player:get-displays'),
         close: () => ipcRenderer.send('player:close'),
         setMap: (storedId: string) => ipcRenderer.send('player:set-map', storedId),
         clearMap: () => ipcRenderer.send('player:clear-map'),
@@ -66,6 +68,14 @@ contextBridge.exposeInMainWorld('electron', {
         isOpen: (): Promise<boolean> => ipcRenderer.invoke('player:is-open'),
         captureMap: (rect: { x: number; y: number; width: number; height: number }): Promise<void> =>
             ipcRenderer.invoke('player:capture-map', rect),
+        setCampaignMap: (storedId: string) => ipcRenderer.send('player:set-campaign-map', storedId),
+        setFog: (zones: unknown[]) => ipcRenderer.send('player:set-fog', zones),
+        setViewport: (viewport: { offsetX: number; offsetY: number; scale: number }) =>
+            ipcRenderer.send('player:set-viewport', viewport),
+        getWindowBounds: (): Promise<{ width: number; height: number } | null> =>
+            ipcRenderer.invoke('player:get-window-bounds'),
+        ready: () => ipcRenderer.send('player:ready'),
+        setFear: (count: number) => ipcRenderer.send('player:set-fear', count),
     },
 
     on: (channel: string, cb: (...args: unknown[]) => void): (() => void) => {

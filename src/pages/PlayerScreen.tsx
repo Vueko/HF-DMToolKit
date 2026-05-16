@@ -1,14 +1,34 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import type { FogZone, PlayerViewport } from '../types'
 
 interface OverlayState {
     dataUrl: string
     name: string
 }
 
+const ZOOM_SPEED = 0.1
+const MIN_SCALE = 0.1
+const MAX_SCALE = 10
+
 function PlayerScreen() {
     const [mapUrl, setMapUrl] = useState<string | null>(null)
     const [overlay, setOverlay] = useState<OverlayState | null>(null)
+    const [fogZones, setFogZones] = useState<FogZone[] | null>(null)
 
+    const [scale, setScale] = useState(1)
+    const [offset, setOffset] = useState({ x: 0, y: 0 })
+    const [isDragging, setIsDragging] = useState(false)
+    const [fearCount, setFearCount] = useState(0)
+
+    // Refs for use inside non-reactive event handlers
+    const scaleRef = useRef(scale)
+    const offsetRef = useRef(offset)
+    const dragStartRef = useRef({ x: 0, y: 0 })
+    const containerRef = useRef<HTMLDivElement>(null)
+    scaleRef.current = scale
+    offsetRef.current = offset
+
+    // IPC listeners
     useEffect(() => {
         let mounted = true
 
@@ -20,7 +40,18 @@ function PlayerScreen() {
 
         const offMap = window.electron.on('player:set-map', (storedId) => {
             toDataUrl(storedId as string).then((url) => {
-                if (!mounted) return
+                if (!mounted || !url) return
+                setMapUrl((prev) => {
+                    if (prev) URL.revokeObjectURL(prev)
+                    return url
+                })
+            })
+        })
+
+        const offCampaignMap = window.electron.on('player:set-campaign-map', (storedId) => {
+            window.electron.fs.getMapImage(storedId as string).then((data) => {
+                if (!mounted || !data) return
+                const url = URL.createObjectURL(new Blob([new Uint8Array(data)]))
                 setMapUrl((prev) => {
                     if (prev) URL.revokeObjectURL(prev)
                     return url
@@ -52,21 +83,144 @@ function PlayerScreen() {
             })
         })
 
+        const offFog = window.electron.on('player:set-fog', (zones) => {
+            if (!mounted) return
+            setFogZones(zones as FogZone[])
+        })
+
+        // DM viewport override — sets the local pan/zoom directly
+        const offViewport = window.electron.on('player:set-viewport', (vp) => {
+            if (!mounted) return
+            const { offsetX, offsetY, scale: s } = vp as PlayerViewport
+            setScale(s)
+            setOffset({ x: offsetX, y: offsetY })
+        })
+
+        const offFear = window.electron.on('player:set-fear', (count) => {
+            if (!mounted) return
+            setFearCount(Math.min(12, Math.max(0, Number(count) || 0)))
+        })
+
+        window.electron.player.ready?.()
+
         return () => {
             mounted = false
             offMap()
+            offCampaignMap()
             offClearMap()
             offOverlay()
             offClearOverlay()
+            offFog()
+            offViewport()
+            offFear()
         }
     }, [])
 
+    // Auto-fit when the map changes
+    useEffect(() => {
+        if (!mapUrl) {
+            setScale(1)
+            setOffset({ x: 0, y: 0 })
+            return
+        }
+        const img = new Image()
+        img.onload = () => {
+            const s = Math.min(
+                window.innerWidth / img.naturalWidth,
+                window.innerHeight / img.naturalHeight,
+            )
+            setScale(s)
+            setOffset({
+                x: (window.innerWidth - img.naturalWidth * s) / 2,
+                y: (window.innerHeight - img.naturalHeight * s) / 2,
+            })
+        }
+        img.src = mapUrl
+    }, [mapUrl])
+
+    // Wheel zoom — must be non-passive to preventDefault
+    useEffect(() => {
+        const el = containerRef.current
+        if (!el) return
+        const handler = (e: WheelEvent) => {
+            e.preventDefault()
+            const cur = scaleRef.current
+            const off = offsetRef.current
+            const delta = e.deltaY > 0 ? -ZOOM_SPEED : ZOOM_SPEED
+            const next = Math.min(Math.max(cur + delta, MIN_SCALE), MAX_SCALE)
+            setScale(next)
+            setOffset({
+                x: e.clientX - ((e.clientX - off.x) / cur) * next,
+                y: e.clientY - ((e.clientY - off.y) / cur) * next,
+            })
+        }
+        el.addEventListener('wheel', handler, { passive: false })
+        return () => el.removeEventListener('wheel', handler)
+    }, [])
+
+    const handleMouseDown = useCallback((e: React.MouseEvent) => {
+        if (e.button !== 0) return
+        setIsDragging(true)
+        dragStartRef.current = {
+            x: e.clientX - offsetRef.current.x,
+            y: e.clientY - offsetRef.current.y,
+        }
+    }, [])
+
+    const handleMouseMove = useCallback((e: React.MouseEvent) => {
+        if (!isDragging) return
+        setOffset({
+            x: e.clientX - dragStartRef.current.x,
+            y: e.clientY - dragStartRef.current.y,
+        })
+    }, [isDragging])
+
+    const handleMouseUp = useCallback(() => setIsDragging(false), [])
+
     return (
-        <div className="w-screen h-screen bg-black overflow-hidden relative">
+        <div
+            ref={containerRef}
+            className="w-screen h-screen bg-black overflow-hidden relative select-none"
+            style={{ cursor: mapUrl ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onContextMenu={e => e.preventDefault()}
+        >
             {mapUrl ? (
-                <img src={mapUrl} alt="" className="w-full h-full object-cover" />
+                <div
+                    style={{
+                        transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+                        transformOrigin: '0 0',
+                        position: 'absolute',
+                    }}
+                >
+                    <img src={mapUrl} alt="" className="max-w-none block" draggable={false} />
+
+                    {fogZones !== null && (
+                        <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+                            <defs>
+                                <mask id="player-fog-mask">
+                                    <rect width="100%" height="100%" fill="white" />
+                                    {fogZones.map(zone => (
+                                        <rect
+                                            key={zone.id}
+                                            x={`${zone.x}%`}
+                                            y={`${zone.y}%`}
+                                            width={`${zone.w}%`}
+                                            height={`${zone.h}%`}
+                                            fill="black"
+                                        />
+                                    ))}
+                                </mask>
+                            </defs>
+                            <rect width="100%" height="100%" fill="rgba(0,0,0,0.85)" mask="url(#player-fog-mask)" />
+                        </svg>
+                    )}
+                </div>
             ) : (
-                <div className="w-full h-full bg-gradient-to-br from-fear-secondary to-ui-bg" />
+                <div className="w-full h-full bg-linear-to-br from-fear-secondary to-ui-bg" />
             )}
 
             {overlay && (
@@ -78,6 +232,18 @@ function PlayerScreen() {
                     />
                 </div>
             )}
+
+            {/* Fear counter — always visible, top-center */}
+            <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-4 py-2 bg-black/60 backdrop-blur-sm rounded-full pointer-events-none">
+                {Array.from({ length: 12 }, (_, i) => (
+                    <span
+                        key={i}
+                        className={`text-2xl transition-opacity duration-300 select-none ${i < fearCount ? 'opacity-100' : 'opacity-15'}`}
+                    >
+                        💀
+                    </span>
+                ))}
+            </div>
         </div>
     )
 }

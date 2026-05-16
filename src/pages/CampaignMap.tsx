@@ -81,9 +81,6 @@ function CampaignMap() {
     const [linkingMode, setLinkingMode] = useState(false)
 
     const [mapUrl, setMapUrl] = useState<string | null>(null)
-    const [isPlayerOpen, setIsPlayerOpen] = useState(false)
-    const [isShowingOnPlayerScreen, setIsShowingOnPlayerScreen] = useState(false)
-    const [isSending, setIsSending] = useState(false)
     const mapUrlRef = useRef<string | null>(null)
 
     const containerRef = useRef<HTMLDivElement>(null)
@@ -115,18 +112,6 @@ function CampaignMap() {
 
     }, [currentCampaignId, mapData?.image, updateCampaignMap])
 
-    useEffect(() => {
-        window.electron.player.isOpen().then(setIsPlayerOpen)
-    }, [])
-
-    useEffect(() => {
-        const off = window.electron.on('player:closed', () => {
-            setIsPlayerOpen(false)
-            setIsShowingOnPlayerScreen(false)
-        })
-        return () => off()
-    }, [])
-
     const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         e.target.value = ''
@@ -140,43 +125,18 @@ function CampaignMap() {
         if (mapUrlRef.current) URL.revokeObjectURL(mapUrlRef.current)
         mapUrlRef.current = url
         setMapUrl(url)
-        setIsShowingOnPlayerScreen(false)
         updateCampaignMap(currentCampaignId, { image: 'indexeddb' })
     }, [currentCampaignId, updateCampaignMap])
-
-    const handleSendToPlayerScreen = useCallback(async () => {
-        if (!containerRef.current) return
-        setIsSending(true)
-        try {
-            const { x, y, width, height } = containerRef.current.getBoundingClientRect()
-            await window.electron.player.captureMap({
-                x: Math.round(x),
-                y: Math.round(y),
-                width: Math.round(width),
-                height: Math.round(height),
-            })
-            setIsShowingOnPlayerScreen(true)
-        } catch {
-            // silent fail — button resets
-        } finally {
-            setIsSending(false)
-        }
-    }, [])
-
-    const handleClearFromPlayerScreen = useCallback(() => {
-        window.electron.player.clearOverlay()
-        setIsShowingOnPlayerScreen(false)
-    }, [])
 
     const handleWheel = useCallback((e: React.WheelEvent) => {
         if (!mapUrl) return
         e.preventDefault()
         const delta = e.deltaY > 0 ? -ZOOM_SPEED : ZOOM_SPEED
-        const newScale = Math.min(Math.max(scale + delta, MIN_SCALE), MAX_SCALE)
         const rect = containerRef.current?.getBoundingClientRect()
         if (!rect) return
         const mouseX = e.clientX - rect.left
         const mouseY = e.clientY - rect.top
+        const newScale = Math.min(Math.max(scale + delta, MIN_SCALE), MAX_SCALE)
         setScale(newScale)
         setOffset({
             x: mouseX - ((mouseX - offset.x) / scale) * newScale,
@@ -185,7 +145,6 @@ function CampaignMap() {
     }, [mapUrl, scale, offset])
 
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
-
         if (mode === 'pan' || e.button === 1) {
             setIsDragging(true)
             setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y })
@@ -197,9 +156,9 @@ function CampaignMap() {
         setOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y })
     }, [isDragging, dragStart])
 
-    const handleMouseUp = useCallback(() => setIsDragging(false), [])
-
-
+    const handleMouseUp = useCallback(() => {
+        setIsDragging(false)
+    }, [])
 
     const handleMapClick = useCallback((e: React.MouseEvent) => {
         if (!mapUrl || !currentCampaignId || isDragging) return
@@ -265,8 +224,6 @@ function CampaignMap() {
         setSelectedMarker(null)
     }, [currentCampaignId, mapData, updateCampaignMap])
 
-
-
     const undoPathPoint = useCallback(() => {
         if (!currentCampaignId || !mapData?.path?.length) return
         updateCampaignMap(currentCampaignId, { path: mapData.path.slice(0, -1) })
@@ -310,10 +267,9 @@ function CampaignMap() {
                             <button
                                 key={m}
                                 onClick={() => setMode(m)}
-                                className={`px-4 py-1.5 text-xs rounded-md font-medium transition-colors capitalize ${mode === m ? 'bg-fear-light text-ui-text' : 'text-ui-muted hover:text-ui-text'
-                                    }`}
+                                className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${mode === m ? 'bg-fear-light text-ui-text' : 'text-ui-muted hover:text-ui-text'}`}
                             >
-                                {m === 'pan' ? 'Pan & Zoom' : m === 'path' ? 'Journey Path' : 'Add Pin'}
+                                {m === 'pan' ? 'Pan' : m === 'path' ? 'Path' : 'Pin'}
                             </button>
                         ))}
                     </div>
@@ -333,24 +289,6 @@ function CampaignMap() {
                                 Clear Path
                             </button>
                         </>
-                    )}
-                    {isPlayerOpen && mapUrl && (
-                        isShowingOnPlayerScreen ? (
-                            <button
-                                onClick={handleClearFromPlayerScreen}
-                                className="px-3 py-1.5 text-xs bg-fear-light/20 text-fear-light border border-fear-light/30 rounded-lg hover:bg-fear-light/30 transition-colors"
-                            >
-                                Clear from Player Screen
-                            </button>
-                        ) : (
-                            <button
-                                onClick={handleSendToPlayerScreen}
-                                disabled={isSending}
-                                className="px-3 py-1.5 text-xs bg-ui-surface2 text-ui-text rounded-lg border border-ui-surface2 hover:bg-ui-surface transition-colors disabled:opacity-50"
-                            >
-                                {isSending ? 'Sending…' : 'Send to Player Screen'}
-                            </button>
-                        )
                     )}
                     <label className="px-3 py-1.5 text-xs bg-ui-surface2 text-ui-text rounded-lg border border-ui-surface2 cursor-pointer hover:bg-ui-surface transition-colors">
                         {mapUrl ? 'Change Image' : 'Upload Map'}

@@ -5,6 +5,8 @@ import * as fs from 'fs'
 // Allows UUIDs and simple slug IDs (e.g. "shared-map"), blocks path traversal
 const SAFE_ID_RE = /^[a-zA-Z0-9_\-]{1,80}$/
 
+const STORE_KEYS = new Set(['dh-fear', 'dh-campaigns', 'dh-cards', 'dh-music', 'dh-soundboard', 'dh-settings'])
+
 class DataStore {
   private readonly filePath: string
   private cache: Record<string, unknown> = {}
@@ -46,6 +48,18 @@ function ensureDir(dir: string): void {
 let mainWindow: BrowserWindow | null = null
 let playerWin: BrowserWindow | null = null
 
+// Pending state to replay when player window signals it's ready
+let pendingMapId: string | null = null
+let pendingFog: unknown[] | null = null
+let pendingViewport: { offsetX: number; offsetY: number; scale: number } | null = null
+let pendingFear: number = 0
+
+function setPendingFear(count: number): boolean {
+  if (!Number.isInteger(count) || count < 0 || count > 12) return false
+  pendingFear = count
+  return true
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -86,14 +100,16 @@ function createWindow(): void {
   })
 }
 
-function createPlayerWindow(): void {
+function createPlayerWindow(displayIndex?: number): void {
     if (playerWin && !playerWin.isDestroyed()) {
         playerWin.focus()
         return
     }
     const displays = screen.getAllDisplays()
-    const target = displays.length > 1 ? displays[1] : displays[0]
-    const { x, y, width, height } = target.bounds
+    const idx = displayIndex !== undefined
+        ? Math.min(Math.max(0, displayIndex), displays.length - 1)
+        : displays.length > 1 ? 1 : 0
+    const { x, y, width, height } = displays[idx].bounds
     playerWin = new BrowserWindow({
         x,
         y,
@@ -117,6 +133,18 @@ function createPlayerWindow(): void {
         playerWin.loadFile(join(__dirname, '../dist/index.html'), { hash: '/player-screen' })
     }
     playerWin.once('ready-to-show', () => playerWin?.show())
+
+    // After the page finishes loading, wait for React effects to register their
+    // ipcRenderer listeners (effects run async after paint), then replay pending state.
+    playerWin.webContents.once('did-finish-load', () => {
+        setTimeout(() => {
+            if (!playerWin || playerWin.isDestroyed()) return
+            if (pendingMapId) playerWin.webContents.send('player:set-map', pendingMapId)
+            if (pendingFog) playerWin.webContents.send('player:set-fog', pendingFog)
+            if (pendingViewport) playerWin.webContents.send('player:set-viewport', pendingViewport)
+            playerWin.webContents.send('player:set-fear', pendingFear)
+        }, 300)
+    })
 }
 
 app.whenReady().then(() => {
@@ -152,8 +180,8 @@ app.whenReady().then(() => {
   ipcMain.handle('window:is-maximized', () => mainWindow?.isMaximized() ?? false)
 
   ipcMain.handle('store:get', (_, key: string) => store.get(key))
-  ipcMain.on('store:set', (_, key: string, value: unknown) => store.set(key, value))
-  ipcMain.on('store:delete', (_, key: string) => store.delete(key))
+  ipcMain.on('store:set', (_, key: string, value: unknown) => { if (STORE_KEYS.has(key)) store.set(key, value) })
+  ipcMain.on('store:delete', (_, key: string) => { if (STORE_KEYS.has(key)) store.delete(key) })
 
   ipcMain.handle('fs:save-audio', (_, id: string, data: Uint8Array) => {
     if (!SAFE_ID_RE.test(id)) return
@@ -186,12 +214,14 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('fs:write-file', (_, filePath: string, data: string) => {
-    if (!filePath.endsWith('.json')) return
-    fs.writeFileSync(filePath, data, 'utf-8')
+    const resolved = join(filePath)
+    if (!resolved.endsWith('.json')) return
+    fs.writeFileSync(resolved, data, 'utf-8')
   })
   ipcMain.handle('fs:read-file', (_, filePath: string): string | null => {
-    if (!filePath.endsWith('.json')) return null
-    return fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : null
+    const resolved = join(filePath)
+    if (!resolved.endsWith('.json')) return null
+    return fs.existsSync(resolved) ? fs.readFileSync(resolved, 'utf-8') : null
   })
 
   ipcMain.handle('dialog:save', (_, opts) => {
@@ -203,19 +233,35 @@ app.whenReady().then(() => {
     return dialog.showOpenDialog(mainWindow, opts)
   })
 
-  ipcMain.on('player:open', () => createPlayerWindow())
+  ipcMain.handle('player:get-displays', () =>
+    screen.getAllDisplays().map((d, i) => ({
+      index: i,
+      label: `Display ${i + 1}  ${d.bounds.width}×${d.bounds.height}`,
+      isPrimary: d.id === screen.getPrimaryDisplay().id,
+    }))
+  )
+  ipcMain.on('player:open', (_, displayIndex?: number) => createPlayerWindow(displayIndex))
   ipcMain.on('player:close', () => {
     if (playerWin && !playerWin.isDestroyed()) playerWin.close()
   })
   ipcMain.on('player:set-map', (_, storedId: string) => {
+    pendingMapId = storedId
     if (playerWin && !playerWin.isDestroyed()) {
       playerWin.webContents.send('player:set-map', storedId)
     }
   })
   ipcMain.on('player:clear-map', () => {
+    pendingMapId = null
     if (playerWin && !playerWin.isDestroyed()) {
       playerWin.webContents.send('player:clear-map')
     }
+  })
+  ipcMain.on('player:ready', () => {
+    if (!playerWin || playerWin.isDestroyed()) return
+    if (pendingMapId) playerWin.webContents.send('player:set-map', pendingMapId)
+    if (pendingFog) playerWin.webContents.send('player:set-fog', pendingFog)
+    if (pendingViewport) playerWin.webContents.send('player:set-viewport', pendingViewport)
+    playerWin.webContents.send('player:set-fear', pendingFear)
   })
   ipcMain.on('player:show-overlay', (_, storedId: string, name: string) => {
     if (playerWin && !playerWin.isDestroyed()) {
@@ -227,7 +273,36 @@ app.whenReady().then(() => {
       playerWin.webContents.send('player:clear-overlay')
     }
   })
+  ipcMain.on('player:set-campaign-map', (_, storedId: string) => {
+    if (playerWin && !playerWin.isDestroyed()) {
+      playerWin.webContents.send('player:set-campaign-map', storedId)
+    }
+  })
+  ipcMain.on('player:set-fog', (_, zones: unknown) => {
+    if (!Array.isArray(zones)) return
+    pendingFog = zones
+    if (playerWin && !playerWin.isDestroyed()) {
+      playerWin.webContents.send('player:set-fog', zones)
+    }
+  })
+  ipcMain.on('player:set-viewport', (_, viewport: { offsetX: number; offsetY: number; scale: number }) => {
+    pendingViewport = viewport
+    if (playerWin && !playerWin.isDestroyed()) {
+      playerWin.webContents.send('player:set-viewport', viewport)
+    }
+  })
+  ipcMain.on('player:set-fear', (_, count: number) => {
+    if (!setPendingFear(count)) return
+    if (playerWin && !playerWin.isDestroyed()) {
+      playerWin.webContents.send('player:set-fear', pendingFear)
+    }
+  })
   ipcMain.handle('player:is-open', () => playerWin !== null && !playerWin.isDestroyed())
+  ipcMain.handle('player:get-window-bounds', () => {
+    if (!playerWin || playerWin.isDestroyed()) return null
+    const { width, height } = playerWin.getBounds()
+    return { width, height }
+  })
 
   ipcMain.handle('player:capture-map', async (_, rect: { x: number; y: number; width: number; height: number }) => {
     if (!mainWindow || mainWindow.isDestroyed() || !playerWin || playerWin.isDestroyed()) return

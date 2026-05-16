@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react'
 import { useCampaignStore } from '../store/campaignStore'
 import { useCardsStore } from '../store/cardsStore'
-import type { AdversaryCard, Encounter, EncounterAdjustment, EncounterCardInstance, EncounterEntry } from '../types'
+import type { AbilityType, AdversaryCard, Encounter, EncounterAdjustment, EncounterCardInstance, EncounterEntry } from '../types'
+import { Button, Input, Select } from '../components/ui'
+import { renderBold } from '../utils/renderBold'
 
 
 const ROLE_COST: Record<string, number> = {
@@ -21,6 +23,25 @@ const ROLE_COLORS: Record<string, string> = {
     Leader:   'bg-amber-500/20 text-amber-300 border-amber-500/40',
     Bruiser:  'bg-red-500/20 text-red-300 border-red-500/40',
     Solo:     'bg-pink-500/20 text-pink-300 border-pink-500/40',
+}
+
+const ROLE_COLORS_CARD: Record<string, string> = {
+    Minion:   'bg-gray-100/60 text-gray-600 border-gray-400/60',
+    Social:   'bg-blue-100/60 text-blue-700 border-blue-400/60',
+    Support:  'bg-green-100/60 text-green-700 border-green-400/60',
+    Horde:    'bg-orange-100/60 text-orange-700 border-orange-400/60',
+    Ranged:   'bg-cyan-100/60 text-cyan-700 border-cyan-400/60',
+    Skulk:    'bg-purple-100/60 text-purple-700 border-purple-400/60',
+    Standard: 'bg-amber-100/60 text-amber-700 border-amber-400/60',
+    Leader:   'bg-amber-200/60 text-amber-800 border-amber-500/60',
+    Bruiser:  'bg-red-100/60 text-red-700 border-red-400/60',
+    Solo:     'bg-pink-100/60 text-pink-700 border-pink-400/60',
+}
+
+const ABILITY_CARD_STYLES: Record<AbilityType, { label: string; icon: string; text: string; border: string }> = {
+    action:   { label: 'Action',       icon: '⚔', text: 'text-orange-700', border: 'border-l-orange-600' },
+    reaction: { label: 'Reaction',     icon: '↩', text: 'text-amber-700',  border: 'border-l-amber-600'  },
+    fear:     { label: 'Fear Feature', icon: '⚡', text: 'text-purple-700', border: 'border-l-purple-600' },
 }
 
 const ADJUSTMENT_CONFIG: { key: EncounterAdjustment; label: string; delta: number; hint: string }[] = [
@@ -95,6 +116,7 @@ function EncounterBuilder() {
     const [roleFilter, setRoleFilter] = useState<string>('All')
     const [tierFilter, setTierFilter] = useState<string>('All')
     const [collapsedSessions, setCollapsedSessions] = useState<Set<string>>(new Set())
+    const [detailCardId, setDetailCardId] = useState<string | null>(null)
 
     const encounter = encounters.find((e) => e.id === selectedId) ?? null
 
@@ -137,6 +159,27 @@ function EncounterBuilder() {
         })
     }, [adversaryCards, search, roleFilter, tierFilter])
 
+    const rosterGroups = useMemo(() => {
+        if (!displayEncounter) return [] as { role: string; entries: typeof displayEncounter.entries }[]
+        const map: Record<string, typeof displayEncounter.entries> = {}
+        for (const entry of displayEncounter.entries) {
+            const card = adversaryCards.find((c) => c.id === entry.cardId)
+            const role = card?.role ?? 'Unknown'
+            if (!map[role]) map[role] = []
+            map[role].push(entry)
+        }
+        return Object.entries(map).map(([role, entries]) => ({ role, entries }))
+    }, [displayEncounter?.entries, adversaryCards])
+
+    const restrictedRoles = useMemo(() => {
+        if (!displayEncounter?.adjustments.includes('no_heavy_roles')) return new Set<string>()
+        return new Set(['Bruiser', 'Horde', 'Leader', 'Solo'])
+    }, [displayEncounter?.adjustments])
+
+    const detailCard = useMemo(
+        () => adversaryCards.find((c) => c.id === detailCardId) ?? null,
+        [adversaryCards, detailCardId]
+    )
 
     function toggleSessionCollapse(sessionId: string) {
         setCollapsedSessions((prev) => {
@@ -219,120 +262,211 @@ function EncounterBuilder() {
                     <h1 className="text-ui-text font-display text-2xl font-bold">Encounter Builder</h1>
                     <p className="text-ui-muted text-sm">Build encounters using battle points</p>
                 </div>
-                <button
-                    onClick={handleCreate}
-                    className="px-4 py-2 bg-fear-light hover:bg-fear-secondary text-ui-text text-sm rounded-lg transition-colors font-medium"
-                >
-                    + New Encounter
-                </button>
+                <Button variant="primary" onClick={handleCreate}>+ New Encounter</Button>
             </div>
 
             {!displayEncounter ? (
                 <div className="flex-1 flex flex-col items-center justify-center gap-4 text-ui-muted">
                     <div className="text-5xl">⚔️</div>
                     <p className="text-sm">No encounters yet.</p>
-                    <button
-                        onClick={handleCreate}
-                        className="px-6 py-2 bg-fear-light hover:bg-fear-secondary text-ui-text rounded-lg transition-colors font-semibold text-sm"
-                    >
-                        Create First Encounter
-                    </button>
+                    <Button variant="primary" onClick={handleCreate}>Create First Encounter</Button>
                 </div>
             ) : (
-                <div className="flex gap-4 flex-1 min-h-0">
+                <div className="flex gap-3 flex-1 min-h-0">
 
-                    {/* Session Sidebar */}
-                    <div className="w-64 shrink-0 flex flex-col gap-2 overflow-y-auto">
-                        <p className="text-ui-muted text-xs uppercase font-bold tracking-wider px-1">Sessions</p>
-                        {sessions.length === 0 && (
-                            <p className="text-ui-muted text-xs px-1 italic">No sessions yet.</p>
-                        )}
-                        {sessions.map((session) => {
-                            const isCollapsed = collapsedSessions.has(session.id)
-                            const sessionEncounters = (session.encounterIds ?? [])
-                                .map((eid) => encounters.find((e) => e.id === eid))
-                                .filter((e): e is Encounter => e !== undefined)
-                            return (
-                                <div key={session.id} className="bg-ui-surface rounded-lg border border-ui-surface2 overflow-hidden">
-                                    <button
-                                        onClick={() => toggleSessionCollapse(session.id)}
-                                        className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-semibold text-ui-text hover:bg-ui-surface2 transition-colors"
-                                    >
-                                        <span className="truncate">{session.name}</span>
-                                        <span className="shrink-0 ml-1 text-ui-muted">{isCollapsed ? '▶' : '▼'}</span>
-                                        <span className="text-ui-muted text-[10px] bg-ui-surface2 px-1.5 py-0.5 rounded-full ml-1">{sessionEncounters.length}</span>
-                                    </button>
-                                    {!isCollapsed && (
-                                        <div className="flex flex-col gap-0.5 px-1 pb-1">
-                                            {sessionEncounters.length === 0 ? (
-                                                <p className="text-ui-muted text-[10px] px-1 py-0.5 italic">Empty</p>
-                                            ) : (
-                                                sessionEncounters.map((enc) => (
-                                                    <button
-                                                        key={enc.id}
-                                                        onClick={() => setSelectedId(enc.id)}
-                                                        className={`text-left px-2 py-1 rounded text-[11px] transition-colors break-words ${
-                                                            displayId === enc.id
-                                                                ? 'bg-fear-light/20 text-ui-text font-semibold'
-                                                                : 'text-ui-muted hover:text-ui-text hover:bg-ui-surface2'
-                                                        }`}
-                                                    >
-                                                        {enc.name}
-                                                    </button>
-                                                ))
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )
-                        })}
-                        {unassignedEncounters.length > 0 && (
-                            <div className="bg-ui-surface rounded-lg border border-ui-surface2 overflow-hidden">
-                                <p className="px-2 py-1.5 text-xs font-semibold text-ui-muted">Unassigned</p>
-                                <div className="flex flex-col gap-0.5 px-1 pb-1">
-                                    {unassignedEncounters.map((enc) => (
+                    {/* Sessions sidebar — navigation only */}
+                    <div className="w-44 shrink-0 flex flex-col bg-ui-surface rounded-xl border border-ui-surface2 overflow-hidden">
+                        <div className="px-3 py-2.5 border-b border-ui-surface2 shrink-0">
+                            <p className="text-ui-muted text-[10px] uppercase font-bold tracking-widest">Sessions</p>
+                        </div>
+                        <div className="flex-1 overflow-y-auto py-1.5 px-1.5 flex flex-col gap-0.5">
+                            {sessions.length === 0 && (
+                                <p className="text-ui-muted text-xs px-2 py-2 italic">No sessions yet.</p>
+                            )}
+                            {sessions.map((session) => {
+                                const isCollapsed = collapsedSessions.has(session.id)
+                                const sessionEncounters = (session.encounterIds ?? [])
+                                    .map((eid) => encounters.find((e) => e.id === eid))
+                                    .filter((e): e is Encounter => e !== undefined)
+                                return (
+                                    <div key={session.id}>
                                         <button
-                                            key={enc.id}
-                                            onClick={() => setSelectedId(enc.id)}
-                                            className={`text-left px-2 py-1 rounded text-[11px] transition-colors break-words ${
-                                                displayId === enc.id
-                                                    ? 'bg-fear-light/20 text-ui-text font-semibold'
-                                                    : 'text-ui-muted hover:text-ui-text hover:bg-ui-surface2'
-                                            }`}
+                                            onClick={() => toggleSessionCollapse(session.id)}
+                                            className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold text-ui-muted hover:text-ui-text hover:bg-ui-surface2 transition-colors"
                                         >
-                                            {enc.name}
+                                            <span className="text-[8px] shrink-0">{isCollapsed ? '▶' : '▼'}</span>
+                                            <span className="truncate flex-1 text-left">{session.name}</span>
+                                            <span className="shrink-0 text-[10px] bg-ui-surface2 px-1.5 py-0.5 rounded-full">{sessionEncounters.length}</span>
                                         </button>
-                                    ))}
+                                        {!isCollapsed && (
+                                            <div className="flex flex-col gap-0.5 pl-4 pr-1 pb-0.5">
+                                                {sessionEncounters.length === 0 ? (
+                                                    <p className="text-ui-muted text-[10px] px-2 py-1 italic">Empty</p>
+                                                ) : (
+                                                    sessionEncounters.map((enc) => (
+                                                        <button
+                                                            key={enc.id}
+                                                            onClick={() => setSelectedId(enc.id)}
+                                                            className={`text-left px-2 py-1 rounded-lg text-[11px] transition-colors w-full truncate ${
+                                                                displayId === enc.id
+                                                                    ? 'bg-fear-light/15 text-ui-text font-semibold border-l-2 border-fear-light pl-1.5'
+                                                                    : 'text-ui-muted hover:text-ui-text hover:bg-ui-surface2'
+                                                            }`}
+                                                        >
+                                                            {enc.name}
+                                                        </button>
+                                                    ))
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                            {unassignedEncounters.length > 0 && (
+                                <div className="mt-1">
+                                    <p className="px-2 py-1 text-[10px] font-semibold text-ui-muted uppercase tracking-wider">Unassigned</p>
+                                    <div className="flex flex-col gap-0.5">
+                                        {unassignedEncounters.map((enc) => (
+                                            <button
+                                                key={enc.id}
+                                                onClick={() => setSelectedId(enc.id)}
+                                                className={`text-left px-2 py-1 rounded-lg text-[11px] transition-colors w-full truncate ${
+                                                    displayId === enc.id
+                                                        ? 'bg-fear-light/15 text-ui-text font-semibold border-l-2 border-fear-light pl-1.5'
+                                                        : 'text-ui-muted hover:text-ui-text hover:bg-ui-surface2'
+                                                }`}
+                                            >
+                                                {enc.name}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
 
-                    <div className="w-64 shrink-0 flex flex-col gap-3 overflow-y-auto">
+                    {/* Adversary Library */}
+                    <div className="flex-1 flex flex-col gap-2 min-w-0">
+
+                        {/* Search + filters */}
+                        <div className="flex gap-2 shrink-0">
+                            <Input theme="fear" type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search adversaries..." className="flex-1" />
+                            <Select theme="fear" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} style={{ width: 'auto' }}>
+                                {allRoles.map((r) => <option key={r}>{r}</option>)}
+                            </Select>
+                            <Select theme="fear" value={tierFilter} onChange={(e) => setTierFilter(e.target.value)} style={{ width: 'auto' }}>
+                                <option value="All">All Tiers</option>
+                                <option value="1">Tier 1</option>
+                                <option value="2">Tier 2</option>
+                                <option value="3">Tier 3</option>
+                                <option value="4">Tier 4</option>
+                            </Select>
+                        </div>
+
+                        {/* Card grid */}
+                        <div className="flex-1 overflow-y-auto">
+                            {adversaryCards.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full text-ui-muted gap-2">
+                                    <span className="text-4xl">🐉</span>
+                                    <p className="text-sm">No adversary cards yet.</p>
+                                    <p className="text-xs">Create them in the Cards section.</p>
+                                </div>
+                            ) : filteredCards.length === 0 ? (
+                                <p className="text-ui-muted text-sm text-center py-8">No cards match your search.</p>
+                            ) : (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {filteredCards.map((card) => {
+                                        const cost = getRoleCost(card.role)
+                                        const inEncounter = displayEncounter.entries.find((e) => e.cardId === card.id)
+                                        const isRestricted = card.role ? restrictedRoles.has(card.role) : false
+                                        return (
+                                            <div
+                                                key={card.id}
+                                                onClick={() => addCard(card.id)}
+                                                className={`text-left p-3 rounded-xl border transition-colors cursor-pointer ${
+                                                    inEncounter
+                                                        ? 'bg-card-bg border-fear-light/50 ring-1 ring-inset ring-fear-light/20 hover:border-fear-light/70'
+                                                        : isRestricted
+                                                        ? 'bg-card-bg border-card-border opacity-50'
+                                                        : 'bg-card-bg border-card-border hover:border-card-border/60'
+                                                }`}
+                                            >
+                                                <div className="flex items-start justify-between gap-1 mb-2">
+                                                    <span className="text-card-text text-sm font-semibold leading-tight">{card.title}</span>
+                                                    <div className="flex items-center gap-1 shrink-0">
+                                                        {isRestricted && <span className="text-[9px] text-red-600 font-bold">⚠</span>}
+                                                        {inEncounter && <span className="text-fear-light text-xs font-bold">×{inEncounter.count}</span>}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                                                    {card.role && (
+                                                        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border ${ROLE_COLORS_CARD[card.role] ?? 'bg-card-border/20 text-card-text/60 border-card-border/60'}`}>
+                                                            {card.role}
+                                                        </span>
+                                                    )}
+                                                    {card.tier && (
+                                                        <span className="text-[10px] text-card-text/60">T{card.tier}</span>
+                                                    )}
+                                                    <span className="text-[10px] font-bold text-hope-secondary ml-auto">{cost}pt</span>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setDetailCardId(card.id) }}
+                                                    className="w-full py-1.5 rounded-lg bg-card-border/30 hover:bg-fear-light/20 text-card-text/60 hover:text-card-text text-xs font-semibold transition-colors border border-card-border/40 hover:border-fear-light/30"
+                                                >
+                                                    View Details
+                                                </button>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right panel — config + budget + adjustments + roster */}
+                    <div className="w-80 shrink-0 flex flex-col gap-3 overflow-y-auto">
+
+                        {/* Encounter config */}
                         <div className="bg-ui-surface rounded-xl border border-ui-surface2 p-4 flex flex-col gap-3">
-                            <input
+                            <Input
+                                theme="fear"
                                 type="text"
                                 value={displayEncounter.name}
                                 onChange={(e) => update({ name: e.target.value })}
-                                className="bg-ui-surface2 text-ui-text text-sm font-semibold px-3 py-2 rounded-lg border border-ui-surface2 outline-none focus:border-fear-light w-full"
+                                className="font-semibold"
                             />
-                            {/* Session picker */}
-                            <select
-                                value={ownerSession?.id ?? ''}
-                                onChange={(e) => {
-                                    if (!currentCampaignId || !displayId) return
-                                    const prevSession = sessions.find((s) => (s.encounterIds ?? []).includes(displayId))
-                                    if (prevSession) removeEncounterFromSession(currentCampaignId, prevSession.id, displayId)
-                                    if (e.target.value) addEncounterToSession(currentCampaignId, e.target.value, displayId)
-                                }}
-                                className="bg-ui-surface2 text-ui-text text-xs px-3 py-2 rounded-lg border border-ui-surface2 outline-none focus:border-fear-light w-full"
-                            >
-                                <option value="">— No Session —</option>
-                                {sessions.map((s) => (
-                                    <option key={s.id} value={s.id}>{s.name}</option>
-                                ))}
-                            </select>
-                            <div className="flex gap-2">
+                            <div className="flex items-center gap-2">
+                                <Select
+                                    theme="fear"
+                                    value={ownerSession?.id ?? ''}
+                                    onChange={(e) => {
+                                        if (!currentCampaignId || !displayId) return
+                                        const prevSession = sessions.find((s) => (s.encounterIds ?? []).includes(displayId))
+                                        if (prevSession) removeEncounterFromSession(currentCampaignId, prevSession.id, displayId)
+                                        if (e.target.value) {
+                                            addEncounterToSession(currentCampaignId, e.target.value, displayId)
+                                            setActiveEncounter(currentCampaignId, displayId)
+                                        }
+                                    }}
+                                    className="flex-1"
+                                >
+                                    <option value="">— No Session —</option>
+                                    {sessions.map((s) => (
+                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                    ))}
+                                </Select>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-ui-muted text-xs shrink-0">Players</span>
+                                <button
+                                    onClick={() => update({ pcCount: Math.max(1, displayEncounter.pcCount - 1) })}
+                                    className="w-7 h-7 rounded bg-ui-surface2 hover:bg-fear-light text-ui-text font-bold transition-colors text-sm flex items-center justify-center"
+                                >−</button>
+                                <span className="text-ui-text font-bold text-lg w-6 text-center">{displayEncounter.pcCount}</span>
+                                <button
+                                    onClick={() => update({ pcCount: Math.min(12, displayEncounter.pcCount + 1) })}
+                                    className="w-7 h-7 rounded bg-ui-surface2 hover:bg-fear-light text-ui-text font-bold transition-colors text-sm flex items-center justify-center"
+                                >+</button>
                                 <button
                                     onClick={() => {
                                         if (!currentCampaignId) return
@@ -347,35 +481,100 @@ function EncounterBuilder() {
                                 >
                                     {activeEncounterId === displayId ? '★ Active' : 'Set Active'}
                                 </button>
-                                <button
-                                    onClick={() => handleDelete(displayEncounter.id)}
-                                    className="px-3 py-1.5 text-xs text-red-400 bg-red-900/10 hover:bg-red-900/20 rounded-lg border border-red-900/20 transition-colors"
-                                >
-                                    Delete
-                                </button>
+                                <Button variant="destructive" size="sm" onClick={() => handleDelete(displayEncounter.id)}>✕</Button>
                             </div>
                         </div>
 
+                        {/* Roster */}
                         <div className="bg-ui-surface rounded-xl border border-ui-surface2 p-4 flex flex-col gap-3">
-                            <div className="flex flex-col gap-1">
-                                <span className="text-ui-muted text-xs uppercase font-bold tracking-wider">Players in Combat</span>
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        onClick={() => update({ pcCount: Math.max(1, displayEncounter.pcCount - 1) })}
-                                        className="w-8 h-8 rounded-lg bg-ui-surface2 hover:bg-fear-light text-ui-text font-bold transition-colors"
-                                    >−</button>
-                                    <span className="text-ui-text font-bold text-xl w-6 text-center">{displayEncounter.pcCount}</span>
-                                    <button
-                                        onClick={() => update({ pcCount: Math.min(12, displayEncounter.pcCount + 1) })}
-                                        className="w-8 h-8 rounded-lg bg-ui-surface2 hover:bg-fear-light text-ui-text font-bold transition-colors"
-                                    >+</button>
-                                </div>
-                            </div>
+                            <span className="text-ui-text text-[10px] uppercase font-bold tracking-widest">Roster</span>
 
-                            <div className="border-t border-ui-surface2 pt-3 flex flex-col gap-1.5 text-xs">
+                            {displayEncounter.entries.length === 0 ? (
+                                <p className="text-ui-muted text-xs text-center py-3 italic">Click adversaries from the library to add them.</p>
+                            ) : (
+                                <div className="flex flex-col gap-3">
+                                    {rosterGroups.map(({ role, entries }) => {
+                                        const roleColor = ROLE_COLORS[role] ?? 'bg-ui-surface2/50 text-ui-muted border-ui-surface2'
+                                        const textColor = roleColor.split(' ')[1] ?? 'text-ui-muted'
+                                        const groupCost = entries.reduce((sum, e) => {
+                                            const card = adversaryCards.find((c) => c.id === e.cardId)
+                                            return sum + getRoleCost(card?.role) * e.count
+                                        }, 0)
+                                        return (
+                                            <div key={role}>
+                                                <div className="flex items-center justify-between mb-1.5 px-0.5">
+                                                    <span className={`text-[10px] font-black uppercase tracking-widest ${textColor}`}>{role}</span>
+                                                    <span className="text-[10px] text-ui-muted font-semibold">{groupCost}pt</span>
+                                                </div>
+                                                <div className="flex flex-col gap-1.5">
+                                                    {entries.map((entry) => {
+                                                        const card = adversaryCards.find((c) => c.id === entry.cardId)
+                                                        if (!card) return null
+                                                        const cost = getRoleCost(card.role)
+                                                        return (
+                                                            <div key={entry.cardId} className={`flex items-center gap-2 rounded-lg px-2.5 py-2 border ${roleColor.split(' ').slice(0, 3).join(' ')}`}>
+                                                                <div className="flex items-center gap-1 shrink-0">
+                                                                    <button
+                                                                        onClick={() => changeCount(entry.cardId, -1)}
+                                                                        className="w-5 h-5 rounded bg-ui-surface2/80 hover:bg-fear-light/40 text-ui-text text-xs font-bold transition-colors flex items-center justify-center"
+                                                                    >−</button>
+                                                                    <span className="text-ui-text text-sm font-bold w-5 text-center">{entry.count}</span>
+                                                                    <button
+                                                                        onClick={() => changeCount(entry.cardId, 1)}
+                                                                        className="w-5 h-5 rounded bg-ui-surface2/80 hover:bg-fear-light/40 text-ui-text text-xs font-bold transition-colors flex items-center justify-center"
+                                                                    >+</button>
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-ui-text text-xs font-semibold truncate">{card.title}</p>
+                                                                    <p className="text-[10px] text-ui-muted">HP {card.hp.max} · DC {card.difficulty}</p>
+                                                                </div>
+                                                                <span className="text-hope-secondary text-xs font-bold shrink-0">{cost * entry.count}pt</span>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
+
+                            <div className="border-t border-ui-surface2 pt-3">
+                                <p className="text-ui-muted text-[10px] uppercase font-bold tracking-wider mb-2">Role Costs</p>
+                                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                                    {Object.entries(ROLE_COST).map(([role, cost]) => (
+                                        <div key={role} className="flex justify-between text-[10px]">
+                                            <span className={ROLE_COLORS[role]?.split(' ')[1] ?? 'text-ui-muted'}>{role}</span>
+                                            <span className="text-ui-text font-semibold">{cost}pt</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-ui-muted text-[10px] mt-1.5 italic">Minion: 1pt per group (= party size)</p>
+                            </div>
+                        </div>
+
+                        {/* Budget — single display */}
+                        <div className="bg-ui-surface rounded-xl border border-ui-surface2 p-4 flex flex-col gap-2.5">
+                            <div className="flex items-center justify-between">
+                                <span className="text-ui-muted text-[10px] uppercase font-bold tracking-widest">Battle Points</span>
+                                <span className={`text-sm font-bold ${remainingColor}`}>
+                                    {remainingPoints > 0
+                                        ? `${remainingPoints} left`
+                                        : remainingPoints === 0
+                                        ? 'At limit'
+                                        : `${Math.abs(remainingPoints)} over`}
+                                </span>
+                            </div>
+                            <div className="h-2 bg-ui-surface2 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all ${remainingPoints < 0 ? 'bg-red-500' : remainingPoints === 0 ? 'bg-hope-secondary' : remainingPoints <= 2 ? 'bg-hope-secondary' : 'bg-green-500'}`}
+                                    style={{ width: `${Math.min(100, Math.max(0, totalPoints > 0 ? (spentPoints / totalPoints) * 100 : 0))}%` }}
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1 text-xs">
                                 <div className="flex justify-between text-ui-muted">
                                     <span>Base (3×{displayEncounter.pcCount}+2)</span>
-                                    <span className="text-ui-text font-semibold">{3 * displayEncounter.pcCount + 2} pts</span>
+                                    <span className="text-ui-text">{3 * displayEncounter.pcCount + 2}</span>
                                 </div>
                                 {displayEncounter.adjustments.map((adj) => {
                                     const cfg = ADJUSTMENT_CONFIG.find((c) => c.key === adj)!
@@ -388,23 +587,20 @@ function EncounterBuilder() {
                                         </div>
                                     )
                                 })}
-                                <div className="flex justify-between border-t border-ui-surface2 pt-1.5 mt-0.5">
-                                    <span className="text-ui-text font-bold">Total budget</span>
-                                    <span className="text-ui-text font-bold">{totalPoints} pts</span>
+                                <div className="flex justify-between border-t border-ui-surface2 pt-1.5 mt-0.5 font-semibold">
+                                    <span className="text-ui-text">Total</span>
+                                    <span className="text-ui-text">{totalPoints}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-ui-muted">Spent</span>
-                                    <span className="text-ui-text">{spentPoints} pts</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-ui-muted">Remaining</span>
-                                    <span className={`font-bold ${remainingColor}`}>{remainingPoints} pts</span>
+                                    <span className="text-ui-text">{spentPoints}</span>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Adjustments */}
                         <div className="bg-ui-surface rounded-xl border border-ui-surface2 p-4 flex flex-col gap-2">
-                            <span className="text-ui-muted text-xs uppercase font-bold tracking-wider mb-1">Adjustments</span>
+                            <span className="text-ui-muted text-[10px] uppercase font-bold tracking-widest mb-0.5">Adjustments</span>
                             {ADJUSTMENT_CONFIG.map(({ key, label, delta, hint }) => {
                                 const active = displayEncounter.adjustments.includes(key)
                                 return (
@@ -429,158 +625,125 @@ function EncounterBuilder() {
                                 )
                             })}
                         </div>
+
                     </div>
 
-                    <div className="flex-1 flex flex-col gap-3 min-w-0">
-                        <div className="flex gap-2 shrink-0">
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search adversaries..."
-                                className="flex-1 bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg border border-ui-surface2 outline-none focus:border-fear-light"
-                            />
-                            <select
-                                value={roleFilter}
-                                onChange={(e) => setRoleFilter(e.target.value)}
-                                className="bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg border border-ui-surface2 outline-none focus:border-fear-light"
-                            >
-                                {allRoles.map((r) => <option key={r}>{r}</option>)}
-                            </select>
-                            <select
-                                value={tierFilter}
-                                onChange={(e) => setTierFilter(e.target.value)}
-                                className="bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg border border-ui-surface2 outline-none focus:border-fear-light"
-                            >
-                                <option value="All">All Tiers</option>
-                                <option value="1">Tier 1</option>
-                                <option value="2">Tier 2</option>
-                                <option value="3">Tier 3</option>
-                                <option value="4">Tier 4</option>
-                            </select>
-                        </div>
+                </div>
+            )}
 
-                        <div className="flex-1 overflow-y-auto">
-                            {adversaryCards.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full text-ui-muted gap-2">
-                                    <span className="text-4xl">🐉</span>
-                                    <p className="text-sm">No adversary cards yet.</p>
-                                    <p className="text-xs">Create them in the Cards section.</p>
-                                </div>
-                            ) : filteredCards.length === 0 ? (
-                                <p className="text-ui-muted text-sm text-center py-8">No cards match your search.</p>
-                            ) : (
-                                <div className="grid grid-cols-2 gap-2">
-                                    {filteredCards.map((card) => {
-                                        const cost = getRoleCost(card.role)
-                                        const inEncounter = displayEncounter.entries.find((e) => e.cardId === card.id)
-                                        return (
-                                            <button
-                                                key={card.id}
-                                                onClick={() => addCard(card.id)}
-                                                className={`text-left p-3 rounded-xl border transition-colors ${
-                                                    inEncounter
-                                                        ? 'bg-fear-light/10 border-fear-light/40 hover:bg-fear-light/20'
-                                                        : 'bg-ui-surface border-ui-surface2 hover:bg-ui-surface2'
-                                                }`}
-                                            >
-                                                <div className="flex items-start justify-between gap-2 mb-2">
-                                                    <span className="text-ui-text text-sm font-semibold leading-tight">{card.title}</span>
-                                                    {inEncounter && (
-                                                        <span className="text-fear-light text-xs font-bold shrink-0">×{inEncounter.count}</span>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-1.5 flex-wrap">
-                                                    {card.role && (
-                                                        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border ${ROLE_COLORS[card.role] ?? 'bg-ui-surface2 text-ui-muted border-ui-surface2'}`}>
-                                                            {card.role}
-                                                        </span>
-                                                    )}
-                                                    {card.tier && (
-                                                        <span className="text-[10px] text-ui-muted">Tier {card.tier}</span>
-                                                    )}
-                                                    <span className="text-[10px] font-bold text-hope-secondary ml-auto">{cost} pt{cost !== 1 ? 's' : ''}</span>
-                                                </div>
-                                            </button>
-                                        )
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="w-72 shrink-0 flex flex-col gap-3 overflow-y-auto">
-                        <div className="bg-ui-surface rounded-xl border border-ui-surface2 p-4 flex flex-col gap-3 flex-1">
-                            <div className="flex items-center justify-between shrink-0">
-                                <span className="text-ui-muted text-xs uppercase font-bold tracking-wider">Encounter Roster</span>
-                                <span className={`text-xs font-bold ${remainingColor}`}>
-                                    {spentPoints}/{totalPoints} pts
-                                </span>
-                            </div>
-
-                            <div className="h-1.5 bg-ui-surface2 rounded-full overflow-hidden shrink-0">
-                                <div
-                                    className={`h-full rounded-full transition-all ${
-                                        remainingPoints < 0 ? 'bg-red-500' :
-                                        remainingPoints <= 1 ? 'bg-hope-secondary' :
-                                        'bg-green-500'
-                                    }`}
-                                    style={{ width: `${Math.min(100, totalPoints > 0 ? (spentPoints / totalPoints) * 100 : 0)}%` }}
-                                />
-                            </div>
-
-                            {displayEncounter.entries.length === 0 ? (
-                                <p className="text-ui-muted text-xs text-center py-4 italic">
-                                    Click adversaries from the library to add them.
+            {/* Card Detail Modal */}
+            {detailCard && (
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    onClick={() => setDetailCardId(null)}
+                >
+                    <div
+                        className="bg-card-bg border border-card-border rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="px-5 pt-4 pb-2 flex items-start justify-between gap-3">
+                            <div>
+                                <h2 className="text-card-text font-display text-lg font-black uppercase tracking-wide leading-tight">{detailCard.title}</h2>
+                                <p className="text-card-text/60 text-[11px] italic mt-0.5">
+                                    {[detailCard.tier ? `Tier ${detailCard.tier}` : null, detailCard.role].filter(Boolean).join(' · ')}
+                                    {' · '}<span className="font-bold text-hope-secondary not-italic">{getRoleCost(detailCard.role)}pt</span>
                                 </p>
-                            ) : (
-                                <div className="flex flex-col gap-2 flex-1 overflow-y-auto">
-                                    {displayEncounter.entries.map((entry) => {
-                                        const card = adversaryCards.find((c) => c.id === entry.cardId)
-                                        if (!card) return null
-                                        const cost = getRoleCost(card.role)
-                                        const lineCost = cost * entry.count
-                                        return (
-                                            <div key={entry.cardId} className="flex items-center gap-2 bg-ui-surface2/50 rounded-lg px-3 py-2">
-                                                <div className="flex items-center gap-1 shrink-0">
-                                                    <button
-                                                        onClick={() => changeCount(entry.cardId, -1)}
-                                                        className="w-5 h-5 rounded bg-ui-surface2 hover:bg-fear-light text-ui-text text-xs font-bold transition-colors flex items-center justify-center"
-                                                    >−</button>
-                                                    <span className="text-ui-text text-sm font-bold w-5 text-center">{entry.count}</span>
-                                                    <button
-                                                        onClick={() => changeCount(entry.cardId, 1)}
-                                                        className="w-5 h-5 rounded bg-ui-surface2 hover:bg-fear-light text-ui-text text-xs font-bold transition-colors flex items-center justify-center"
-                                                    >+</button>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-ui-text text-xs font-semibold truncate">{card.title}</p>
-                                                    <p className={`text-[10px] ${ROLE_COLORS[card.role ?? '']?.split(' ')[1] ?? 'text-ui-muted'}`}>
-                                                        {card.role ?? 'Unknown'}
-                                                    </p>
-                                                </div>
-                                                <span className="text-hope-secondary text-xs font-bold shrink-0">{lineCost}pt</span>
-                                            </div>
-                                        )
-                                    })}
+                            </div>
+                            <button
+                                onClick={() => setDetailCardId(null)}
+                                className="text-card-text/40 hover:text-card-text text-lg transition-colors shrink-0 font-bold"
+                            >✕</button>
+                        </div>
+
+                        {/* Description / Motives / Tactics */}
+                        {detailCard.description && <div className="px-5 pb-1"><p className="text-card-text/80 text-[11px] italic leading-snug">{renderBold(detailCard.description)}</p></div>}
+                        {detailCard.motives && <div className="px-5 pb-1"><p className="text-card-text/85 text-[11px] leading-snug"><span className="font-bold">Motives:</span> {renderBold(detailCard.motives)}</p></div>}
+                        {detailCard.tactics && <div className="px-5 pb-1"><p className="text-card-text/85 text-[11px] leading-snug"><span className="font-bold">Tactics:</span> {renderBold(detailCard.tactics)}</p></div>}
+
+                        {/* Stats box */}
+                        <div className="mx-5 my-3 border border-card-border/70 rounded-lg px-3 py-2 flex flex-col gap-1.5">
+                            <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-card-text">
+                                <span><span className="font-bold">Difficulty:</span> {detailCard.difficulty}</span>
+                                <span className="text-card-border/50 select-none">│</span>
+                                <span><span className="font-bold">HP:</span> {detailCard.hp.max}</span>
+                                <span className="text-card-border/50 select-none">│</span>
+                                <span><span className="font-bold">Stress:</span> {detailCard.stress.max}</span>
+                            </div>
+                            <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-[11px]">
+                                <span className="font-bold text-card-text">Thresholds:</span>
+                                <span className="text-green-700 font-semibold">Minor &lt;{detailCard.thresholds.minor}</span>
+                                {detailCard.thresholds.major !== undefined && (
+                                    <span className="text-amber-700 font-semibold">Major {detailCard.thresholds.minor}–{detailCard.thresholds.major - 1}</span>
+                                )}
+                                <span className="text-red-700 font-semibold">Severe {detailCard.thresholds.severe}+</span>
+                            </div>
+                            {(detailCard.attackModifier || detailCard.attackName || detailCard.attackDamage) && (
+                                <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+                                    <span className="font-black text-red-700 shrink-0">ATK:</span>
+                                    {detailCard.attackModifier && <span className="text-card-text font-bold">{detailCard.attackModifier}</span>}
+                                    {(detailCard.attackName || detailCard.attackDistance) && (
+                                        <><span className="text-card-border/50 select-none">|</span><span className="text-card-text">{[detailCard.attackName, detailCard.attackDistance].filter(Boolean).join(' · ')}</span></>
+                                    )}
+                                    {detailCard.attackDamage && (
+                                        <>
+                                            <span className="text-card-border/50 select-none">|</span>
+                                            <span className="text-card-text font-mono">{detailCard.attackDamage}</span>
+                                            {detailCard.attackDamageType && (
+                                                <span className={`font-semibold ${detailCard.attackDamageType === 'physical' ? 'text-orange-700' : 'text-blue-700'}`}>
+                                                    {detailCard.attackDamageType === 'physical' ? 'phys' : 'magic'}
+                                                </span>
+                                            )}
+                                        </>
+                                    )}
                                 </div>
                             )}
+                            {detailCard.experience && (
+                                <p className="text-[11px] text-card-text"><span className="font-bold">Experience:</span> {detailCard.experience}</p>
+                            )}
+                        </div>
 
-                            <div className="border-t border-ui-surface2 pt-3 shrink-0">
-                                <p className="text-ui-muted text-[10px] uppercase font-bold tracking-wider mb-2">Point Costs</p>
-                                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
-                                    {Object.entries(ROLE_COST).map(([role, cost]) => (
-                                        <div key={role} className="flex justify-between text-[10px]">
-                                            <span className="text-ui-muted">{role}</span>
-                                            <span className="text-ui-text font-semibold">{cost}pt</span>
-                                        </div>
-                                    ))}
+                        {/* Abilities */}
+                        {detailCard.abilities && detailCard.abilities.length > 0 && (
+                            <div className="px-5 pb-4">
+                                <p className="text-card-text font-black text-[10px] uppercase tracking-widest mb-2">Abilities</p>
+                                <div className="flex flex-col gap-2">
+                                    {(['action', 'reaction', 'fear'] as AbilityType[]).map((type) => {
+                                        const group = detailCard.abilities!.filter((a) => a.type === type)
+                                        if (group.length === 0) return null
+                                        const s = ABILITY_CARD_STYLES[type]
+                                        return group.map((ability) => (
+                                            <div key={ability.id} className={`text-[11px] leading-snug text-card-text pl-2.5 border-l-2 ${s.border}`}>
+                                                <span className={`font-black italic ${s.text}`}>{ability.name}</span>{' — '}
+                                                <span className={`font-bold italic ${s.text}`}>{s.icon} {s.label}:</span>{' '}
+                                                <span className="text-card-text/85">{renderBold(ability.description)}</span>
+                                                {!!ability.fearCost && ability.fearCost > 0 && <span className="ml-1 text-purple-700 text-[9px] font-black">💀 {ability.fearCost}</span>}
+                                            </div>
+                                        ))
+                                    })}
                                 </div>
-                                <p className="text-ui-muted text-[10px] mt-1.5 italic">Minion: 1pt per group (= party size)</p>
                             </div>
+                        )}
+
+                        {/* Tags */}
+                        {detailCard.tags.length > 0 && (
+                            <div className="px-5 pb-4 flex flex-wrap gap-1.5">
+                                {detailCard.tags.map((tag) => (
+                                    <span key={tag} className="text-[10px] bg-card-border/20 text-card-text/60 px-2 py-0.5 rounded-full border border-card-border/40">{tag}</span>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Footer — Add to encounter */}
+                        <div className="border-t border-card-border/50 px-5 py-3 flex justify-end">
+                            <button
+                                onClick={() => { addCard(detailCard.id); setDetailCardId(null) }}
+                                className="px-5 py-2 text-sm bg-hope-primary hover:bg-hope-gold text-white rounded-lg transition-colors font-medium"
+                            >
+                                + Add to Encounter ({getRoleCost(detailCard.role)}pt)
+                            </button>
                         </div>
                     </div>
-
                 </div>
             )}
         </div>

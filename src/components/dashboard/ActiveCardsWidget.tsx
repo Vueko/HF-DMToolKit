@@ -1,16 +1,29 @@
-import { SharedMarkdown } from '../SharedMarkdown'
+import { useMemo } from 'react'
 import { useCampaignStore } from '../../store/campaignStore'
 import { useCardsStore } from '../../store/cardsStore'
+import { useFearStore } from '../../store/fearStore'
+import type { EnvironmentCard, EnvironmentFeatureType } from '../../types'
+import { renderBold } from '../../utils/renderBold'
+
+const FEATURE_STYLES: Record<EnvironmentFeatureType, { label: string; icon: string; text: string; border: string }> = {
+    action:  { label: 'Action',       icon: '⚔', text: 'text-orange-700', border: 'border-l-orange-600' },
+    passive: { label: 'Passive',      icon: '◈', text: 'text-blue-700',   border: 'border-l-blue-600'   },
+    fear:    { label: 'Fear Feature', icon: '⚡', text: 'text-purple-700', border: 'border-l-purple-600' },
+}
 
 function ActiveCardsWidget() {
     const { campaigns, currentCampaignId, currentSessionId, removeCardFromSession } = useCampaignStore()
     const { cards } = useCardsStore()
+    const { fearCount, removeFear } = useFearStore()
 
     const currentCampaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
     const currentSession = currentCampaign?.sessions.find((s) => s.id === currentSessionId) ?? null
     const instances = currentSession?.cardInstances ?? []
 
-    const envInstances = instances.filter((i) => cards.find((c) => c.id === i.cardId)?.type === 'environment')
+    const envInstances = useMemo(
+        () => instances.filter((i) => cards.find((c) => c.id === i.cardId)?.type === 'environment'),
+        [instances, cards]
+    )
 
     if (!currentCampaignId || !currentSessionId) {
         return (
@@ -26,32 +39,101 @@ function ActiveCardsWidget() {
 
             <div className="flex items-center justify-between">
                 <h3 className="text-ui-text font-display font-semibold">Active Cards</h3>
-                <span className="text-ui-muted text-xs">{envInstances.length} environment cards in play</span>
+                <span className="text-ui-muted text-xs">{envInstances.length} environment card{envInstances.length !== 1 ? 's' : ''} in play</span>
             </div>
 
             {envInstances.length === 0 ? (
                 <p className="text-ui-muted text-sm text-center py-4">No environment cards in this session. Add from the Cards page.</p>
             ) : (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3 items-start">
+                <div className="flex flex-row flex-wrap gap-3 items-start">
                     {envInstances.map((instance) => {
-                            const card = cards.find((c) => c.id === instance.cardId)
-                            if (!card || card.type !== 'environment') return null
-                            return (
-                                <div key={instance.instanceId} className="bg-card-bg rounded-lg px-4 py-4 border border-card-border flex flex-col gap-2">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-card-text font-semibold text-sm">{card.title}</span>
-                                        <button onClick={() => removeCardFromSession(currentCampaignId, currentSessionId, instance.instanceId)} className="text-ui-muted hover:text-red-400 transition-colors text-xs">✕</button>
-                                    </div>
-                                    <div className="flex gap-2 text-xs uppercase font-bold text-ui-muted">
-                                        <span className="bg-ui-surface2 px-2 py-1 rounded">Tier {card.tier || 1}</span>
-                                        {card.category && <span className="bg-ui-surface2 px-2 py-1 rounded">{card.category}</span>}
-                                    </div>
-                                    <div className="text-card-text text-sm opacity-80 [&_strong]:opacity-100 [&_strong]:font-semibold [&_em]:italic [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h1]:font-bold [&_h2]:font-semibold leading-relaxed">
-                                        <SharedMarkdown>{card.description || '_No description_'}</SharedMarkdown>
-                                    </div>
+                        const card = cards.find((c) => c.id === instance.cardId)
+                        if (!card || card.type !== 'environment') return null
+                        const envCard = card as EnvironmentCard
+                        const hasFeatures = (envCard.features?.length ?? 0) > 0
+
+                        return (
+                            <div key={instance.instanceId} className="bg-card-bg rounded-xl border border-card-border overflow-hidden flex-1 min-w-[260px]">
+
+                                {/* Card identity */}
+                                <div className="px-4 pt-3 pb-1 flex flex-col gap-1">
+                                    <h3 className="text-card-text font-display text-base font-black uppercase tracking-wide leading-tight">
+                                        {envCard.title}
+                                    </h3>
+                                    <p className="text-card-text/65 text-[11px] italic">
+                                        {[envCard.tier ? `Tier ${envCard.tier}` : null, envCard.category].filter(Boolean).join(' · ')}
+                                    </p>
+                                    {envCard.description && (
+                                        <p className="text-card-text/80 text-[11px] italic leading-snug">{renderBold(envCard.description)}</p>
+                                    )}
+                                    {envCard.impulses && (
+                                        <p className="text-card-text/85 text-[11px] leading-snug">
+                                            <span className="font-bold">Impulses:</span> {envCard.impulses}
+                                        </p>
+                                    )}
                                 </div>
-                            )
-                        })}
+
+                                {/* Stats box */}
+                                {envCard.difficulty !== undefined && (
+                                    <div className="mx-4 my-2 border border-card-border/70 rounded-lg px-3 py-2">
+                                        <p className="text-[11px] text-card-text">
+                                            <span className="font-bold">Difficulty:</span> {envCard.difficulty}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Features */}
+                                {hasFeatures && (
+                                    <div className="px-4 pb-3">
+                                        <p className="text-card-text font-black text-[10px] uppercase tracking-widest mb-2">Features</p>
+                                        <div className="flex flex-col gap-2">
+                                            {(['action', 'passive', 'fear'] as EnvironmentFeatureType[]).map((type) => {
+                                                const group = (envCard.features ?? []).filter((f) => f.type === type)
+                                                if (group.length === 0) return null
+                                                const s = FEATURE_STYLES[type]
+                                                return group.map((feature) => (
+                                                    <div key={feature.id} className={`text-[11px] leading-snug text-card-text pl-2.5 border-l-2 ${s.border} flex items-start justify-between gap-2`}>
+                                                        <p className="flex-1">
+                                                            <span className={`font-black italic ${s.text}`}>{feature.name}</span>
+                                                            {' — '}
+                                                            <span className={`font-bold italic ${s.text}`}>{s.icon} {s.label}:</span>
+                                                            {' '}
+                                                            <span className="text-card-text/85">{renderBold(feature.description)}</span>
+                                                        </p>
+                                                        {!!feature.fearCost && feature.fearCost > 0 && (
+                                                            <button
+                                                                onClick={() => removeFear(feature.fearCost!)}
+                                                                disabled={fearCount < feature.fearCost}
+                                                                title={`Spend ${feature.fearCost} Fear`}
+                                                                className={`shrink-0 flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded border transition-colors ${
+                                                                    fearCount >= feature.fearCost
+                                                                        ? 'text-purple-700 bg-purple-100/60 border-purple-300/60 hover:bg-purple-200/80 cursor-pointer'
+                                                                        : 'text-card-text/30 bg-card-border/20 border-card-border/30 cursor-not-allowed'
+                                                                }`}
+                                                            >
+                                                                💀 {feature.fearCost}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Remove button */}
+                                <div className="border-t border-card-border/50 px-3 py-1.5 flex justify-end">
+                                    <button
+                                        onClick={() => removeCardFromSession(currentCampaignId, currentSessionId, instance.instanceId)}
+                                        className="text-[10px] text-card-text/40 hover:text-red-600 transition-colors font-semibold uppercase tracking-wide"
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+
+                            </div>
+                        )
+                    })}
                 </div>
             )}
 

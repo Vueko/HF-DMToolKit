@@ -1,4 +1,7 @@
+import { useEffect } from 'react'
 import { Routes, Route, Outlet } from 'react-router-dom'
+import { useFearStore } from './store/fearStore'
+import { useSettingsStore } from './store/settingsStore'
 import Sidebar from './components/Sidebar'
 import TitleBar from './components/TitleBar'
 import DMDashboard from './pages/DMDashboard'
@@ -16,8 +19,22 @@ import AmbientBar from './components/AmbientBar'
 import SoundQuickBar from './components/SoundQuickBar'
 import Soundboard from './pages/Soundboard'
 import PlayerScreen from './pages/PlayerScreen'
+import Settings from './pages/Settings'
 
 function Layout() {
+  useEffect(() => {
+    window.electron.player.setFear(useFearStore.getState().fearCount)
+    return useFearStore.subscribe((state) => {
+      window.electron.player.setFear(state.fearCount)
+    })
+  }, [])
+
+  const fontSize = useSettingsStore((s) => s.fontSize)
+  useEffect(() => {
+    const sizes: Record<string, string> = { sm: '14px', md: '16px', lg: '18px' }
+    document.documentElement.style.fontSize = sizes[fontSize] ?? '16px'
+  }, [fontSize])
+
   return (
     <div className="flex flex-col h-screen bg-ui-bg">
       <TitleBar />
@@ -49,6 +66,7 @@ function App() {
           <Route path="/journal" element={<CampaignJournal />} />
           <Route path="/map" element={<CampaignMap />} />
           <Route path="/soundboard" element={<Soundboard />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
         <Route path="/player-screen" element={<PlayerScreen />} />
       </Routes>

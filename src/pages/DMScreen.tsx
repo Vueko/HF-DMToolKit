@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useCampaignStore } from '../store/campaignStore'
+import { Button, Textarea, Panel } from '../components/ui'
 
 const FIRST_NAMES_LATIN = [
     'Aurelius', 'Cassius', 'Lucius', 'Maximus', 'Octavius', 'Quintus', 'Silas', 'Titus', 'Valerius', 'Felix',
@@ -180,7 +181,7 @@ function DMScreen() {
 
                     <hr className="border-t-2 border-ui-surface2 rounded-full" />
                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
-                        <div className="lg:col-span-2 bg-ui-surface/30 p-5 rounded-xl border border-ui-surface2 flex flex-col gap-4 shadow-sm">
+                        <Panel size="spacious" className="lg:col-span-2 flex flex-col gap-4 shadow-sm">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-md font-display font-bold text-ui-text">👤 Quick NPC Names</h3>
                                 <button
@@ -194,19 +195,15 @@ function DMScreen() {
                                 {generatedNames.map((name, i) => (
                                     <div key={i} className="bg-ui-bg border border-ui-surface2 rounded-lg px-3 py-2 text-ui-text font-medium text-[13px] flex justify-between items-center shadow-sm">
                                         {name}
-                                        <button
-                                            onClick={() => navigator.clipboard.writeText(name)}
-                                            className="text-[10px] text-ui-muted hover:text-hope-primary transition-colors uppercase font-bold tracking-wider"
-                                            title="Copy to clipboard"
-                                        >
+                                        <Button variant="ghost" size="sm" onClick={() => navigator.clipboard.writeText(name)} title="Copy to clipboard">
                                             Copy
-                                        </button>
+                                        </Button>
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </Panel>
 
-                        <div className="lg:col-span-3 bg-ui-surface/30 p-5 rounded-xl border border-ui-surface2 flex flex-col gap-3 shadow-sm">
+                        <Panel size="spacious" className="lg:col-span-3 flex flex-col gap-3 shadow-sm">
                             <h3 className="text-md font-display font-bold text-ui-text mb-2">📜 Rules Reference</h3>
 
                             <div className="flex flex-col gap-2">
@@ -272,17 +269,18 @@ function DMScreen() {
                                     </button>
                                     {activeRuleTab === 'homebrew' && (
                                         <div className="px-4 pb-4 pt-3 border-t border-ui-surface2/50 mt-1">
-                                            <textarea
+                                            <Textarea
+                                                theme="fear"
                                                 value={rulesContent}
                                                 onChange={(e) => updateCampaignRules(currentCampaignId, e.target.value)}
-                                                className="w-full h-48 bg-ui-surface/30 border border-ui-surface2 rounded-lg p-3 text-ui-muted text-[13px] leading-relaxed focus:border-hope-primary outline-none transition-colors resize-none placeholder:text-ui-muted/50"
+                                                className="h-48 text-ui-muted leading-relaxed placeholder:text-ui-muted/50"
                                                 placeholder="Type your custom campaign rules, reminders, or table agreements here... (Plain text, auto-saves)"
                                             />
                                         </div>
                                     )}
                                 </div>
                             </div>
-                        </div>
+                        </Panel>
                     </div>
                 </div>
             </div>

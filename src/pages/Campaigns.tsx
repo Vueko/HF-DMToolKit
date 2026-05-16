@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useCampaignStore } from '../store/campaignStore'
 import type { Campaign, Session } from '../types'
+import { Button, Input } from '../components/ui'
 
 function Campaigns() {
     const {
@@ -110,20 +111,12 @@ function Campaigns() {
                     <p className="text-ui-muted text-sm">Manage your campaigns and sessions</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button
-                        onClick={handleImport}
-                        className="px-4 py-2 bg-ui-surface2 hover:bg-ui-surface border border-ui-surface2 text-ui-text text-sm rounded-lg transition-colors shadow-sm"
-                        title="Importar datos desde un backup"
-                    >
+                    <Button variant="secondary" onClick={handleImport} title="Importar datos desde un backup">
                         ↓ Import Data
-                    </button>
-                    <button
-                        onClick={handleExport}
-                        className="px-4 py-2 bg-ui-surface2 hover:bg-ui-surface border border-ui-surface2 text-ui-text text-sm rounded-lg transition-colors shadow-sm"
-                        title="Exportar todos los datos a un archivo JSON"
-                    >
+                    </Button>
+                    <Button variant="secondary" onClick={handleExport} title="Exportar todos los datos a un archivo JSON">
                         ↑ Export Data
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -133,20 +126,16 @@ function Campaigns() {
                     <h2 className="text-ui-text font-semibold text-sm">Campaigns</h2>
 
                     <div className="flex gap-2">
-                        <input
+                        <Input
+                            theme="hope"
                             type="text"
                             value={newCampaignName}
                             onChange={(e) => setNewCampaignName(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleAddCampaign()}
                             placeholder="Campaign name..."
-                            className="flex-1 bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg outline-none border border-ui-surface2 focus:border-fear-light"
+                            className="flex-1"
                         />
-                        <button
-                            onClick={handleAddCampaign}
-                            className="px-3 py-2 bg-fear-light hover:bg-fear-secondary text-ui-text text-sm rounded-lg transition-colors"
-                        >
-                            Add
-                        </button>
+                        <Button variant="primary" size="sm" onClick={handleAddCampaign}>Add</Button>
                     </div>
 
                     <div className="flex flex-col gap-2">
@@ -167,12 +156,9 @@ function Campaigns() {
                                     <span className="text-ui-text text-sm font-medium">{c.name}</span>
                                     <span className="text-ui-muted text-xs">{c.sessions.length} sessions</span>
                                 </div>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); removeCampaign(c.id) }}
-                                    className="text-ui-muted hover:text-red-400 transition-colors text-xs"
-                                >
+                                <Button variant="destructive" size="sm" onClick={(e) => { e.stopPropagation(); removeCampaign(c.id) }}>
                                     Delete
-                                </button>
+                                </Button>
                             </div>
                         ))}
                     </div>
@@ -188,20 +174,16 @@ function Campaigns() {
                     ) : (
                         <>
                             <div className="flex gap-2">
-                                <input
+                                <Input
+                                    theme="hope"
                                     type="text"
                                     value={newSessionName}
                                     onChange={(e) => setNewSessionName(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddSession()}
                                     placeholder="Session name..."
-                                    className="flex-1 bg-ui-surface2 text-ui-text text-sm px-3 py-2 rounded-lg outline-none border border-ui-surface2 focus:border-fear-light"
+                                    className="flex-1"
                                 />
-                                <button
-                                    onClick={handleAddSession}
-                                    className="px-3 py-2 bg-fear-light hover:bg-fear-secondary text-ui-text text-sm rounded-lg transition-colors"
-                                >
-                                    Add
-                                </button>
+                                <Button variant="primary" size="sm" onClick={handleAddSession}>Add</Button>
                             </div>
 
                             <div className="flex flex-col gap-2">
@@ -232,19 +214,13 @@ function Campaigns() {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {!isActive && (
-                                                    <button
-                                                        onClick={() => handleSetActive(selectedCampaignId!, s.id)}
-                                                        className="text-xs px-2 py-1 bg-ui-surface2 hover:bg-hope-primary text-ui-muted hover:text-white rounded-lg transition-colors"
-                                                    >
+                                                    <Button variant="secondary" size="sm" onClick={() => handleSetActive(selectedCampaignId!, s.id)}>
                                                         Set Active
-                                                    </button>
+                                                    </Button>
                                                 )}
-                                                <button
-                                                    onClick={() => removeSession(selectedCampaignId!, s.id)}
-                                                    className="text-ui-muted hover:text-red-400 transition-colors text-xs"
-                                                >
+                                                <Button variant="destructive" size="sm" onClick={() => removeSession(selectedCampaignId!, s.id)}>
                                                     Delete
-                                                </button>
+                                                </Button>
                                             </div>
                                         </div>
                                     )
