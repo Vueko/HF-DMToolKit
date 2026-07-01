@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
-import { Routes, Route, Outlet } from 'react-router-dom'
+import { Routes, Route, Outlet, useLocation } from 'react-router-dom'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { useFearStore } from './store/fearStore'
 import { useSettingsStore } from './store/settingsStore'
 import { useVaultStore } from './vault/vaultStore'
@@ -40,13 +41,17 @@ function Layout() {
     document.documentElement.style.fontSize = sizes[fontSize] ?? '16px'
   }, [fontSize])
 
+  const location = useLocation()
+
   return (
     <div className="flex flex-col h-screen bg-ui-bg">
       <TitleBar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <main className="flex-1 p-6 bg-ui-canvas overflow-y-auto">
-          <Outlet />
+          <ErrorBoundary key={location.pathname} variant="page">
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
       <SoundQuickBar />
@@ -58,24 +63,26 @@ function Layout() {
 
 function App() {
   return (
-    <SoundboardProvider>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<DMDashboard />} />
-          <Route path="/campaigns" element={<Campaigns />} />
-          <Route path="/scenes" element={<SceneTracker />} />
-          <Route path="/cards" element={<EnvironmentCards />} />
-          <Route path="/encounter" element={<EncounterBuilder />} />
-          <Route path="/dm-screen" element={<DMScreen />} />
-          <Route path="/music" element={<MusicPlayer />} />
-          <Route path="/journal" element={<WorldWiki />} />
-          <Route path="/map" element={<CampaignMap />} />
-          <Route path="/soundboard" element={<Soundboard />} />
-          <Route path="/settings" element={<Settings />} />
-        </Route>
-        <Route path="/player-screen" element={<PlayerScreen />} />
-      </Routes>
-    </SoundboardProvider>
+    <ErrorBoundary variant="root">
+      <SoundboardProvider>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route index element={<DMDashboard />} />
+            <Route path="/campaigns" element={<Campaigns />} />
+            <Route path="/scenes" element={<SceneTracker />} />
+            <Route path="/cards" element={<EnvironmentCards />} />
+            <Route path="/encounter" element={<EncounterBuilder />} />
+            <Route path="/dm-screen" element={<DMScreen />} />
+            <Route path="/music" element={<MusicPlayer />} />
+            <Route path="/journal" element={<WorldWiki />} />
+            <Route path="/map" element={<CampaignMap />} />
+            <Route path="/soundboard" element={<Soundboard />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
+          <Route path="/player-screen" element={<PlayerScreen />} />
+        </Routes>
+      </SoundboardProvider>
+    </ErrorBoundary>
   )
 }
 
