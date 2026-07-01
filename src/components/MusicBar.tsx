@@ -32,7 +32,15 @@ function MusicBar() {
     const playlist = activePlaylist?.tracks ?? []
     const currentTrack = playlist[currentTrackIndex] ?? null
 
+    // Intentionally update ref during render so loadTrack callback always reads the latest isPlaying value
+    // eslint-disable-next-line react-hooks/refs
     isPlayingRef.current = isPlaying
+
+    const handleAudioPause = useCallback(() => {
+        if (!isLoadingRef.current && isPlayingRef.current) {
+            setIsPlaying(false)
+        }
+    }, [setIsPlaying])
 
     const loadTrack = useCallback(async (storedId: string) => {
         const audio = audioRef.current
@@ -73,10 +81,12 @@ function MusicBar() {
         if (isPlayingRef.current) {
             audio.play().catch(() => setIsPlaying(false))
         }
-    }, [])
+    }, [handleAudioPause, setIsPlaying])
 
     useEffect(() => {
         if (!currentTrack) return
+        // Intentional sync: reset display time to 0 whenever the active track changes
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLocalCurrentTime(0)
         setLocalDuration(0)
         loadTrack(currentTrack.storedId)
@@ -101,12 +111,6 @@ function MusicBar() {
     useEffect(() => {
         if (audioRef.current) audioRef.current.loop = loop
     }, [loop])
-
-    function handleAudioPause() {
-        if (!isLoadingRef.current && isPlayingRef.current) {
-            setIsPlaying(false)
-        }
-    }
 
     function handleEnded() {
         if (!loop) next(playlist.length)

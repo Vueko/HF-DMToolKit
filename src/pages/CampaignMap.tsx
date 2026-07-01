@@ -1,7 +1,9 @@
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react'
-import ReactMarkdown from 'react-markdown'
+import { useNavigate } from 'react-router-dom'
 import { useCampaignStore } from '../store/campaignStore'
-import type { MapMarker, LoreEntry } from '../types'
+import type { MapMarker } from '../types'
+import { useVaultStore } from '../vault/vaultStore'
+import type { NoteRef } from '../vault/wikilinks'
 import { saveMapImage, getMapImage } from '../utils/mapDb'
 
 
@@ -12,23 +14,19 @@ const MAX_SCALE = 5
 type MapMode = 'pan' | 'path' | 'marker'
 
 
-interface LoreSearchProps {
-    lore: LoreEntry[]
-    onSelect: (entry: LoreEntry) => void
+interface NoteSearchProps {
+    notes: NoteRef[]
+    onSelect: (note: NoteRef) => void
     placeholder?: string
 }
 
-function LoreSearch({ lore, onSelect, placeholder = 'Search lore...' }: LoreSearchProps) {
+function NoteSearch({ notes, onSelect, placeholder = 'Buscar nota…' }: NoteSearchProps) {
     const [query, setQuery] = useState('')
-
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase()
-        if (!q) return lore
-        return lore.filter(e =>
-            e.title.toLowerCase().includes(q) ||
-            e.category.toLowerCase().includes(q)
-        )
-    }, [lore, query])
+        if (!q) return notes
+        return notes.filter((n) => n.name.toLowerCase().includes(q))
+    }, [notes, query])
 
     return (
         <div className="flex flex-col gap-2">
@@ -36,21 +34,20 @@ function LoreSearch({ lore, onSelect, placeholder = 'Search lore...' }: LoreSear
                 autoFocus
                 type="text"
                 value={query}
-                onChange={e => setQuery(e.target.value)}
+                onChange={(e) => setQuery(e.target.value)}
                 placeholder={placeholder}
                 className="bg-ui-bg text-ui-text text-xs p-2 rounded-lg border border-ui-surface2 focus:border-fear-light outline-none w-full"
             />
             <div className="flex flex-col gap-1 max-h-52 overflow-y-auto pr-1">
                 {filtered.length === 0 ? (
-                    <p className="text-ui-muted text-xs italic py-2">No results found.</p>
-                ) : filtered.map(entry => (
+                    <p className="text-ui-muted text-xs italic py-2">Sin resultados.</p>
+                ) : filtered.map((note) => (
                     <button
-                        key={entry.id}
-                        onClick={() => onSelect(entry)}
+                        key={note.path}
+                        onClick={() => onSelect(note)}
                         className="text-left px-3 py-2 text-xs bg-ui-surface2 hover:bg-ui-bg text-ui-text rounded-lg border border-ui-surface2 transition-colors"
                     >
-                        {entry.title}
-                        <span className="text-ui-muted ml-1.5">({entry.category})</span>
+                        {note.name}
                     </button>
                 ))}
             </div>
@@ -61,13 +58,14 @@ function LoreSearch({ lore, onSelect, placeholder = 'Search lore...' }: LoreSear
 
 function CampaignMap() {
     const { campaigns, currentCampaignId, updateCampaignMap } = useCampaignStore()
+    const navigate = useNavigate()
+    const notes = useVaultStore((s) => s.notes)
 
     const currentCampaign = useMemo(
         () => campaigns.find(c => c.id === currentCampaignId),
         [campaigns, currentCampaignId]
     )
     const mapData = currentCampaign?.map
-    const lore = useMemo(() => currentCampaign?.lore ?? [], [currentCampaign?.lore])
 
     const [mode, setMode] = useState<MapMode>('pan')
     const [scale, setScale] = useState(1)
@@ -178,15 +176,15 @@ function CampaignMap() {
         }
     }, [mapUrl, currentCampaignId, isDragging, mode, mapData, updateCampaignMap])
 
-    const commitMarker = useCallback((loreEntry?: LoreEntry) => {
+    const commitMarker = useCallback((note?: NoteRef) => {
         if (!pendingPos || !currentCampaignId) return
-        const label = pendingName.trim() || loreEntry?.title || 'New Marker'
+        const label = pendingName.trim() || note?.name || 'New Marker'
         const newMarker: MapMarker = {
             id: crypto.randomUUID(),
             x: pendingPos.x,
             y: pendingPos.y,
             label,
-            loreId: loreEntry?.id,
+            noteRef: note?.path,
         }
         updateCampaignMap(currentCampaignId, {
             markers: [...(mapData?.markers ?? []), newMarker],
@@ -195,25 +193,25 @@ function CampaignMap() {
         setPendingName('')
     }, [pendingPos, pendingName, currentCampaignId, mapData, updateCampaignMap])
 
-    const linkMarker = useCallback((markerId: string, loreEntry: LoreEntry) => {
+    const linkMarker = useCallback((markerId: string, note: NoteRef) => {
         if (!currentCampaignId) return
         updateCampaignMap(currentCampaignId, {
-            markers: (mapData?.markers ?? []).map(m =>
-                m.id === markerId ? { ...m, loreId: loreEntry.id } : m
+            markers: (mapData?.markers ?? []).map((m) =>
+                m.id === markerId ? { ...m, noteRef: note.path } : m
             ),
         })
         setLinkingMode(false)
-        setSelectedMarker(prev => prev?.id === markerId ? { ...prev, loreId: loreEntry.id } : prev)
+        setSelectedMarker((prev) => prev?.id === markerId ? { ...prev, noteRef: note.path } : prev)
     }, [currentCampaignId, mapData, updateCampaignMap])
 
     const unlinkMarker = useCallback((markerId: string) => {
         if (!currentCampaignId) return
         updateCampaignMap(currentCampaignId, {
-            markers: (mapData?.markers ?? []).map(m =>
-                m.id === markerId ? { ...m, loreId: undefined } : m
+            markers: (mapData?.markers ?? []).map((m) =>
+                m.id === markerId ? { ...m, noteRef: undefined } : m
             ),
         })
-        setSelectedMarker(prev => prev?.id === markerId ? { ...prev, loreId: undefined } : prev)
+        setSelectedMarker((prev) => prev?.id === markerId ? { ...prev, noteRef: undefined } : prev)
     }, [currentCampaignId, mapData, updateCampaignMap])
 
     const removeMarker = useCallback((id: string) => {
@@ -235,10 +233,11 @@ function CampaignMap() {
         updateCampaignMap(currentCampaignId, { path: [] })
     }, [currentCampaignId, updateCampaignMap])
 
-    const linkedLore = useMemo(() => {
-        if (!selectedMarker?.loreId) return null
-        return lore.find(l => l.id === selectedMarker.loreId) ?? null
-    }, [selectedMarker, lore])
+    const linkedNoteName = useMemo(() => {
+        if (!selectedMarker?.noteRef) return null
+        const ref = selectedMarker.noteRef
+        return notes.find((n) => n.path === ref)?.name ?? ref
+    }, [selectedMarker, notes])
 
     const MODE_LABELS: Record<MapMode, string> = {
         pan: 'Drag to pan · Scroll to zoom',
@@ -406,15 +405,11 @@ function CampaignMap() {
                                 </div>
 
                                 <div className="flex flex-col gap-2">
-                                    <label className="text-ui-muted text-xs uppercase font-bold tracking-wider">Link to Wiki Entry</label>
-                                    {lore.length === 0 ? (
-                                        <p className="text-ui-muted text-xs italic">No lore entries yet.</p>
+                                    <label className="text-ui-muted text-xs uppercase font-bold tracking-wider">Enlazar a nota del vault</label>
+                                    {notes.length === 0 ? (
+                                        <p className="text-ui-muted text-xs italic">No hay notas en el vault.</p>
                                     ) : (
-                                        <LoreSearch
-                                            lore={lore}
-                                            placeholder="Search wiki..."
-                                            onSelect={entry => commitMarker(entry)}
-                                        />
+                                        <NoteSearch notes={notes} placeholder="Buscar nota…" onSelect={(note) => commitMarker(note)} />
                                     )}
                                 </div>
 
@@ -434,58 +429,31 @@ function CampaignMap() {
                                     <button onClick={() => { setSelectedMarker(null); setLinkingMode(false) }} className="text-ui-muted hover:text-ui-text shrink-0">✕</button>
                                 </div>
 
-                                {linkedLore && !linkingMode ? (
-                                    <>
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="text-[10px] uppercase font-black bg-fear-light px-2 py-0.5 rounded text-ui-text">
-                                                {linkedLore.category}
-                                            </span>
-                                            {linkedLore.tags.map(tag => (
-                                                <span key={tag} className="text-[10px] uppercase font-bold bg-ui-surface2 px-2 py-0.5 rounded text-ui-muted">
-                                                    #{tag}
-                                                </span>
-                                            ))}
-                                            <button
-                                                onClick={() => unlinkMarker(selectedMarker.id)}
-                                                className="ml-auto text-[10px] text-red-400 hover:underline"
-                                            >
-                                                Unlink
-                                            </button>
+                                {linkedNoteName && !linkingMode ? (
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] uppercase font-black bg-fear-light px-2 py-0.5 rounded text-ui-text">Nota</span>
+                                            <span className="text-sm text-ui-text truncate">{linkedNoteName}</span>
+                                            <button onClick={() => unlinkMarker(selectedMarker.id)} className="ml-auto text-[10px] text-red-400 hover:underline">Desenlazar</button>
                                         </div>
-
-                                        <div className="text-ui-muted text-sm leading-relaxed bg-ui-bg p-3 rounded-xl border border-ui-surface2">
-                                            <ReactMarkdown>{linkedLore.publicContent}</ReactMarkdown>
-                                        </div>
-
-                                        {linkedLore.secretContent && (
-                                            <div className="bg-fear-light/10 p-3 rounded-xl border border-fear-light/20 flex flex-col gap-1">
-                                                <span className="text-[10px] font-bold uppercase tracking-widest text-fear-light">Secret DM Info</span>
-                                                <div className="text-ui-text text-sm italic">
-                                                    <ReactMarkdown>{linkedLore.secretContent}</ReactMarkdown>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </>
+                                        <button
+                                            onClick={() => navigate(`/journal?note=${encodeURIComponent(selectedMarker.noteRef!)}`)}
+                                            className="py-2 text-xs font-semibold bg-hope-primary hover:bg-hope-gold text-white rounded-lg transition-colors"
+                                        >
+                                            Abrir en World Wiki
+                                        </button>
+                                    </div>
                                 ) : linkingMode ? (
                                     <>
-                                        <p className="text-ui-muted text-xs">Select a wiki entry to link:</p>
-                                        <LoreSearch
-                                            lore={lore}
-                                            placeholder="Search wiki..."
-                                            onSelect={entry => linkMarker(selectedMarker.id, entry)}
-                                        />
-                                        <button onClick={() => setLinkingMode(false)} className="text-xs text-ui-muted hover:text-ui-text underline">
-                                            Cancel
-                                        </button>
+                                        <p className="text-ui-muted text-xs">Selecciona una nota para enlazar:</p>
+                                        <NoteSearch notes={notes} placeholder="Buscar nota…" onSelect={(note) => linkMarker(selectedMarker.id, note)} />
+                                        <button onClick={() => setLinkingMode(false)} className="text-xs text-ui-muted hover:text-ui-text underline">Cancelar</button>
                                     </>
                                 ) : (
                                     <div className="flex flex-col gap-2">
-                                        <p className="text-ui-muted text-xs italic">No wiki entry linked.</p>
-                                        <button
-                                            onClick={() => setLinkingMode(true)}
-                                            className="py-2 text-xs font-semibold bg-ui-surface2 hover:bg-ui-bg text-ui-text rounded-lg border border-ui-surface2 transition-colors"
-                                        >
-                                            Link to Wiki Entry
+                                        <p className="text-ui-muted text-xs italic">Sin nota enlazada.</p>
+                                        <button onClick={() => setLinkingMode(true)} className="py-2 text-xs font-semibold bg-ui-surface2 hover:bg-ui-bg text-ui-text rounded-lg border border-ui-surface2 transition-colors">
+                                            Enlazar a nota
                                         </button>
                                     </div>
                                 )}

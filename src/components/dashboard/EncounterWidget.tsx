@@ -20,9 +20,10 @@ const ADJUSTMENT_DELTAS: Record<EncounterAdjustment, number> = {
 
 // Colors for dark text on parchment background
 const ABILITY_STYLES: Record<AbilityType, { icon: string; label: string; text: string; border: string; dot: string }> = {
-    action: { icon: '⚔', label: 'Action', text: 'text-orange-700', border: 'border-l-orange-600', dot: 'bg-orange-600' },
-    reaction: { icon: '↩', label: 'Reaction', text: 'text-amber-700', border: 'border-l-amber-600', dot: 'bg-amber-600' },
-    fear: { icon: '⚡', label: 'Fear Feature', text: 'text-purple-700', border: 'border-l-purple-600', dot: 'bg-purple-600' },
+    action:   { icon: '⚔', label: 'Action',       text: 'text-orange-700', border: 'border-l-orange-600', dot: 'bg-orange-600' },
+    reaction: { icon: '↩', label: 'Reaction',     text: 'text-amber-700',  border: 'border-l-amber-600',  dot: 'bg-amber-600'  },
+    fear:     { icon: '⚡', label: 'Fear Feature', text: 'text-purple-700', border: 'border-l-purple-600', dot: 'bg-purple-600' },
+    passive:  { icon: '◈', label: 'Passive',      text: 'text-blue-700',   border: 'border-l-blue-600',   dot: 'bg-blue-600'   },
 }
 
 function getRoleCost(role?: string) { return ROLE_COST[role ?? ''] ?? 2 }
@@ -39,25 +40,34 @@ function EncounterWidget() {
 
     const campaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
     const encounter = campaign?.encounters?.find((e) => e.id === campaign.activeEncounterId) ?? null
-    const instances = encounter?.instances ?? []
+    // Stabilize instances array so dependent memos don't recompute on unrelated renders
+    const instances = useMemo(
+        () => encounter?.instances ?? [],
+        // eslint-disable-next-line react-hooks/preserve-manual-memoization
+        [encounter]
+    )
 
     const currentSession = campaign?.sessions.find((s) => s.id === currentSessionId) ?? null
     const sessionEncounterIds = currentSession?.encounterIds ?? []
     const sessionEncounters = (campaign?.encounters ?? []).filter((e) => sessionEncounterIds.includes(e.id))
 
+    // Memoized to avoid recomputing on unrelated renders; encounter from store is referentially stable when unchanged
     const totalPoints = useMemo(() => {
         if (!encounter) return 0
         const base = 3 * encounter.pcCount + 2
         const delta = encounter.adjustments.reduce((s, a) => s + (ADJUSTMENT_DELTAS[a] ?? 0), 0)
         return base + delta
+        // eslint-disable-next-line react-hooks/preserve-manual-memoization
     }, [encounter])
 
+    // Memoized to avoid recomputing on unrelated renders; encounter from store is referentially stable when unchanged
     const spentPoints = useMemo(() => {
         if (!encounter) return 0
         return encounter.entries.reduce((sum, entry) => {
             const card = adversaryCards.find((c) => c.id === entry.cardId)
             return sum + getRoleCost(card?.role) * entry.count
         }, 0)
+        // eslint-disable-next-line react-hooks/preserve-manual-memoization
     }, [encounter, adversaryCards])
 
     const cardGroups = useMemo(() => {
@@ -239,7 +249,7 @@ function EncounterWidget() {
                                     <div className="px-4 pb-3">
                                         <p className="text-card-text font-black text-[10px] uppercase tracking-widest mb-2">Features</p>
                                         <div className="flex flex-col gap-2">
-                                            {(['action', 'reaction', 'fear'] as AbilityType[]).map((type) => {
+                                            {(['action', 'reaction', 'fear', 'passive'] as AbilityType[]).map((type) => {
                                                 const group = card.abilities!.filter((a) => a.type === type)
                                                 if (group.length === 0) return null
                                                 const s = ABILITY_STYLES[type]

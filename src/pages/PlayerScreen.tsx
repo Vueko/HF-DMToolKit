@@ -19,13 +19,17 @@ function PlayerScreen() {
     const [offset, setOffset] = useState({ x: 0, y: 0 })
     const [isDragging, setIsDragging] = useState(false)
     const [fearCount, setFearCount] = useState(0)
+    const [rotation, setRotation] = useState<0 | 90>(0)
 
     // Refs for use inside non-reactive event handlers
     const scaleRef = useRef(scale)
     const offsetRef = useRef(offset)
     const dragStartRef = useRef({ x: 0, y: 0 })
     const containerRef = useRef<HTMLDivElement>(null)
+    // Intentionally update refs during render so event handlers always read the latest value without stale closures
+    // eslint-disable-next-line react-hooks/refs
     scaleRef.current = scale
+    // eslint-disable-next-line react-hooks/refs
     offsetRef.current = offset
 
     // IPC listeners
@@ -101,6 +105,11 @@ function PlayerScreen() {
             setFearCount(Math.min(12, Math.max(0, Number(count) || 0)))
         })
 
+        const offRotation = window.electron.on('player:set-rotation', (rot) => {
+            if (!mounted) return
+            setRotation((rot === 90 ? 90 : 0) as 0 | 90)
+        })
+
         window.electron.player.ready?.()
 
         return () => {
@@ -113,12 +122,15 @@ function PlayerScreen() {
             offFog()
             offViewport()
             offFear()
+            offRotation()
         }
     }, [])
 
     // Auto-fit when the map changes
     useEffect(() => {
         if (!mapUrl) {
+            // Intentional sync: reset pan/zoom state immediately when map is cleared
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setScale(1)
             setOffset({ x: 0, y: 0 })
             return
@@ -196,7 +208,13 @@ function PlayerScreen() {
                         position: 'absolute',
                     }}
                 >
-                    <img src={mapUrl} alt="" className="max-w-none block" draggable={false} />
+                    <img
+                        src={mapUrl}
+                        alt=""
+                        className="max-w-none block"
+                        draggable={false}
+                        style={rotation === 90 ? { transform: 'rotate(90deg)', transformOrigin: 'center center' } : undefined}
+                    />
 
                     {fogZones !== null && (
                         <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">

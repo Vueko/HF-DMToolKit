@@ -75,7 +75,6 @@ function Campaigns() {
             name: newCampaignName.trim(),
             scenes: [],
             sessions: [],
-            lore: [],
             playlists: [],
         }
         addCampaign(campaign)

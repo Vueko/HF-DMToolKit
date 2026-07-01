@@ -55,8 +55,16 @@ declare global {
                 getWindowBounds: () => Promise<{ width: number; height: number } | null>
                 ready: () => void
                 setFear: (count: number) => void
+                setRotation: (rotation: 0 | 90) => void
             }
-            on: (channel: 'player:set-map' | 'player:clear-map' | 'player:show-overlay' | 'player:clear-overlay' | 'player:closed' | 'player:set-fog' | 'player:set-viewport' | 'player:set-campaign-map' | 'player:set-fear', cb: (...args: unknown[]) => void) => () => void
+            vault: {
+                pickFolder: () => Promise<string | null>
+                readTree: (root: string) => Promise<import('./types').VaultNode | null>
+                readFile: (rel: string) => Promise<string | null>
+                readImage: (rel: string) => Promise<Uint8Array | null>
+                search: (query: string) => Promise<import('./types').VaultSearchResult[]>
+            }
+            on: (channel: 'player:set-map' | 'player:clear-map' | 'player:show-overlay' | 'player:clear-overlay' | 'player:closed' | 'player:set-fog' | 'player:set-viewport' | 'player:set-campaign-map' | 'player:set-fear' | 'player:set-rotation', cb: (...args: unknown[]) => void) => () => void
         }
     }
 }

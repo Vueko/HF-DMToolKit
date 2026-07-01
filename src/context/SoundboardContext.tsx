@@ -91,6 +91,7 @@ export function SoundboardProvider({ children }: { children: React.ReactNode }) 
     )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSoundboard(): SoundboardContextValue {
     const ctx = useContext(SoundboardContext)
     if (!ctx) throw new Error('useSoundboard must be used within SoundboardProvider')

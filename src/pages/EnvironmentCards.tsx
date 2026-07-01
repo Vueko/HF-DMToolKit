@@ -11,6 +11,7 @@ const ABILITY_CONFIG: Record<AbilityType, { label: string; icon: string; bg: str
     action:   { label: 'Action',       icon: '⚔', bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-300', btnBg: 'bg-orange-500/15 hover:bg-orange-500/30 border-orange-500/40 text-orange-300' },
     reaction: { label: 'Reaction',     icon: '↩', bg: 'bg-amber-400/10',  border: 'border-amber-400/30',  text: 'text-amber-300',  btnBg: 'bg-amber-400/15 hover:bg-amber-400/30 border-amber-400/40 text-amber-300' },
     fear:     { label: 'Fear Feature', icon: '⚡', bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', btnBg: 'bg-purple-500/15 hover:bg-purple-500/30 border-purple-500/40 text-purple-300' },
+    passive:  { label: 'Passive',      icon: '◈', bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   text: 'text-blue-300',   btnBg: 'bg-blue-500/15 hover:bg-blue-500/30 border-blue-500/40 text-blue-300' },
 }
 
 const FEATURE_CONFIG: Record<EnvironmentFeatureType, { label: string; icon: string; bg: string; border: string; text: string; btnBg: string }> = {
@@ -29,6 +30,7 @@ const ADV_PREVIEW_STYLES: Record<AbilityType, { border: string; text: string; ic
     action:   { border: 'border-l-orange-600', text: 'text-orange-700', icon: '⚔', label: 'Action' },
     reaction: { border: 'border-l-amber-600',  text: 'text-amber-700',  icon: '↩', label: 'Reaction' },
     fear:     { border: 'border-l-purple-600', text: 'text-purple-700', icon: '⚡', label: 'Fear Feature' },
+    passive:  { border: 'border-l-blue-600',   text: 'text-blue-700',   icon: '◈', label: 'Passive' },
 }
 
 function CardPreview({ card }: { card: EnvironmentCard | AdversaryCard }) {
@@ -94,7 +96,7 @@ function CardPreview({ card }: { card: EnvironmentCard | AdversaryCard }) {
                         <div className="px-4 pb-3">
                             <p className="text-card-text font-black text-[10px] uppercase tracking-widest mb-1.5">Abilities</p>
                             <div className="flex flex-col gap-1.5">
-                                {(['action', 'reaction', 'fear'] as AbilityType[]).map((atype) => {
+                                {(['action', 'reaction', 'fear', 'passive'] as AbilityType[]).map((atype) => {
                                     const group = (card.abilities ?? []).filter((a) => a.type === atype)
                                     if (group.length === 0) return null
                                     const s = ADV_PREVIEW_STYLES[atype]
@@ -292,6 +294,8 @@ function EnvironmentCards() {
     }
 
     useEffect(() => {
+        // Intentional sync: reset filters when tab changes to avoid stale filter state
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSearch('')
         setTypeFilter('')
         setTierFilter('')
@@ -595,7 +599,7 @@ function EnvironmentCards() {
                                         <div className="px-4 pb-3">
                                             <p className="text-card-text font-black text-[10px] uppercase tracking-widest mb-1.5">Abilities</p>
                                             <div className="flex flex-col gap-1.5">
-                                                {(['action', 'reaction', 'fear'] as AbilityType[]).map((atype) => {
+                                                {(['action', 'reaction', 'fear', 'passive'] as AbilityType[]).map((atype) => {
                                                     const group = ((card as AdversaryCard).abilities ?? []).filter((a) => a.type === atype)
                                                     if (group.length === 0) return null
                                                     const s = ADV_PREVIEW_STYLES[atype]
@@ -869,7 +873,7 @@ function EnvironmentCards() {
                                             <div className="flex items-center justify-between flex-wrap gap-2">
                                                 <label className="text-ui-muted text-[10px] uppercase font-bold tracking-wider">Abilities</label>
                                                 <div className="flex gap-1.5 flex-wrap">
-                                                    {(['action', 'reaction', 'fear'] as AbilityType[]).map((type) => {
+                                                    {(['action', 'reaction', 'fear', 'passive'] as AbilityType[]).map((type) => {
                                                         const cfg = ABILITY_CONFIG[type]
                                                         return (
                                                             <button

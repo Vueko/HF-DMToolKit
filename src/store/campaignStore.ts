@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { electronStorage } from '../utils/electronStorage'
-import type { Campaign, Session, Scene, SessionCardInstance, LoreEntry, Track, Playlist, CampaignMapData, Encounter, EncounterCardInstance, PlayerScreenImage } from '../types'
+import type { Campaign, Session, Scene, SessionCardInstance, Track, Playlist, CampaignMapData, Encounter, EncounterCardInstance, PlayerScreenImage, MapLibraryEntry } from '../types'
 
 interface CampaignState {
     campaigns: Campaign[]
@@ -26,10 +26,6 @@ interface CampaignState {
     removeCardFromSession: (campaignId: string, sessionId: string, instanceId: string) => void
     updateCardInstance: (campaignId: string, sessionId: string, instanceId: string, updates: Partial<SessionCardInstance>) => void
 
-    addLoreEntry: (campaignId: string, entry: LoreEntry) => void
-    updateLoreEntry: (campaignId: string, entryId: string, updates: Partial<LoreEntry>) => void
-    removeLoreEntry: (campaignId: string, entryId: string) => void
-
     updateCampaignRules: (campaignId: string, rules: string) => void
 
     addPlaylist: (campaignId: string, playlist: Playlist) => void
@@ -52,6 +48,10 @@ interface CampaignState {
     addPlayerScreenImage: (campaignId: string, image: PlayerScreenImage) => void
     removePlayerScreenImage: (campaignId: string, imageId: string) => void
     setActiveMap: (campaignId: string, storedId: string | null) => void
+
+    addMapLibraryEntry: (campaignId: string, entry: MapLibraryEntry) => void
+    removeMapLibraryEntry: (campaignId: string, entryId: string) => void
+    setActiveMapRotation: (campaignId: string, rotation: 0 | 90) => void
 }
 
 function updateCampaign(campaigns: Campaign[], id: string, updater: (c: Campaign) => Campaign): Campaign[] {
@@ -183,30 +183,6 @@ export const useCampaignStore = create<CampaignState>()(
                             ),
                         }))
                     ),
-                })),
-
-            addLoreEntry: (campaignId, entry) =>
-                set((state) => ({
-                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
-                        ...c,
-                        lore: [...(c.lore || []), entry],
-                    })),
-                })),
-
-            updateLoreEntry: (campaignId, entryId, updates) =>
-                set((state) => ({
-                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
-                        ...c,
-                        lore: (c.lore || []).map((l) => (l.id === entryId ? { ...l, ...updates } : l)),
-                    })),
-                })),
-
-            removeLoreEntry: (campaignId, entryId) =>
-                set((state) => ({
-                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
-                        ...c,
-                        lore: (c.lore || []).filter((l) => l.id !== entryId),
-                    })),
                 })),
 
             updateCampaignRules: (campaignId, rules) =>
@@ -400,6 +376,34 @@ export const useCampaignStore = create<CampaignState>()(
                     campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
                         ...c,
                         activeMapStoredId: storedId,
+                    })),
+                })),
+
+            addMapLibraryEntry: (campaignId, entry) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        mapLibrary: [...(c.mapLibrary ?? []), entry],
+                    })),
+                })),
+
+            removeMapLibraryEntry: (campaignId, entryId) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => {
+                        const entry = (c.mapLibrary ?? []).find(e => e.id === entryId)
+                        return {
+                            ...c,
+                            mapLibrary: (c.mapLibrary ?? []).filter(e => e.id !== entryId),
+                            activeMapStoredId: c.activeMapStoredId === entry?.storedId ? null : c.activeMapStoredId,
+                        }
+                    }),
+                })),
+
+            setActiveMapRotation: (campaignId, rotation) =>
+                set((state) => ({
+                    campaigns: updateCampaign(state.campaigns, campaignId, (c) => ({
+                        ...c,
+                        activeMapRotation: rotation,
                     })),
                 })),
         }),

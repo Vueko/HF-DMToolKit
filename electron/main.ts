@@ -1,9 +1,10 @@
 import { app, BrowserWindow, Menu, shell, ipcMain, dialog, session, screen } from 'electron'
 import { join } from 'path'
+import * as path from 'path'
 import * as fs from 'fs'
 
 // Allows UUIDs and simple slug IDs (e.g. "shared-map"), blocks path traversal
-const SAFE_ID_RE = /^[a-zA-Z0-9_\-]{1,80}$/
+const SAFE_ID_RE = /^[a-zA-Z0-9_-]{1,80}$/
 
 const STORE_KEYS = new Set(['dh-fear', 'dh-campaigns', 'dh-cards', 'dh-music', 'dh-soundboard', 'dh-settings'])
 
@@ -22,7 +23,7 @@ class DataStore {
       if (fs.existsSync(this.filePath)) {
         this.cache = JSON.parse(fs.readFileSync(this.filePath, 'utf-8'))
       }
-    } catch { }
+    } catch { /* corrupt or unreadable store: start with an empty cache */ }
   }
 
   private scheduleFlush(): void {
@@ -48,11 +49,100 @@ function ensureDir(dir: string): void {
 let mainWindow: BrowserWindow | null = null
 let playerWin: BrowserWindow | null = null
 
+let vaultRoot: string | null = null
+
+const VAULT_IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'])
+
+function toPosix(p: string): string {
+  return p.split(path.sep).join('/')
+}
+
+function isInsideRoot(root: string, target: string): boolean {
+  const rel = path.relative(root, target)
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel))
+}
+
+interface VaultNodeShape {
+  name: string
+  path: string
+  type: 'folder' | 'note' | 'image'
+  children?: VaultNodeShape[]
+}
+
+function buildVaultTree(absDir: string, root: string): VaultNodeShape {
+  const children: VaultNodeShape[] = []
+  let entries: fs.Dirent[] = []
+  try { entries = fs.readdirSync(absDir, { withFileTypes: true }) } catch { entries = [] }
+  for (const e of entries) {
+    if (e.name.startsWith('.')) continue
+    const abs = path.join(absDir, e.name)
+    if (e.isDirectory()) {
+      children.push(buildVaultTree(abs, root))
+    } else {
+      const ext = path.extname(e.name).toLowerCase()
+      if (ext === '.md') children.push({ name: e.name, path: toPosix(path.relative(root, abs)), type: 'note' })
+      else if (VAULT_IMAGE_EXT.has(ext)) children.push({ name: e.name, path: toPosix(path.relative(root, abs)), type: 'image' })
+    }
+  }
+  children.sort((a, b) => {
+    if (a.type === 'folder' && b.type !== 'folder') return -1
+    if (a.type !== 'folder' && b.type === 'folder') return 1
+    return a.name.localeCompare(b.name)
+  })
+  return { name: path.basename(absDir), path: toPosix(path.relative(root, absDir)), type: 'folder', children }
+}
+
+interface VaultSearchResult {
+  path: string
+  name: string
+  snippet: string
+  nameMatch: boolean
+}
+
+function makeSnippet(content: string, matchIndex: number): string {
+  const start = Math.max(0, matchIndex - 30)
+  const end = Math.min(content.length, matchIndex + 60)
+  const raw = content.slice(start, end).replace(/\s+/g, ' ').trim()
+  return (start > 0 ? '…' : '') + raw + (end < content.length ? '…' : '')
+}
+
+function searchVault(root: string, query: string): VaultSearchResult[] {
+  const q = query.trim().toLowerCase()
+  if (q.length < 2) return []
+  const results: VaultSearchResult[] = []
+  const walk = (absDir: string): void => {
+    let entries: fs.Dirent[] = []
+    try { entries = fs.readdirSync(absDir, { withFileTypes: true }) } catch { return }
+    for (const e of entries) {
+      if (e.name.startsWith('.')) continue
+      const abs = path.join(absDir, e.name)
+      if (e.isDirectory()) { walk(abs); continue }
+      if (path.extname(e.name).toLowerCase() !== '.md') continue
+      const base = e.name.replace(/\.md$/i, '')
+      const nameMatch = base.toLowerCase().includes(q)
+      let snippet = ''
+      let contentMatch = false
+      try {
+        const content = fs.readFileSync(abs, 'utf-8')
+        const idx = content.toLowerCase().indexOf(q)
+        if (idx !== -1) { contentMatch = true; snippet = makeSnippet(content, idx) }
+      } catch { /* unreadable file: skip content match */ }
+      if (nameMatch || contentMatch) {
+        results.push({ path: toPosix(path.relative(root, abs)), name: base, snippet, nameMatch })
+      }
+    }
+  }
+  walk(root)
+  results.sort((a, b) => (a.nameMatch === b.nameMatch ? a.name.localeCompare(b.name) : a.nameMatch ? -1 : 1))
+  return results.slice(0, 100)
+}
+
 // Pending state to replay when player window signals it's ready
 let pendingMapId: string | null = null
 let pendingFog: unknown[] | null = null
 let pendingViewport: { offsetX: number; offsetY: number; scale: number } | null = null
 let pendingFear: number = 0
+let pendingRotation: 0 | 90 = 0
 
 function setPendingFear(count: number): boolean {
   if (!Number.isInteger(count) || count < 0 || count > 12) return false
@@ -95,7 +185,7 @@ function createWindow(): void {
     try {
       const { protocol } = new URL(details.url)
       if (protocol === 'https:' || protocol === 'http:') shell.openExternal(details.url)
-    } catch { }
+    } catch { /* malformed URL: fall through and deny */ }
     return { action: 'deny' }
   })
 }
@@ -143,6 +233,7 @@ function createPlayerWindow(displayIndex?: number): void {
             if (pendingFog) playerWin.webContents.send('player:set-fog', pendingFog)
             if (pendingViewport) playerWin.webContents.send('player:set-viewport', pendingViewport)
             playerWin.webContents.send('player:set-fear', pendingFear)
+            playerWin.webContents.send('player:set-rotation', pendingRotation)
         }, 300)
     })
 }
@@ -174,7 +265,8 @@ app.whenReady().then(() => {
   ipcMain.on('window:minimize', () => mainWindow?.minimize())
   ipcMain.on('window:maximize', () => {
     if (!mainWindow) return
-    mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize()
+    if (mainWindow.isMaximized()) mainWindow.unmaximize()
+    else mainWindow.maximize()
   })
   ipcMain.on('window:close', () => mainWindow?.close())
   ipcMain.handle('window:is-maximized', () => mainWindow?.isMaximized() ?? false)
@@ -262,6 +354,13 @@ app.whenReady().then(() => {
     if (pendingFog) playerWin.webContents.send('player:set-fog', pendingFog)
     if (pendingViewport) playerWin.webContents.send('player:set-viewport', pendingViewport)
     playerWin.webContents.send('player:set-fear', pendingFear)
+    playerWin.webContents.send('player:set-rotation', pendingRotation)
+  })
+  ipcMain.on('player:set-rotation', (_, rotation: 0 | 90) => {
+    pendingRotation = rotation === 90 ? 90 : 0
+    if (playerWin && !playerWin.isDestroyed()) {
+      playerWin.webContents.send('player:set-rotation', pendingRotation)
+    }
   })
   ipcMain.on('player:show-overlay', (_, storedId: string, name: string) => {
     if (playerWin && !playerWin.isDestroyed()) {
@@ -324,6 +423,44 @@ app.whenReady().then(() => {
     if (!SAFE_ID_RE.test(id)) return
     const p = join(playerScreenDir, id)
     if (fs.existsSync(p)) fs.unlinkSync(p)
+  })
+
+  ipcMain.handle('vault:pick-folder', async (): Promise<string | null> => {
+    if (!mainWindow) return null
+    const res = await dialog.showOpenDialog(mainWindow, { properties: ['openDirectory'] })
+    if (res.canceled || res.filePaths.length === 0) return null
+    vaultRoot = res.filePaths[0]
+    return vaultRoot
+  })
+
+  ipcMain.handle('vault:read-tree', (_, root: string): VaultNodeShape | null => {
+    if (typeof root !== 'string' || !fs.existsSync(root)) return null
+    try {
+      if (!fs.statSync(root).isDirectory()) return null
+    } catch {
+      return null
+    }
+    vaultRoot = root
+    return buildVaultTree(root, root)
+  })
+
+  ipcMain.handle('vault:read-file', (_, rel: string): string | null => {
+    if (!vaultRoot || typeof rel !== 'string') return null
+    const abs = path.resolve(vaultRoot, rel)
+    if (!isInsideRoot(vaultRoot, abs) || path.extname(abs).toLowerCase() !== '.md') return null
+    return fs.existsSync(abs) ? fs.readFileSync(abs, 'utf-8') : null
+  })
+
+  ipcMain.handle('vault:read-image', (_, rel: string): Uint8Array | null => {
+    if (!vaultRoot || typeof rel !== 'string') return null
+    const abs = path.resolve(vaultRoot, rel)
+    if (!isInsideRoot(vaultRoot, abs) || !VAULT_IMAGE_EXT.has(path.extname(abs).toLowerCase())) return null
+    return fs.existsSync(abs) ? fs.readFileSync(abs) : null
+  })
+
+  ipcMain.handle('vault:search', (_, query: string): VaultSearchResult[] => {
+    if (!vaultRoot || typeof query !== 'string') return []
+    return searchVault(vaultRoot, query)
   })
 
   createWindow()

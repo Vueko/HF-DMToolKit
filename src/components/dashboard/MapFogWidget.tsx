@@ -59,6 +59,8 @@ function MapFogWidget() {
         if (!activeMapStoredId) {
             if (mapUrlRef.current) URL.revokeObjectURL(mapUrlRef.current)
             mapUrlRef.current = null
+            // Intentional sync: clear map URL immediately when map is removed
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setMapUrl(null)
             return
         }
@@ -152,6 +154,8 @@ function MapFogWidget() {
         updateCampaignMap(currentCampaignId, { fogZones: [] })
     }, [currentCampaignId, updateCampaignMap])
 
+    // Optional-chained dep (mapData?.fogZones) makes React Compiler flag this memo; intentional for push-on-change
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     const pushToPlayers = useCallback(async () => {
         if (!currentCampaignId || !mapUrl || !activeMapStoredId) return
         const bounds = await window.electron.player.getWindowBounds()
@@ -491,6 +495,8 @@ function MapFogWidget() {
                         ))}
 
                         {/* Player viewport preview — viewport mode only */}
+                        {/* Reads mapRef.current during render to compute preview rect; intentional for live preview */}
+                        {/* eslint-disable-next-line react-hooks/refs */}
                         {mode === 'viewport' && (() => {
                             const imgW = mapRef.current?.offsetWidth ?? 1
                             const imgH = mapRef.current?.offsetHeight ?? 1

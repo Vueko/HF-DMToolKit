@@ -9,7 +9,7 @@ const navItems = [
     { path: '/encounter', label: 'Encounter Builder' },
     { path: '/dm-screen', label: 'DM Screen' },
     { path: '/music', label: 'Music Player' },
-    { path: '/journal', label: 'Campaign Journal' },
+    { path: '/journal', label: 'World Wiki' },
     { path: '/map', label: 'Campaign Map' },
     { path: '/soundboard', label: 'Soundboard' },
 ]

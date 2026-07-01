@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Routes, Route, Outlet } from 'react-router-dom'
 import { useFearStore } from './store/fearStore'
 import { useSettingsStore } from './store/settingsStore'
+import { useVaultStore } from './vault/vaultStore'
 import Sidebar from './components/Sidebar'
 import TitleBar from './components/TitleBar'
 import DMDashboard from './pages/DMDashboard'
@@ -9,7 +10,7 @@ import SceneTracker from './pages/SceneTracker'
 import EnvironmentCards from './pages/EnvironmentCards'
 import DMScreen from './pages/DMScreen'
 import MusicPlayer from './pages/MusicPlayer'
-import CampaignJournal from './pages/CampaignJournal'
+import WorldWiki from './pages/WorldWiki'
 import CampaignMap from './pages/CampaignMap'
 import Campaigns from './pages/Campaigns'
 import EncounterBuilder from './pages/EncounterBuilder'
@@ -27,6 +28,10 @@ function Layout() {
     return useFearStore.subscribe((state) => {
       window.electron.player.setFear(state.fearCount)
     })
+  }, [])
+
+  useEffect(() => {
+    useVaultStore.getState().load()
   }, [])
 
   const fontSize = useSettingsStore((s) => s.fontSize)
@@ -63,7 +68,7 @@ function App() {
           <Route path="/encounter" element={<EncounterBuilder />} />
           <Route path="/dm-screen" element={<DMScreen />} />
           <Route path="/music" element={<MusicPlayer />} />
-          <Route path="/journal" element={<CampaignJournal />} />
+          <Route path="/journal" element={<WorldWiki />} />
           <Route path="/map" element={<CampaignMap />} />
           <Route path="/soundboard" element={<Soundboard />} />
           <Route path="/settings" element={<Settings />} />

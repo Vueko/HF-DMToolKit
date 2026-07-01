@@ -42,6 +42,7 @@ const ABILITY_CARD_STYLES: Record<AbilityType, { label: string; icon: string; te
     action:   { label: 'Action',       icon: '⚔', text: 'text-orange-700', border: 'border-l-orange-600' },
     reaction: { label: 'Reaction',     icon: '↩', text: 'text-amber-700',  border: 'border-l-amber-600'  },
     fear:     { label: 'Fear Feature', icon: '⚡', text: 'text-purple-700', border: 'border-l-purple-600' },
+    passive:  { label: 'Passive',      icon: '◈', text: 'text-blue-700',   border: 'border-l-blue-600'   },
 }
 
 const ADJUSTMENT_CONFIG: { key: EncounterAdjustment; label: string; delta: number; hint: string }[] = [
@@ -108,7 +109,10 @@ function EncounterBuilder() {
     )
 
     const currentCampaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
-    const encounters = currentCampaign?.encounters ?? []
+    const encounters = useMemo(
+        () => currentCampaign?.encounters ?? [],
+        [currentCampaign]
+    )
     const activeEncounterId = currentCampaign?.activeEncounterId
 
     const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -132,7 +136,10 @@ function EncounterBuilder() {
         remainingPoints <= 1 ? 'text-hope-secondary' :
         'text-green-400'
 
-    const sessions = currentCampaign?.sessions ?? []
+    const sessions = useMemo(
+        () => currentCampaign?.sessions ?? [],
+        [currentCampaign]
+    )
 
     const unassignedEncounters = useMemo(() => {
         const assignedIds = new Set(sessions.flatMap((s) => s.encounterIds ?? []))
@@ -160,7 +167,7 @@ function EncounterBuilder() {
     }, [adversaryCards, search, roleFilter, tierFilter])
 
     const rosterGroups = useMemo(() => {
-        if (!displayEncounter) return [] as { role: string; entries: typeof displayEncounter.entries }[]
+        if (!displayEncounter) return [] as { role: string; entries: NonNullable<typeof displayEncounter>['entries'] }[]
         const map: Record<string, typeof displayEncounter.entries> = {}
         for (const entry of displayEncounter.entries) {
             const card = adversaryCards.find((c) => c.id === entry.cardId)
@@ -169,7 +176,7 @@ function EncounterBuilder() {
             map[role].push(entry)
         }
         return Object.entries(map).map(([role, entries]) => ({ role, entries }))
-    }, [displayEncounter?.entries, adversaryCards])
+    }, [displayEncounter, adversaryCards])
 
     const restrictedRoles = useMemo(() => {
         if (!displayEncounter?.adjustments.includes('no_heavy_roles')) return new Set<string>()
@@ -184,7 +191,7 @@ function EncounterBuilder() {
     function toggleSessionCollapse(sessionId: string) {
         setCollapsedSessions((prev) => {
             const next = new Set(prev)
-            next.has(sessionId) ? next.delete(sessionId) : next.add(sessionId)
+            if (next.has(sessionId)) { next.delete(sessionId) } else { next.add(sessionId) }
             return next
         })
     }
@@ -708,7 +715,7 @@ function EncounterBuilder() {
                             <div className="px-5 pb-4">
                                 <p className="text-card-text font-black text-[10px] uppercase tracking-widest mb-2">Abilities</p>
                                 <div className="flex flex-col gap-2">
-                                    {(['action', 'reaction', 'fear'] as AbilityType[]).map((type) => {
+                                    {(['action', 'reaction', 'fear', 'passive'] as AbilityType[]).map((type) => {
                                         const group = detailCard.abilities!.filter((a) => a.type === type)
                                         if (group.length === 0) return null
                                         const s = ABILITY_CARD_STYLES[type]

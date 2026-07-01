@@ -18,7 +18,10 @@ function ActiveCardsWidget() {
 
     const currentCampaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
     const currentSession = currentCampaign?.sessions.find((s) => s.id === currentSessionId) ?? null
-    const instances = currentSession?.cardInstances ?? []
+    const instances = useMemo(
+        () => currentSession?.cardInstances ?? [],
+        [currentSession]
+    )
 
     const envInstances = useMemo(
         () => instances.filter((i) => cards.find((c) => c.id === i.cardId)?.type === 'environment'),

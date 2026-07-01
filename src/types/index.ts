@@ -43,7 +43,7 @@ export interface EnvironmentCard extends BaseCard {
     features?: EnvironmentFeature[]
 }
 
-export type AbilityType = 'action' | 'reaction' | 'fear'
+export type AbilityType = 'action' | 'reaction' | 'fear' | 'passive'
 export type EnvironmentFeatureType = 'action' | 'passive' | 'fear'
 
 export interface AdversaryAbility {
@@ -112,7 +112,7 @@ export interface MapPoint {
 export interface MapMarker extends MapPoint {
     id: string
     label: string
-    loreId?: string
+    noteRef?: string   // ruta relativa de la nota del vault
     color?: string
 }
 
@@ -173,40 +173,26 @@ export interface PlayerScreenImage {
     storedId: string
 }
 
+export interface MapLibraryEntry {
+    id: string
+    name: string
+    storedId: string
+}
+
 export interface Campaign {
     id: string
     name: string
     scenes: Scene[]
     sessions: Session[]
-    lore: LoreEntry[]
     playlists: Playlist[]
     map?: CampaignMapData
     dmScreenRules?: string
     encounters?: Encounter[]
     activeEncounterId?: string
     playerScreenImages?: PlayerScreenImage[]
+    mapLibrary?: MapLibraryEntry[]
     activeMapStoredId?: string | null
-}
-
-export type LoreCategory = 'continent' | 'city' | 'faction' | 'npc' | 'character_journal' | 'handout'
-
-export interface LoreEntry {
-    id: string
-    title: string
-    category: LoreCategory
-
-    continentId?: string
-    cityId?: string
-    factionId?: string
-    relatedLocationIds?: string[]
-
-    sceneId?: string
-    imageUrl?: string
-
-    publicContent: string
-    secretContent: string
-    createdAt: string
-    tags: string[]
+    activeMapRotation?: 0 | 90
 }
 
 export interface Sound {
@@ -222,4 +208,18 @@ export interface SoundCategory {
     id: string
     name: string
     order: number
+}
+
+export interface VaultNode {
+    name: string                 // nombre con extensión (carpeta o archivo)
+    path: string                 // ruta POSIX relativa al root del vault ('' = root)
+    type: 'folder' | 'note' | 'image'
+    children?: VaultNode[]        // presente solo en carpetas
+}
+
+export interface VaultSearchResult {
+    path: string                 // ruta POSIX relativa de la nota
+    name: string                 // nombre de la nota sin .md
+    snippet: string              // fragmento de contexto del match en contenido ('' si solo coincide el nombre)
+    nameMatch: boolean           // true si el nombre coincide con la query
 }

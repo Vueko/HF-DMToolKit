@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 
-const PLAYER_CHANNELS = ['player:set-map', 'player:clear-map', 'player:show-overlay', 'player:clear-overlay', 'player:closed', 'player:set-fog', 'player:set-viewport', 'player:set-campaign-map', 'player:set-fear'] as const
+const PLAYER_CHANNELS = ['player:set-map', 'player:clear-map', 'player:show-overlay', 'player:clear-overlay', 'player:closed', 'player:set-fog', 'player:set-viewport', 'player:set-campaign-map', 'player:set-fear', 'player:set-rotation'] as const
 
 contextBridge.exposeInMainWorld('electron', {
     platform: process.platform,
@@ -76,6 +76,15 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.invoke('player:get-window-bounds'),
         ready: () => ipcRenderer.send('player:ready'),
         setFear: (count: number) => ipcRenderer.send('player:set-fear', count),
+        setRotation: (rotation: 0 | 90) => ipcRenderer.send('player:set-rotation', rotation),
+    },
+
+    vault: {
+        pickFolder: (): Promise<string | null> => ipcRenderer.invoke('vault:pick-folder'),
+        readTree: (root: string): Promise<unknown> => ipcRenderer.invoke('vault:read-tree', root),
+        readFile: (rel: string): Promise<string | null> => ipcRenderer.invoke('vault:read-file', rel),
+        readImage: (rel: string): Promise<Uint8Array | null> => ipcRenderer.invoke('vault:read-image', rel),
+        search: (query: string): Promise<unknown> => ipcRenderer.invoke('vault:search', query),
     },
 
     on: (channel: string, cb: (...args: unknown[]) => void): (() => void) => {
