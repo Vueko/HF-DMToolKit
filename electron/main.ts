@@ -50,6 +50,7 @@ let mainWindow: BrowserWindow | null = null
 let playerWin: BrowserWindow | null = null
 
 let vaultRoot: string | null = null
+let didBackupThisSession = false
 
 const VAULT_IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'])
 
@@ -274,6 +275,26 @@ app.whenReady().then(() => {
   ipcMain.handle('store:get', (_, key: string) => store.get(key))
   ipcMain.on('store:set', (_, key: string, value: unknown) => { if (STORE_KEYS.has(key)) store.set(key, value) })
   ipcMain.on('store:delete', (_, key: string) => { if (STORE_KEYS.has(key)) store.delete(key) })
+
+  ipcMain.handle('store:backup', () => {
+    if (didBackupThisSession) return
+    const storeFile = join(app.getPath('userData'), 'store.json')
+    if (!fs.existsSync(storeFile)) return
+    const dir = join(app.getPath('userData'), 'backups')
+    ensureDir(dir)
+    const ts = new Date().toISOString().replace(/[:.]/g, '-')
+    fs.copyFileSync(storeFile, join(dir, `store-${ts}.json`))
+    didBackupThisSession = true
+    const files = fs.readdirSync(dir)
+      .filter((f) => f.startsWith('store-') && f.endsWith('.json'))
+      .sort()
+    while (files.length > 10) {
+      const oldest = files.shift()
+      if (oldest) {
+        try { fs.unlinkSync(join(dir, oldest)) } catch { /* ignore prune failure */ }
+      }
+    }
+  })
 
   ipcMain.handle('fs:save-audio', (_, id: string, data: Uint8Array) => {
     if (!SAFE_ID_RE.test(id)) return

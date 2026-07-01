@@ -4,6 +4,11 @@ import { useCardsStore } from '../store/cardsStore'
 import type { AbilityType, AdversaryCard, Encounter, EncounterAdjustment, EncounterCardInstance, EncounterEntry } from '../types'
 import { Button, Input, Select } from '../components/ui'
 import { renderBold } from '../utils/renderBold'
+import {
+    ADJUSTMENT_DELTAS, MANUAL_ADJUSTMENTS, AUTO_ADJUSTMENTS,
+    computeAutoAdjustments, activeAdjustments, calcBattlePoints,
+    soloCount, lowerTierCount,
+} from '../utils/encounterBudget'
 
 
 const ROLE_COST: Record<string, number> = {
@@ -45,27 +50,18 @@ const ABILITY_CARD_STYLES: Record<AbilityType, { label: string; icon: string; te
     passive:  { label: 'Passive',      icon: '◈', text: 'text-blue-700',   border: 'border-l-blue-600'   },
 }
 
-const ADJUSTMENT_CONFIG: { key: EncounterAdjustment; label: string; delta: number; hint: string }[] = [
-    { key: 'easy_short',     label: 'Easy / Short fight',          delta: -1, hint: 'Fight should be less difficult or shorter' },
-    { key: 'two_plus_solos', label: '2+ Solo adversaries',         delta: -2, hint: 'Using two or more Solo adversaries' },
-    { key: 'bonus_damage',   label: 'Bonus damage (+1d4 / +2)',     delta: -2, hint: 'Adding +1d4 or +2 to any adversary damage roll' },
-    { key: 'lower_tier',     label: 'Lower-tier adversary',         delta: +1, hint: 'Selecting an adversary from a lower tier' },
-    { key: 'no_heavy_roles', label: 'No Bruiser/Horde/Leader/Solo', delta: +1, hint: 'Encounter contains none of these heavy roles' },
-    { key: 'dangerous_long', label: 'Dangerous / Long fight',       delta: +2, hint: 'Fight should be more dangerous or last longer' },
+const ADJUSTMENT_META: { key: EncounterAdjustment; label: string; hint: string }[] = [
+    { key: 'easy_short',     label: 'Easy / Short fight',          hint: 'Fight should be less difficult or shorter' },
+    { key: 'two_plus_solos', label: '2+ Solo adversaries',         hint: 'Using two or more Solo adversaries' },
+    { key: 'bonus_damage',   label: 'Bonus damage (+1d4 / +2)',     hint: 'Adding +1d4 or +2 to any adversary damage roll' },
+    { key: 'lower_tier',     label: 'Lower-tier adversary',         hint: 'Selecting an adversary from a lower tier' },
+    { key: 'no_heavy_roles', label: 'No Bruiser/Horde/Leader/Solo', hint: 'Encounter contains none of these heavy roles' },
+    { key: 'dangerous_long', label: 'Dangerous / Long fight',       hint: 'Fight should be more dangerous or last longer' },
 ]
 
 
 function getRoleCost(role?: string): number {
     return ROLE_COST[role ?? ''] ?? 2
-}
-
-function calcBattlePoints(pcCount: number, adjustments: EncounterAdjustment[]): number {
-    const base = 3 * pcCount + 2
-    const delta = adjustments.reduce((sum, a) => {
-        const cfg = ADJUSTMENT_CONFIG.find((c) => c.key === a)
-        return sum + (cfg?.delta ?? 0)
-    }, 0)
-    return base + delta
 }
 
 function syncInstances(
@@ -127,7 +123,24 @@ function EncounterBuilder() {
     const displayEncounter = encounter ?? (encounters.length > 0 && !selectedId ? encounters[encounters.length - 1] : null)
     const displayId = displayEncounter?.id ?? null
 
-    const totalPoints = displayEncounter ? calcBattlePoints(displayEncounter.pcCount, displayEncounter.adjustments) : 0
+    const cardsById = useMemo(
+        () => new Map(adversaryCards.map((c) => [c.id, c])),
+        [adversaryCards]
+    )
+    const encounterTier = displayEncounter?.tier ?? 1
+
+    const autoAdjustments = useMemo(
+        () => displayEncounter ? computeAutoAdjustments(displayEncounter.entries, cardsById, encounterTier) : [],
+        [displayEncounter, cardsById, encounterTier]
+    )
+    const active = useMemo(
+        () => displayEncounter ? activeAdjustments(displayEncounter.adjustments, autoAdjustments) : [],
+        [displayEncounter, autoAdjustments]
+    )
+    const nSolos = displayEncounter ? soloCount(displayEncounter.entries, cardsById) : 0
+    const nLower = displayEncounter ? lowerTierCount(displayEncounter.entries, cardsById, encounterTier) : 0
+
+    const totalPoints = displayEncounter ? calcBattlePoints(displayEncounter.pcCount, active) : 0
     const spentPoints = displayEncounter ? calcSpent(displayEncounter.entries, adversaryCards) : 0
     const remainingPoints = totalPoints - spentPoints
 
@@ -203,6 +216,7 @@ function EncounterBuilder() {
             name: `Encounter ${encounters.length + 1}`,
             pcCount: 4,
             adjustments: [],
+            tier: 1,
             entries: [],
         }
         addEncounter(currentCampaignId, enc)
@@ -223,6 +237,7 @@ function EncounterBuilder() {
 
     function toggleAdjustment(key: EncounterAdjustment) {
         if (!displayEncounter) return
+        if (!MANUAL_ADJUSTMENTS.includes(key)) return
         const has = displayEncounter.adjustments.includes(key)
         update({
             adjustments: has
@@ -386,6 +401,7 @@ function EncounterBuilder() {
                                         const cost = getRoleCost(card.role)
                                         const inEncounter = displayEncounter.entries.find((e) => e.cardId === card.id)
                                         const isRestricted = card.role ? restrictedRoles.has(card.role) : false
+                                        const isLowerTier = card.tier != null && card.tier < encounterTier
                                         return (
                                             <div
                                                 key={card.id}
@@ -396,7 +412,7 @@ function EncounterBuilder() {
                                                         : isRestricted
                                                         ? 'bg-card-bg border-card-border opacity-50'
                                                         : 'bg-card-bg border-card-border hover:border-card-border/60'
-                                                }`}
+                                                }${isLowerTier ? ' ring-1 ring-green-600/40' : ''}`}
                                             >
                                                 <div className="flex items-start justify-between gap-1 mb-2">
                                                     <span className="text-card-text text-sm font-semibold leading-tight">{card.title}</span>
@@ -413,6 +429,9 @@ function EncounterBuilder() {
                                                     )}
                                                     {card.tier && (
                                                         <span className="text-[10px] text-card-text/60">T{card.tier}</span>
+                                                    )}
+                                                    {isLowerTier && (
+                                                        <span className="text-[9px] font-bold text-green-700 bg-green-600/15 px-1 rounded">Tier inferior</span>
                                                     )}
                                                     <span className="text-[10px] font-bold text-hope-secondary ml-auto">{cost}pt</span>
                                                 </div>
@@ -490,11 +509,31 @@ function EncounterBuilder() {
                                 </button>
                                 <Button variant="destructive" size="sm" onClick={() => handleDelete(displayEncounter.id)}>✕</Button>
                             </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-ui-muted text-xs shrink-0">Tier</span>
+                                <div className="flex gap-1">
+                                    {[1, 2, 3, 4].map((t) => (
+                                        <button
+                                            key={t}
+                                            onClick={() => update({ tier: t as 1 | 2 | 3 | 4 })}
+                                            className={`w-7 h-7 rounded text-sm font-bold transition-colors ${encounterTier === t ? 'bg-fear-light text-ui-text' : 'bg-ui-surface2 text-ui-muted hover:text-ui-text'}`}
+                                        >
+                                            {t}
+                                        </button>
+                                    ))}
+                                </div>
+                                <span className="text-[10px] text-ui-muted/70 leading-tight">Tier del grupo (ref. lower-tier)</span>
+                            </div>
                         </div>
 
                         {/* Roster */}
                         <div className="bg-ui-surface rounded-xl border border-ui-surface2 p-4 flex flex-col gap-3">
-                            <span className="text-ui-text text-[10px] uppercase font-bold tracking-widest">Roster</span>
+                            <div className="flex items-center justify-between">
+                                <span className="text-ui-text text-[10px] uppercase font-bold tracking-widest">Roster</span>
+                                {displayEncounter.adjustments.includes('bonus_damage') && (
+                                    <span className="text-[9px] font-bold text-red-400 bg-red-500/15 px-1.5 py-0.5 rounded">+1d4 DMG</span>
+                                )}
+                            </div>
 
                             {displayEncounter.entries.length === 0 ? (
                                 <p className="text-ui-muted text-xs text-center py-3 italic">Click adversaries from the library to add them.</p>
@@ -583,13 +622,14 @@ function EncounterBuilder() {
                                     <span>Base (3×{displayEncounter.pcCount}+2)</span>
                                     <span className="text-ui-text">{3 * displayEncounter.pcCount + 2}</span>
                                 </div>
-                                {displayEncounter.adjustments.map((adj) => {
-                                    const cfg = ADJUSTMENT_CONFIG.find((c) => c.key === adj)!
+                                {active.map((adj) => {
+                                    const meta = ADJUSTMENT_META.find((m) => m.key === adj)
+                                    const delta = ADJUSTMENT_DELTAS[adj]
                                     return (
                                         <div key={adj} className="flex justify-between text-ui-muted">
-                                            <span className="truncate pr-2">{cfg.label}</span>
-                                            <span className={cfg.delta > 0 ? 'text-green-400' : 'text-red-400'}>
-                                                {cfg.delta > 0 ? '+' : ''}{cfg.delta}
+                                            <span className="truncate pr-2">{meta?.label ?? adj}</span>
+                                            <span className={delta > 0 ? 'text-green-400' : 'text-red-400'}>
+                                                {delta > 0 ? '+' : ''}{delta}
                                             </span>
                                         </div>
                                     )
@@ -608,21 +648,20 @@ function EncounterBuilder() {
                         {/* Adjustments */}
                         <div className="bg-ui-surface rounded-xl border border-ui-surface2 p-4 flex flex-col gap-2">
                             <span className="text-ui-muted text-[10px] uppercase font-bold tracking-widest mb-0.5">Adjustments</span>
-                            {ADJUSTMENT_CONFIG.map(({ key, label, delta, hint }) => {
-                                const active = displayEncounter.adjustments.includes(key)
+                            {ADJUSTMENT_META.filter((m) => MANUAL_ADJUSTMENTS.includes(m.key)).map(({ key, label, hint }) => {
+                                const isActive = displayEncounter.adjustments.includes(key)
+                                const delta = ADJUSTMENT_DELTAS[key]
                                 return (
                                     <button
                                         key={key}
                                         onClick={() => toggleAdjustment(key)}
                                         title={hint}
-                                        className={`flex items-center justify-between px-3 py-2 rounded-lg border text-xs text-left transition-colors ${
-                                            active
-                                                ? 'bg-fear-light/20 border-fear-light/50 text-ui-text'
-                                                : 'bg-ui-surface2/50 border-ui-surface2 text-ui-muted hover:text-ui-text hover:border-ui-surface'
-                                        }`}
+                                        className={`flex items-center justify-between px-3 py-2 rounded-lg border text-xs text-left transition-colors ${isActive
+                                            ? 'bg-fear-light/20 border-fear-light/50 text-ui-text'
+                                            : 'bg-ui-surface2/50 border-ui-surface2 text-ui-muted hover:text-ui-text hover:border-ui-surface'}`}
                                     >
                                         <span className="flex items-center gap-2">
-                                            <span>{active ? '☑' : '☐'}</span>
+                                            <span>{isActive ? '☑' : '☐'}</span>
                                             <span>{label}</span>
                                         </span>
                                         <span className={`font-bold shrink-0 ml-2 ${delta > 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -631,6 +670,37 @@ function EncounterBuilder() {
                                     </button>
                                 )
                             })}
+
+                            <div className="mt-1 pt-2 border-t border-ui-surface2 flex flex-col gap-2">
+                                <span className="text-ui-muted/70 text-[9px] uppercase font-bold tracking-widest">Automáticos (según el roster)</span>
+                                {ADJUSTMENT_META.filter((m) => AUTO_ADJUSTMENTS.includes(m.key)).map(({ key, label }) => {
+                                    const isActive = autoAdjustments.includes(key)
+                                    const delta = ADJUSTMENT_DELTAS[key]
+                                    const reason = key === 'two_plus_solos'
+                                        ? `${nSolos} Solo en el roster`
+                                        : `${nLower} por debajo del tier ${encounterTier}`
+                                    return (
+                                        <div
+                                            key={key}
+                                            title={label}
+                                            className={`flex items-center justify-between px-3 py-2 rounded-lg border text-xs ${isActive
+                                                ? 'bg-hope-primary/10 border-hope-primary/40 text-ui-text'
+                                                : 'bg-ui-surface2/30 border-ui-surface2 text-ui-muted/60'}`}
+                                        >
+                                            <span className="flex flex-col gap-0.5">
+                                                <span className="flex items-center gap-1.5">
+                                                    <span className="text-[8px] font-bold uppercase tracking-wider px-1 py-0.5 rounded bg-ui-surface2 text-ui-muted">Auto</span>
+                                                    {label}
+                                                </span>
+                                                <span className="text-[10px] text-ui-muted/70">{reason}</span>
+                                            </span>
+                                            <span className={`font-bold shrink-0 ml-2 ${isActive ? (delta > 0 ? 'text-green-400' : 'text-red-400') : 'text-ui-muted/50'}`}>
+                                                {delta > 0 ? '+' : ''}{delta}
+                                            </span>
+                                        </div>
+                                    )
+                                })}
+                            </div>
                         </div>
 
                     </div>
@@ -700,6 +770,9 @@ function EncounterBuilder() {
                                                 <span className={`font-semibold ${detailCard.attackDamageType === 'physical' ? 'text-orange-700' : 'text-blue-700'}`}>
                                                     {detailCard.attackDamageType === 'physical' ? 'phys' : 'magic'}
                                                 </span>
+                                            )}
+                                            {displayEncounter?.adjustments.includes('bonus_damage') && (
+                                                <span className="text-red-700 font-bold text-[10px] bg-red-500/15 px-1 rounded">+1d4</span>
                                             )}
                                         </>
                                     )}

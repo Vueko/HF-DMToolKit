@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('electron', {
         get: (key: string): Promise<unknown> => ipcRenderer.invoke('store:get', key),
         set: (key: string, value: unknown): void => ipcRenderer.send('store:set', key, value),
         delete: (key: string): void => ipcRenderer.send('store:delete', key),
+        backup: (): Promise<void> => ipcRenderer.invoke('store:backup'),
     },
 
     fs: {

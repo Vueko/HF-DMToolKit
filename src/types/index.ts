@@ -163,6 +163,7 @@ export interface Encounter {
     name: string
     pcCount: number
     adjustments: EncounterAdjustment[]
+    tier?: 1 | 2 | 3 | 4
     entries: EncounterEntry[]
     instances?: EncounterCardInstance[]
 }

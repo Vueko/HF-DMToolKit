@@ -15,6 +15,7 @@ declare global {
                 get: (key: string) => Promise<unknown>
                 set: (key: string, value: unknown) => void
                 delete: (key: string) => void
+                backup: () => Promise<void>
             }
             fs: {
                 saveAudio: (id: string, data: ArrayBuffer) => Promise<void>

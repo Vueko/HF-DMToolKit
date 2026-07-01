@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { electronStorage } from '../utils/electronStorage'
+import { createMigrate } from './persistMigration'
 import type { Card, EnvironmentCard, AdversaryCard } from '../types'
 
 interface CardsState {
@@ -34,6 +35,6 @@ export const useCardsStore = create<CardsState>()(
                     cards: state.cards.map((c) => c.id === id ? { ...c, ...updates } : c) as typeof state.cards,
                 })),
         }),
-        { name: 'dh-cards', storage: createJSONStorage(() => electronStorage) }
+        { name: 'dh-cards', version: 1, migrate: createMigrate<CardsState>(1, {}), storage: createJSONStorage(() => electronStorage) }
     )
 )

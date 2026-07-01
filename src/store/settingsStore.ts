@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { electronStorage } from '../utils/electronStorage'
+import { createMigrate } from './persistMigration'
 
 export type FontSize = 'sm' | 'md' | 'lg'
 
@@ -19,6 +20,6 @@ export const useSettingsStore = create<SettingsState>()(
             vaultPath: null,
             setVaultPath: (vaultPath) => set({ vaultPath }),
         }),
-        { name: 'dh-settings', storage: createJSONStorage(() => electronStorage) }
+        { name: 'dh-settings', version: 1, migrate: createMigrate<SettingsState>(1, {}), storage: createJSONStorage(() => electronStorage) }
     )
 )

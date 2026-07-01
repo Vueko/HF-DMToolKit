@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { electronStorage } from '../utils/electronStorage'
+import { createMigrate } from './persistMigration'
 import type { Campaign, Session, Scene, SessionCardInstance, Track, Playlist, CampaignMapData, Encounter, EncounterCardInstance, PlayerScreenImage, MapLibraryEntry } from '../types'
 
 interface CampaignState {
@@ -407,6 +408,6 @@ export const useCampaignStore = create<CampaignState>()(
                     })),
                 })),
         }),
-        { name: 'dh-campaigns', storage: createJSONStorage(() => electronStorage) }
+        { name: 'dh-campaigns', version: 1, migrate: createMigrate<CampaignState>(1, {}), storage: createJSONStorage(() => electronStorage) }
     )
 )
