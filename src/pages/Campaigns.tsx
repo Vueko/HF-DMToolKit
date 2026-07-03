@@ -23,12 +23,6 @@ function Campaigns() {
     const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId) ?? null
 
     const handleExport = async () => {
-        const result = await window.electron.dialog.save({
-            defaultPath: `daggerheart-backup-${new Date().toISOString().split('T')[0]}.json`,
-            filters: [{ name: 'JSON Backup', extensions: ['json'] }],
-        })
-        if (result.canceled || !result.filePath) return
-
         const blobs: Record<string, string | null> = {}
         await Promise.all(FULL_STORE_KEYS.map(async (key) => {
             const value = await window.electron.store.get(key)
@@ -36,20 +30,20 @@ function Campaigns() {
         }))
 
         const envelope = buildFullExport(blobs)
-        await window.electron.fs.writeFile(result.filePath, JSON.stringify(envelope, null, 2))
+        await window.electron.dialog.saveJson(JSON.stringify(envelope, null, 2), {
+            defaultPath: `daggerheart-backup-${new Date().toISOString().split('T')[0]}.json`,
+            filters: [{ name: 'JSON Backup', extensions: ['json'] }],
+        })
     }
 
     const handleImport = async () => {
-        const result = await window.electron.dialog.open({
+        const result = await window.electron.dialog.openJson({
             filters: [{ name: 'JSON Backup', extensions: ['json'] }],
-            properties: ['openFile'],
         })
-        if (result.canceled || result.filePaths.length === 0) return
+        if (result.canceled) return
+        if (!result.content) { alert('No se pudo leer el archivo.'); return }
 
-        const content = await window.electron.fs.readFile(result.filePaths[0])
-        if (!content) { alert('No se pudo leer el archivo.'); return }
-
-        const parsed = parseImport(content)
+        const parsed = parseImport(result.content)
         if (parsed.kind !== 'full') {
             alert(parsed.kind === 'invalid' ? parsed.reason : 'El archivo no es un backup completo.')
             return

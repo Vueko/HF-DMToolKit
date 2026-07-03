@@ -263,6 +263,19 @@ app.whenReady().then(() => {
   ensureDir(mapsDir)
   ensureDir(playerScreenDir)
 
+  // The vault root is owned by main (persisted here), so the renderer cannot point the
+  // vault reader at arbitrary folders. Loaded on startup; updated only via the folder picker.
+  const vaultRootFile = join(app.getPath('userData'), 'vault-root')
+  const persistVaultRoot = (p: string): void => {
+    try { fs.writeFileSync(vaultRootFile, p, 'utf-8') } catch { /* ignore write failure */ }
+  }
+  try {
+    if (fs.existsSync(vaultRootFile)) {
+      const saved = fs.readFileSync(vaultRootFile, 'utf-8').trim()
+      if (saved) vaultRoot = saved
+    }
+  } catch { /* ignore corrupt vault-root file */ }
+
   ipcMain.on('window:minimize', () => mainWindow?.minimize())
   ipcMain.on('window:maximize', () => {
     if (!mainWindow) return
@@ -326,24 +339,24 @@ app.whenReady().then(() => {
     if (fs.existsSync(p)) fs.unlinkSync(p)
   })
 
-  ipcMain.handle('fs:write-file', (_, filePath: string, data: string) => {
-    const resolved = join(filePath)
-    if (!resolved.endsWith('.json')) return
-    fs.writeFileSync(resolved, data, 'utf-8')
+  // JSON export/import: main owns the path (from the native dialog); the renderer never
+  // passes a raw filesystem path, so it cannot read/write arbitrary files.
+  ipcMain.handle('dialog:save-json', async (_, content: string, opts) => {
+    if (!mainWindow || typeof content !== 'string') return { canceled: true }
+    const res = await dialog.showSaveDialog(mainWindow, opts)
+    if (res.canceled || !res.filePath) return { canceled: true }
+    const target = res.filePath.toLowerCase().endsWith('.json') ? res.filePath : `${res.filePath}.json`
+    fs.writeFileSync(target, content, 'utf-8')
+    return { canceled: false }
   })
-  ipcMain.handle('fs:read-file', (_, filePath: string): string | null => {
-    const resolved = join(filePath)
-    if (!resolved.endsWith('.json')) return null
-    return fs.existsSync(resolved) ? fs.readFileSync(resolved, 'utf-8') : null
-  })
-
-  ipcMain.handle('dialog:save', (_, opts) => {
-    if (!mainWindow) return { canceled: true }
-    return dialog.showSaveDialog(mainWindow, opts)
-  })
-  ipcMain.handle('dialog:open', (_, opts) => {
-    if (!mainWindow) return { canceled: true, filePaths: [] }
-    return dialog.showOpenDialog(mainWindow, opts)
+  ipcMain.handle('dialog:open-json', async (_, opts) => {
+    if (!mainWindow) return { canceled: true, content: null }
+    const res = await dialog.showOpenDialog(mainWindow, { ...opts, properties: ['openFile'] })
+    if (res.canceled || res.filePaths.length === 0) return { canceled: true, content: null }
+    const p = res.filePaths[0]
+    if (!p.toLowerCase().endsWith('.json')) return { canceled: false, content: null }
+    try { return { canceled: false, content: fs.readFileSync(p, 'utf-8') } }
+    catch { return { canceled: false, content: null } }
   })
 
   ipcMain.handle('player:get-displays', () =>
@@ -451,6 +464,7 @@ app.whenReady().then(() => {
     const res = await dialog.showOpenDialog(mainWindow, { properties: ['openDirectory'] })
     if (res.canceled || res.filePaths.length === 0) return null
     vaultRoot = res.filePaths[0]
+    persistVaultRoot(vaultRoot)
     return vaultRoot
   })
 
@@ -461,7 +475,10 @@ app.whenReady().then(() => {
     } catch {
       return null
     }
-    vaultRoot = root
+    // Harden: only serve the remembered vault root. Trust-on-first-use when none is
+    // remembered yet (e.g. installs from before the root was persisted).
+    if (vaultRoot && root !== vaultRoot) return null
+    if (!vaultRoot) { vaultRoot = root; persistVaultRoot(root) }
     return buildVaultTree(root, root)
   })
 

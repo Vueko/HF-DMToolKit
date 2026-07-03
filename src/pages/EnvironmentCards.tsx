@@ -280,16 +280,13 @@ function EnvironmentCards() {
     }
 
     async function handleImportJson() {
-        const result = await window.electron.dialog.open({
+        const result = await window.electron.dialog.openJson({
             filters: [{ name: 'JSON', extensions: ['json'] }],
-            properties: ['openFile'],
         })
-        if (result.canceled || result.filePaths.length === 0) return
+        if (result.canceled) return
+        if (!result.content) { flashStatus('Could not read file.'); return }
 
-        const raw = await window.electron.fs.readFile(result.filePaths[0])
-        if (!raw) { flashStatus('Could not read file.'); return }
-
-        const parsed = parseImport(raw)
+        const parsed = parseImport(result.content)
 
         if (parsed.kind === 'cards') {
             const { merged, added, skipped } = mergeCardsById(cards, parsed.cards)
@@ -305,13 +302,12 @@ function EnvironmentCards() {
     }
 
     async function handleExportCards() {
-        const result = await window.electron.dialog.save({
+        const envelope = buildCardsExport(cards)
+        const result = await window.electron.dialog.saveJson(JSON.stringify(envelope, null, 2), {
             defaultPath: `daggerheart-cards-${new Date().toISOString().split('T')[0]}.json`,
             filters: [{ name: 'JSON', extensions: ['json'] }],
         })
-        if (result.canceled || !result.filePath) return
-        const envelope = buildCardsExport(cards)
-        await window.electron.fs.writeFile(result.filePath, JSON.stringify(envelope, null, 2))
+        if (result.canceled) return
         flashStatus(`Exported ${cards.length} card${cards.length === 1 ? '' : 's'}.`)
     }
 
@@ -519,7 +515,7 @@ function EnvironmentCards() {
                 {filteredCards.length === 0 ? (
                     <EmptyState title={`No ${activeTab} cards yet.`} />
                 ) : (
-                    <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
+                    <div key={activeTab} className="page-fade" style={{ height: rowVirtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
                         {rowVirtualizer.getVirtualItems().map((vRow) => (
                             <div
                                 key={vRow.key}

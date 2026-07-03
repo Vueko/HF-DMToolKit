@@ -91,13 +91,13 @@ export function VaultTree({ node, activePath, onSelect, defaultOpen }: VaultTree
         return <NoteRow node={node} isActive={activePath === node.path} onSelect={onSelect} />
     }
 
-    // Root folder: render children flush (no header), with top-level folders open.
+    // Root folder: render children flush (no header). Top-level folders start collapsed.
     if (node.path === '') {
         const children = node.children ?? []
         return (
             <div className="flex flex-col gap-0.5">
                 {children.map((child) => (
-                    <VaultTree key={child.path} node={child} activePath={activePath} onSelect={onSelect} defaultOpen />
+                    <VaultTree key={child.path} node={child} activePath={activePath} onSelect={onSelect} />
                 ))}
             </div>
         )

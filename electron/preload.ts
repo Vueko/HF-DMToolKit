@@ -38,10 +38,6 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.invoke('fs:get-map-image', id),
         deleteMapImage: (id: string): Promise<void> =>
             ipcRenderer.invoke('fs:delete-map-image', id),
-        writeFile: (filePath: string, data: string): Promise<void> =>
-            ipcRenderer.invoke('fs:write-file', filePath, data),
-        readFile: (filePath: string): Promise<string | null> =>
-            ipcRenderer.invoke('fs:read-file', filePath),
         savePlayerImage: (id: string, data: ArrayBuffer): Promise<void> =>
             ipcRenderer.invoke('fs:save-player-image', id, new Uint8Array(data)),
         getPlayerImage: (id: string): Promise<Uint8Array | null> =>
@@ -51,10 +47,10 @@ contextBridge.exposeInMainWorld('electron', {
     },
 
     dialog: {
-        save: (options: Electron.SaveDialogOptions) =>
-            ipcRenderer.invoke('dialog:save', options),
-        open: (options: Electron.OpenDialogOptions) =>
-            ipcRenderer.invoke('dialog:open', options),
+        saveJson: (content: string, options: Electron.SaveDialogOptions): Promise<{ canceled: boolean }> =>
+            ipcRenderer.invoke('dialog:save-json', content, options),
+        openJson: (options: Electron.OpenDialogOptions): Promise<{ canceled: boolean; content: string | null }> =>
+            ipcRenderer.invoke('dialog:open-json', options),
     },
 
     player: {

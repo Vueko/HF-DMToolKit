@@ -24,21 +24,18 @@ declare global {
                 saveMapImage: (id: string, data: ArrayBuffer) => Promise<void>
                 getMapImage: (id: string) => Promise<Uint8Array | null>
                 deleteMapImage: (id: string) => Promise<void>
-                writeFile: (filePath: string, data: string) => Promise<void>
-                readFile: (filePath: string) => Promise<string | null>
                 savePlayerImage: (id: string, data: ArrayBuffer) => Promise<void>
                 getPlayerImage: (id: string) => Promise<Uint8Array | null>
                 deletePlayerImage: (id: string) => Promise<void>
             }
             dialog: {
-                save: (options: {
+                saveJson: (content: string, options: {
                     defaultPath?: string
                     filters?: { name: string; extensions: string[] }[]
-                }) => Promise<{ canceled: boolean; filePath?: string }>
-                open: (options: {
+                }) => Promise<{ canceled: boolean }>
+                openJson: (options: {
                     filters?: { name: string; extensions: string[] }[]
-                    properties?: string[]
-                }) => Promise<{ canceled: boolean; filePaths: string[] }>
+                }) => Promise<{ canceled: boolean; content: string | null }>
             }
             player: {
                 open: (displayIndex?: number) => void
