@@ -1,5 +1,6 @@
 import { useSettingsStore } from '../store/settingsStore'
 import type { FontSize } from '../store/settingsStore'
+import { PageHeader } from '../components/ui'
 
 const SIZE_OPTIONS: { value: FontSize; label: string; description: string }[] = [
     { value: 'sm', label: 'Small', description: '14px' },
@@ -12,10 +13,7 @@ function Settings() {
 
     return (
         <div className="flex flex-col gap-6">
-            <div>
-                <h1 className="text-ui-text font-display text-2xl font-bold">Settings</h1>
-                <p className="text-ui-muted text-sm">Customize your DaggerHeart Toolkit experience</p>
-            </div>
+            <PageHeader title="Settings" subtitle="Customize your DaggerHeart Toolkit experience" />
 
             <div className="bg-ui-surface rounded-xl border border-ui-surface2/60 p-5 flex flex-col gap-4">
                 <div>

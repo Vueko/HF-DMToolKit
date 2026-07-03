@@ -1,11 +1,11 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import FearWidget from '../components/dashboard/FearWidget'
 import SceneWidget from '../components/dashboard/SceneWidget'
 import ActiveCardsWidget from '../components/dashboard/ActiveCardsWidget'
 import MoodWidget from '../components/dashboard/MoodWidget'
 import EncounterWidget from '../components/dashboard/EncounterWidget'
 import PlayerScreenWidget from '../components/dashboard/PlayerScreenWidget'
-import PrepChecklist from '../components/dashboard/PrepChecklist'
+import PrepChecklistModal from '../components/dashboard/PrepChecklistModal'
 import { useCampaignStore } from '../store/campaignStore'
 import { useFearStore } from '../store/fearStore'
 
@@ -16,31 +16,11 @@ function DMDashboard() {
     const currentCampaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
     const currentSession = currentCampaign?.sessions.find((s) => s.id === currentSessionId) ?? null
 
-    // State 2: campaign exists but no active session — inline check so TypeScript narrows currentCampaign to Campaign
-    if (currentCampaign !== null && currentSession === null) {
-        return <PrepChecklist campaign={currentCampaign} />
-    }
-
     const hasCampaign = currentCampaign !== null
+    const [prepOpen, setPrepOpen] = useState(currentSession === null)
 
     return (
         <div className="flex flex-col gap-6">
-
-            {/* State 1: no campaign — show banner above header */}
-            {!hasCampaign && (
-                <div className="flex items-center justify-between gap-4 bg-ui-surface border border-fear-light/40 rounded-xl px-4 py-3">
-                    <div>
-                        <p className="text-ui-text text-sm font-medium">Para empezar, creá tu primera campaña</p>
-                        <p className="text-ui-muted text-xs">Campaigns → Nueva campaña → Nueva sesión</p>
-                    </div>
-                    <Link
-                        to="/campaigns"
-                        className="bg-fear-light hover:bg-fear-secondary text-ui-text px-4 py-2 rounded-lg transition-colors font-medium text-sm whitespace-nowrap"
-                    >
-                        Ir a Campaigns →
-                    </Link>
-                </div>
-            )}
 
             {/* Sticky header — always visible while scrolling */}
             <div className="sticky -top-6 z-20 -mx-6 px-6 py-3 bg-ui-canvas/95 backdrop-blur-sm border-b border-ui-surface2/50 flex items-center justify-between gap-4">
@@ -55,6 +35,12 @@ function DMDashboard() {
                     )}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
+                    <button
+                        onClick={() => setPrepOpen(true)}
+                        className="text-ui-muted hover:text-ui-text bg-ui-surface hover:bg-ui-surface2 border border-ui-surface2 px-3 py-2 rounded-lg transition-colors text-sm font-medium"
+                    >
+                        Prep
+                    </button>
                     {hasCampaign && (
                         <div className="flex items-center gap-2 bg-fear-primary rounded-xl px-3 py-2">
                             <button
@@ -76,7 +62,7 @@ function DMDashboard() {
                 </div>
             </div>
 
-            {/* Widget grid — dimmed in State 1, fully active in State 3 */}
+            {/* Widget grid */}
             <div className={`grid grid-cols-2 gap-4 ${!hasCampaign ? 'opacity-40 pointer-events-none' : ''}`}>
                 <SceneWidget />
                 <FearWidget />
@@ -87,6 +73,11 @@ function DMDashboard() {
                 </div>
             </div>
 
+            <PrepChecklistModal
+                campaign={currentCampaign}
+                open={prepOpen}
+                onClose={() => setPrepOpen(false)}
+            />
         </div>
     )
 }

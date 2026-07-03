@@ -17,6 +17,8 @@
   "dependencies": {
     "@fontsource/cinzel": "^5.2.8",
     "@fontsource/inter": "^5.2.8",
+    "@tanstack/react-virtual": "^3.14.5",
+    "immer": "^10.2.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-markdown": "^10.1.0",

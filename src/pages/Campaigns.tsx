@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useCampaignStore } from '../store/campaignStore'
 import type { Campaign, Session } from '../types'
-import { Button, Input } from '../components/ui'
+import { Button, Input, PageHeader, EmptyState } from '../components/ui'
+import { buildFullExport, parseImport, mergeCampaignBlobs, FULL_STORE_KEYS } from '../utils/backup'
 
 function Campaigns() {
     const {
@@ -28,15 +29,14 @@ function Campaigns() {
         })
         if (result.canceled || !result.filePath) return
 
-        const [campaigns, music, fear, cards] = await Promise.all([
-            window.electron.store.get('dh-campaigns'),
-            window.electron.store.get('dh-music'),
-            window.electron.store.get('dh-fear'),
-            window.electron.store.get('dh-cards'),
-        ])
+        const blobs: Record<string, string | null> = {}
+        await Promise.all(FULL_STORE_KEYS.map(async (key) => {
+            const value = await window.electron.store.get(key)
+            blobs[key] = typeof value === 'string' ? value : null
+        }))
 
-        const data = { 'dh-campaigns': campaigns, 'dh-music': music, 'dh-fear': fear, 'dh-cards': cards }
-        await window.electron.fs.writeFile(result.filePath, JSON.stringify(data, null, 2))
+        const envelope = buildFullExport(blobs)
+        await window.electron.fs.writeFile(result.filePath, JSON.stringify(envelope, null, 2))
     }
 
     const handleImport = async () => {
@@ -46,26 +46,29 @@ function Campaigns() {
         })
         if (result.canceled || result.filePaths.length === 0) return
 
-        try {
-            const content = await window.electron.fs.readFile(result.filePaths[0])
-            if (!content) return
-            const data = JSON.parse(content)
+        const content = await window.electron.fs.readFile(result.filePaths[0])
+        if (!content) { alert('No se pudo leer el archivo.'); return }
 
-            let imported = false
-            if (data['dh-campaigns']) { window.electron.store.set('dh-campaigns', data['dh-campaigns']); imported = true }
-            if (data['dh-music']) { window.electron.store.set('dh-music', data['dh-music']); imported = true }
-            if (data['dh-fear']) { window.electron.store.set('dh-fear', data['dh-fear']); imported = true }
-            if (data['dh-cards']) { window.electron.store.set('dh-cards', data['dh-cards']); imported = true }
-
-            if (imported) {
-                alert('Datos importados correctamente. La aplicación se reiniciará.')
-                window.location.reload()
-            } else {
-                alert('No se encontraron datos válidos en el archivo.')
-            }
-        } catch {
-            alert('Archivo de backup inválido.')
+        const parsed = parseImport(content)
+        if (parsed.kind !== 'full') {
+            alert(parsed.kind === 'invalid' ? parsed.reason : 'El archivo no es un backup completo.')
+            return
         }
+
+        for (const key of FULL_STORE_KEYS) {
+            const incoming = parsed.data[key]
+            if (typeof incoming !== 'string') continue
+            if (key === 'dh-campaigns') {
+                const current = await window.electron.store.get('dh-campaigns')
+                const currentBlob = typeof current === 'string' ? current : null
+                window.electron.store.set(key, mergeCampaignBlobs(currentBlob, incoming))
+            } else {
+                window.electron.store.set(key, incoming)
+            }
+        }
+
+        alert('Datos importados correctamente. La aplicación se recargará.')
+        window.location.reload()
     }
 
     function handleAddCampaign() {
@@ -104,20 +107,14 @@ function Campaigns() {
     return (
         <div className="flex flex-col gap-6">
 
-            <div className="flex items-start justify-between">
-                <div>
-                    <h1 className="text-ui-text font-display text-2xl font-bold">Campaigns</h1>
-                    <p className="text-ui-muted text-sm">Manage your campaigns and sessions</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <Button variant="secondary" onClick={handleImport} title="Importar datos desde un backup">
-                        ↓ Import Data
-                    </Button>
-                    <Button variant="secondary" onClick={handleExport} title="Exportar todos los datos a un archivo JSON">
-                        ↑ Export Data
-                    </Button>
-                </div>
-            </div>
+            <PageHeader title="Campaigns" subtitle="Manage your campaigns and sessions">
+                <Button variant="secondary" onClick={handleImport} title="Importar datos desde un backup">
+                    ↓ Import Data
+                </Button>
+                <Button variant="secondary" onClick={handleExport} title="Exportar todos los datos a un archivo JSON">
+                    ↑ Export Data
+                </Button>
+            </PageHeader>
 
             <div className="grid grid-cols-2 gap-6">
 
@@ -139,7 +136,7 @@ function Campaigns() {
 
                     <div className="flex flex-col gap-2">
                         {campaigns.length === 0 && (
-                            <p className="text-ui-muted text-sm text-center py-4">No campaigns yet.</p>
+                            <EmptyState size="sm" title="No campaigns yet." />
                         )}
                         {campaigns.map((c) => (
                             <div
@@ -187,7 +184,7 @@ function Campaigns() {
 
                             <div className="flex flex-col gap-2">
                                 {selectedCampaign.sessions.length === 0 && (
-                                    <p className="text-ui-muted text-sm text-center py-4">No sessions yet.</p>
+                                    <EmptyState size="sm" title="No sessions yet." />
                                 )}
                                 {selectedCampaign.sessions.map((s) => {
                                     const isActive = currentCampaignId === selectedCampaignId && currentSessionId === s.id

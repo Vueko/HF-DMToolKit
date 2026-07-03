@@ -4,6 +4,7 @@ import { useMusicStore } from '../store/musicStore'
 import { saveTrackFile, deleteTrackFile } from '../utils/musicDb'
 import { generateId } from '../utils/generateId'
 import type { Track } from '../types'
+import { EmptyState } from '../components/ui'
 
 type Mood = 'calm' | 'tense' | 'epic' | 'mystery' | 'ambient'
 
@@ -170,9 +171,7 @@ function MusicPlayer() {
 
                     <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
                         {playlists.length === 0 && (
-                            <p className="text-ui-muted text-xs text-center py-6 px-3">
-                                No playlists yet. Create one above.
-                            </p>
+                            <EmptyState size="sm" title="No playlists yet." description="Create one above." />
                         )}
                         {playlists.map((pl) => {
                             const isViewed = pl.id === (viewedPlaylist?.id ?? playlists[0]?.id)

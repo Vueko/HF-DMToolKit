@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSoundboardStore } from '../store/soundboardStore'
 import SoundCategory from '../components/soundboard/SoundCategory'
+import { PageHeader, EmptyState } from '../components/ui'
 
 function Soundboard() {
     const { categories, sounds, activeAmbientIds, addCategory } = useSoundboardStore()
@@ -21,8 +22,7 @@ function Soundboard() {
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-ui-text font-display text-2xl font-bold">Soundboard</h1>
+            <PageHeader title="Soundboard">
                 {showCategoryInput ? (
                     <div className="flex items-center gap-2">
                         <input
@@ -55,18 +55,20 @@ function Soundboard() {
                         + Nueva Categoría
                     </button>
                 )}
-            </div>
+            </PageHeader>
 
             {categories.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-2 text-center">
-                    <p className="text-ui-muted text-sm italic">No hay categorías todavía.</p>
-                    <button
-                        onClick={() => setShowCategoryInput(true)}
-                        className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-3 py-1.5 rounded-lg transition-colors text-sm"
-                    >
-                        Nueva Categoría →
-                    </button>
-                </div>
+                <EmptyState
+                    title="No hay categorías todavía."
+                    action={
+                        <button
+                            onClick={() => setShowCategoryInput(true)}
+                            className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-3 py-1.5 rounded-lg transition-colors text-sm"
+                        >
+                            Nueva Categoría →
+                        </button>
+                    }
+                />
             ) : (
                 categories.map((cat) => (
                     <SoundCategory

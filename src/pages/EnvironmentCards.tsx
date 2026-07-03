@@ -1,9 +1,11 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useCardsStore } from '../store/cardsStore'
 import { useCampaignStore } from '../store/campaignStore'
 import type { SessionCardInstance, AdversaryAbility, AbilityType, AdversaryCard, EnvironmentCard, EnvironmentFeature, EnvironmentFeatureType, Card } from '../types'
-import { Button, Input, Select, Textarea } from '../components/ui'
+import { Button, Input, Select, Textarea, PageHeader, EmptyState } from '../components/ui'
 import { renderBold } from '../utils/renderBold'
+import { buildCardsExport, parseImport, mergeCardsById } from '../utils/backup'
 
 type Tab = 'environment' | 'adversary'
 
@@ -243,6 +245,40 @@ function EnvironmentCards() {
     const [envSceneSelect, setEnvSceneSelect] = useState<Record<string, string>>({})
     const [importStatus, setImportStatus] = useState<string | null>(null)
 
+    function flashStatus(msg: string) {
+        setImportStatus(msg)
+        setTimeout(() => setImportStatus(null), 5000)
+    }
+
+    // Importador de formato externo/SRD: array crudo, heurística de tipo, dedup por título.
+    function importRawCards(items: unknown[]) {
+        const data = items as Record<string, unknown>[]
+        const first = data[0]
+        if (!first || typeof first !== 'object') {
+            flashStatus('Invalid JSON — expected a non-empty array.')
+            return
+        }
+        const isAdversary = 'standardAttack' in first || 'minorThreshold' in first || 'majorThreshold' in first
+        const existingTitles = new Set(
+            cards
+                .filter((c) => c.type === (isAdversary ? 'adversary' : 'environment'))
+                .map((c) => c.title.toLowerCase())
+        )
+        const toAdd: Card[] = []
+        for (const item of data) {
+            const card = isAdversary ? mapAdversaryItem(item) : mapEnvironmentItem(item)
+            if (!card || existingTitles.has(card.title.toLowerCase())) continue
+            toAdd.push(card)
+        }
+        if (toAdd.length > 0) {
+            bulkAddCards(toAdd)
+            setActiveTab(isAdversary ? 'adversary' : 'environment')
+        }
+        const skipped = data.length - toAdd.length
+        const label = isAdversary ? 'adversaries' : 'environments'
+        flashStatus(`Imported ${toAdd.length} ${label}${skipped > 0 ? ` (${skipped} skipped — already exist)` : ''}.`)
+    }
+
     async function handleImportJson() {
         const result = await window.electron.dialog.open({
             filters: [{ name: 'JSON', extensions: ['json'] }],
@@ -251,54 +287,42 @@ function EnvironmentCards() {
         if (result.canceled || result.filePaths.length === 0) return
 
         const raw = await window.electron.fs.readFile(result.filePaths[0])
-        if (!raw) { setImportStatus('Could not read file.'); return }
+        if (!raw) { flashStatus('Could not read file.'); return }
 
-        let data: Record<string, unknown>[]
-        try {
-            const parsed = JSON.parse(raw)
-            if (!Array.isArray(parsed) || parsed.length === 0) throw new Error()
-            data = parsed as Record<string, unknown>[]
-        } catch {
-            setImportStatus('Invalid JSON — expected a non-empty array.')
-            setTimeout(() => setImportStatus(null), 4000)
+        const parsed = parseImport(raw)
+
+        if (parsed.kind === 'cards') {
+            const { merged, added, skipped } = mergeCardsById(cards, parsed.cards)
+            useCardsStore.setState({ cards: merged })
+            flashStatus(`Imported ${added} card${added === 1 ? '' : 's'}${skipped > 0 ? ` (${skipped} skipped — already exist)` : ''}.`)
             return
         }
-
-        const first = data[0]
-        const isAdversary = 'standardAttack' in first || 'minorThreshold' in first || 'majorThreshold' in first
-
-        const existingTitles = new Set(
-            cards
-                .filter((c) => c.type === (isAdversary ? 'adversary' : 'environment'))
-                .map((c) => c.title.toLowerCase())
-        )
-
-        const toAdd: Card[] = []
-        for (const item of data) {
-            const card = isAdversary ? mapAdversaryItem(item) : mapEnvironmentItem(item)
-            if (!card || existingTitles.has(card.title.toLowerCase())) continue
-            toAdd.push(card)
+        if (parsed.kind === 'cards-raw') {
+            importRawCards(parsed.items)
+            return
         }
-
-        if (toAdd.length > 0) {
-            bulkAddCards(toAdd)
-            setActiveTab(isAdversary ? 'adversary' : 'environment')
-        }
-
-        const skipped = data.length - toAdd.length
-        const label = isAdversary ? 'adversaries' : 'environments'
-        setImportStatus(
-            `Imported ${toAdd.length} ${label}${skipped > 0 ? ` (${skipped} skipped — already exist)` : ''}.`
-        )
-        setTimeout(() => setImportStatus(null), 5000)
+        flashStatus(parsed.kind === 'invalid' ? parsed.reason : 'Unsupported file.')
     }
 
+    async function handleExportCards() {
+        const result = await window.electron.dialog.save({
+            defaultPath: `daggerheart-cards-${new Date().toISOString().split('T')[0]}.json`,
+            filters: [{ name: 'JSON', extensions: ['json'] }],
+        })
+        if (result.canceled || !result.filePath) return
+        const envelope = buildCardsExport(cards)
+        await window.electron.fs.writeFile(result.filePath, JSON.stringify(envelope, null, 2))
+        flashStatus(`Exported ${cards.length} card${cards.length === 1 ? '' : 's'}.`)
+    }
+
+    const scrollRef = useRef<HTMLDivElement>(null)
+
     useEffect(() => {
-        // Intentional sync: reset filters when tab changes to avoid stale filter state
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+        // Intentional sync: reset filters and scroll position when tab changes to avoid stale state
         setSearch('')
         setTypeFilter('')
         setTierFilter('')
+        if (scrollRef.current) scrollRef.current.scrollTop = 0
     }, [activeTab])
 
     const filteredCards = useMemo(() => {
@@ -313,6 +337,18 @@ function EnvironmentCards() {
             return true
         })
     }, [cards, activeTab, search, typeFilter, tierFilter])
+
+    // Virtualized 2-column grid: only visible rows are mounted, so switching tabs no longer
+    // mounts the whole (50+) card list synchronously. Rows are measured dynamically because
+    // adversary cards vary in height.
+    const CARD_COLS = 2
+    const rowCount = Math.ceil(filteredCards.length / CARD_COLS)
+    const rowVirtualizer = useVirtualizer({
+        count: rowCount,
+        getScrollElement: () => scrollRef.current,
+        estimateSize: () => 260,
+        overscan: 4,
+    })
 
     const currentCampaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
     const currentSession = currentCampaign?.sessions.find((s) => s.id === currentSessionId) ?? null
@@ -396,19 +432,15 @@ function EnvironmentCards() {
     }
 
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 h-full min-h-0">
 
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-ui-text font-display text-2xl font-bold">Cards</h1>
-                    <p className="text-ui-muted text-sm">Manage your environment and adversary cards</p>
-                </div>
+            <PageHeader title="Cards" subtitle="Manage your environment and adversary cards">
                 {!hasActiveSession && (
                     <span className="text-ui-muted text-xs px-3 py-2 bg-ui-surface rounded-lg">
                         No active session — cards cannot be added to the Dashboard
                     </span>
                 )}
-            </div>
+            </PageHeader>
 
             <div className="flex gap-2 border-b border-ui-surface2">
                 {(['environment', 'adversary'] as Tab[]).map((tab) => (
@@ -432,6 +464,9 @@ function EnvironmentCards() {
                 </Button>
                 <Button variant="secondary" onClick={handleImportJson}>
                     Import from JSON
+                </Button>
+                <Button variant="secondary" onClick={handleExportCards}>
+                    Export Cards
                 </Button>
                 {importStatus && (
                     <span className="text-xs text-ui-muted bg-ui-surface border border-ui-surface2 px-3 py-1.5 rounded-lg">
@@ -479,13 +514,21 @@ function EnvironmentCards() {
                 </Select>
             </div>
 
-            {/* Card grid */}
-            <div className="grid grid-cols-2 gap-3">
-                {filteredCards.length === 0 && (
-                    <p className="col-span-2 text-ui-muted text-sm text-center py-8">No {activeTab} cards yet.</p>
-                )}
-
-                {filteredCards.map((card) => {
+            {/* Card grid (virtualized: only visible rows are mounted) */}
+            <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1">
+                {filteredCards.length === 0 ? (
+                    <EmptyState title={`No ${activeTab} cards yet.`} />
+                ) : (
+                    <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
+                        {rowVirtualizer.getVirtualItems().map((vRow) => (
+                            <div
+                                key={vRow.key}
+                                data-index={vRow.index}
+                                ref={rowVirtualizer.measureElement}
+                                className="grid grid-cols-2 gap-3 pb-3"
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${vRow.start}px)` }}
+                            >
+                                {filteredCards.slice(vRow.index * CARD_COLS, vRow.index * CARD_COLS + CARD_COLS).map((card) => {
                     const inSession = isInSession(card.id)
                     return (
                         <div key={card.id} className="bg-card-bg rounded-xl border border-card-border overflow-hidden flex flex-col">
@@ -620,7 +663,11 @@ function EnvironmentCards() {
 
                         </div>
                     )
-                })}
+                                })}
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Edit modal */}

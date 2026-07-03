@@ -47,8 +47,67 @@ body {
   height: 100%;
 }
 
+/* --- Scrollbar temático (global, acorde al tema oscuro de la app) --- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ui-surface2) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-ui-surface2);
+  background-clip: content-box;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-ui-muted);
+  background-clip: content-box;
+  border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 #root {
   height: 100%;
+}
+
+/* --- Transiciones de ruta (solo CSS) --- */
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-fade {
+  animation: page-fade-in 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-fade { animation: none; }
+}
+
+@keyframes modal-pop-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.modal-enter {
+  animation: modal-pop-in 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-enter { animation: none; }
 }
 
 /* Markdown Typography */

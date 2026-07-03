@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useCampaignStore } from '../store/campaignStore'
 import { useCardsStore } from '../store/cardsStore'
 import type { AbilityType, AdversaryCard, Encounter, EncounterAdjustment, EncounterCardInstance, EncounterEntry } from '../types'
-import { Button, Input, Select } from '../components/ui'
+import { Button, Input, Select, PageHeader, EmptyState } from '../components/ui'
 import { renderBold } from '../utils/renderBold'
 import {
     ADJUSTMENT_DELTAS, MANUAL_ADJUSTMENTS, AUTO_ADJUSTMENTS,
@@ -279,19 +279,19 @@ function EncounterBuilder() {
     return (
         <div className="flex flex-col h-full gap-4">
 
-            <div className="flex items-center justify-between gap-4 shrink-0">
-                <div>
-                    <h1 className="text-ui-text font-display text-2xl font-bold">Encounter Builder</h1>
-                    <p className="text-ui-muted text-sm">Build encounters using battle points</p>
-                </div>
-                <Button variant="primary" onClick={handleCreate}>+ New Encounter</Button>
+            <div className="shrink-0">
+                <PageHeader title="Encounter Builder" subtitle="Build encounters using battle points">
+                    <Button variant="primary" onClick={handleCreate}>+ New Encounter</Button>
+                </PageHeader>
             </div>
 
             {!displayEncounter ? (
-                <div className="flex-1 flex flex-col items-center justify-center gap-4 text-ui-muted">
-                    <div className="text-5xl">⚔️</div>
-                    <p className="text-sm">No encounters yet.</p>
-                    <Button variant="primary" onClick={handleCreate}>Create First Encounter</Button>
+                <div className="flex-1 flex items-center justify-center">
+                    <EmptyState
+                        icon="⚔️"
+                        title="No encounters yet."
+                        action={<Button variant="primary" onClick={handleCreate}>Create First Encounter</Button>}
+                    />
                 </div>
             ) : (
                 <div className="flex gap-3 flex-1 min-h-0">

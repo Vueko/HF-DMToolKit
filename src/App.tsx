@@ -1,27 +1,29 @@
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, Outlet, useLocation } from 'react-router-dom'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { PageLoader } from './components/ui'
 import { useFearStore } from './store/fearStore'
 import { useSettingsStore } from './store/settingsStore'
 import { useVaultStore } from './vault/vaultStore'
 import Sidebar from './components/Sidebar'
 import TitleBar from './components/TitleBar'
-import DMDashboard from './pages/DMDashboard'
-import SceneTracker from './pages/SceneTracker'
-import EnvironmentCards from './pages/EnvironmentCards'
-import DMScreen from './pages/DMScreen'
-import MusicPlayer from './pages/MusicPlayer'
-import WorldWiki from './pages/WorldWiki'
-import CampaignMap from './pages/CampaignMap'
-import Campaigns from './pages/Campaigns'
-import EncounterBuilder from './pages/EncounterBuilder'
 import MusicBar from './components/MusicBar'
 import { SoundboardProvider } from './context/SoundboardContext'
 import AmbientBar from './components/AmbientBar'
 import SoundQuickBar from './components/SoundQuickBar'
-import Soundboard from './pages/Soundboard'
-import PlayerScreen from './pages/PlayerScreen'
-import Settings from './pages/Settings'
+
+const DMDashboard = lazy(() => import('./pages/DMDashboard'))
+const SceneTracker = lazy(() => import('./pages/SceneTracker'))
+const EnvironmentCards = lazy(() => import('./pages/EnvironmentCards'))
+const DMScreen = lazy(() => import('./pages/DMScreen'))
+const MusicPlayer = lazy(() => import('./pages/MusicPlayer'))
+const WorldWiki = lazy(() => import('./pages/WorldWiki'))
+const CampaignMap = lazy(() => import('./pages/CampaignMap'))
+const Campaigns = lazy(() => import('./pages/Campaigns'))
+const EncounterBuilder = lazy(() => import('./pages/EncounterBuilder'))
+const Soundboard = lazy(() => import('./pages/Soundboard'))
+const Settings = lazy(() => import('./pages/Settings'))
+const PlayerScreen = lazy(() => import('./pages/PlayerScreen'))
 
 function Layout() {
   useEffect(() => {
@@ -49,9 +51,13 @@ function Layout() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <main className="flex-1 p-6 bg-ui-canvas overflow-y-auto">
-          <ErrorBoundary key={location.pathname} variant="page">
-            <Outlet />
-          </ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <ErrorBoundary key={location.pathname} variant="page">
+              <div className="page-fade h-full">
+                <Outlet />
+              </div>
+            </ErrorBoundary>
+          </Suspense>
         </main>
       </div>
       <SoundQuickBar />
@@ -79,7 +85,14 @@ function App() {
             <Route path="/soundboard" element={<Soundboard />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
-          <Route path="/player-screen" element={<PlayerScreen />} />
+          <Route
+            path="/player-screen"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <PlayerScreen />
+              </Suspense>
+            }
+          />
         </Routes>
       </SoundboardProvider>
     </ErrorBoundary>
