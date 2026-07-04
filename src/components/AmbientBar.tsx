@@ -1,7 +1,9 @@
 import { useSoundboardStore } from '../store/soundboardStore'
 import { useSoundboard } from '../context/SoundboardContext'
+import { useT } from '../i18n'
 
 function AmbientBar() {
+    const t = useT()
     const { activeAmbientIds, sounds } = useSoundboardStore()
     const { stopAmbient, stopAllAmbients } = useSoundboard()
 
@@ -12,7 +14,7 @@ function AmbientBar() {
     return (
         <div className="bg-ui-surface border-t border-fear-light/20 px-4 py-2 flex items-center gap-3 flex-wrap shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-wider text-fear-light">
-                Ambients
+                {t('soundboard.ambients')}
             </span>
             {activeAmbients.map((sound) => (
                 <button
@@ -28,7 +30,7 @@ function AmbientBar() {
                 onClick={stopAllAmbients}
                 className="ml-auto text-xs text-ui-muted hover:text-red-400 transition-colors"
             >
-                Detener todo
+                {t('soundboard.stopAll')}
             </button>
         </div>
     )

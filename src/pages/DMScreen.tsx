@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useCampaignStore } from '../store/campaignStore'
 import { Button, Textarea, Panel } from '../components/ui'
+import { UserIcon, ScrollIcon } from '../components/icons'
+import { useT } from '../i18n'
 
 const FIRST_NAMES_LATIN = [
     'Aurelius', 'Cassius', 'Lucius', 'Maximus', 'Octavius', 'Quintus', 'Silas', 'Titus', 'Valerius', 'Felix',
@@ -43,6 +45,7 @@ function generateName() {
 }
 
 function DMScreen() {
+    const t = useT()
     const { campaigns, currentCampaignId, updateCampaignRules } = useCampaignStore()
     const currentCampaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
 
@@ -61,8 +64,8 @@ function DMScreen() {
         return (
             <div className="flex-1 flex items-center justify-center">
                 <div className="text-center bg-ui-surface p-8 rounded-xl border border-ui-surface2">
-                    <h2 className="text-xl text-ui-text font-display mb-2">No Campaign Selected</h2>
-                    <p className="text-ui-muted text-sm">Please select a campaign to view the DM Screen.</p>
+                    <h2 className="text-xl text-ui-text font-display mb-2">{t('dmScreen.noCampaignSelected')}</h2>
+                    <p className="text-ui-muted text-sm">{t('dmScreen.selectCampaignHint')}</p>
                 </div>
             </div>
         )
@@ -74,8 +77,8 @@ function DMScreen() {
         <div className="flex flex-col h-full w-full max-w-7xl mx-auto overflow-hidden">
             <header className="flex items-center justify-between p-6 shrink-0 border-b border-ui-surface2">
                 <div>
-                    <h1 className="text-2xl font-display font-bold text-ui-text">DM Screen</h1>
-                    <p className="text-sm text-ui-muted mt-1">Quick Reference & Campaign Tools</p>
+                    <h1 className="text-2xl font-display font-bold text-ui-text">{t('dmScreen.title')}</h1>
+                    <p className="text-sm text-ui-muted mt-1">{t('dmScreen.subtitle')}</p>
                 </div>
             </header>
 
@@ -88,7 +91,7 @@ function DMScreen() {
                                 <tr>
                                     <th colSpan={6} className="p-5 border-b border-ui-surface2 bg-ui-surface/50">
                                         <h2 className="text-xl font-display font-bold text-ui-text flex items-center gap-2">
-                                            Difficulty References
+                                            {t('dmScreen.difficultyReferences')}
                                         </h2>
                                     </th>
                                 </tr>
@@ -183,20 +186,20 @@ function DMScreen() {
                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
                         <Panel size="spacious" className="lg:col-span-2 flex flex-col gap-4 shadow-sm">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-md font-display font-bold text-ui-text">👤 Quick NPC Names</h3>
+                                <h3 className="text-md font-display font-bold text-ui-text"><span className="inline-flex items-center gap-2"><UserIcon className="w-4 h-4" /> {t('dmScreen.quickNpcNames')}</span></h3>
                                 <button
                                     onClick={handleGenerateNames}
                                     className="text-xs bg-hope-primary hover:bg-hope-gold text-white px-2 py-1 rounded transition-colors font-bold uppercase tracking-wider"
                                 >
-                                    Reroll
+                                    {t('dmScreen.reroll')}
                                 </button>
                             </div>
                             <div className="flex flex-col gap-2">
                                 {generatedNames.map((name, i) => (
                                     <div key={i} className="bg-ui-bg border border-ui-surface2 rounded-lg px-3 py-2 text-ui-text font-medium text-[13px] flex justify-between items-center shadow-sm">
                                         {name}
-                                        <Button variant="ghost" size="sm" onClick={() => navigator.clipboard.writeText(name)} title="Copy to clipboard">
-                                            Copy
+                                        <Button variant="ghost" size="sm" onClick={() => navigator.clipboard.writeText(name)} title={t('dmScreen.copyToClipboard')}>
+                                            {t('dmScreen.copy')}
                                         </Button>
                                     </div>
                                 ))}
@@ -204,7 +207,7 @@ function DMScreen() {
                         </Panel>
 
                         <Panel size="spacious" className="lg:col-span-3 flex flex-col gap-3 shadow-sm">
-                            <h3 className="text-md font-display font-bold text-ui-text mb-2">📜 Rules Reference</h3>
+                            <h3 className="text-md font-display font-bold text-ui-text mb-2"><span className="inline-flex items-center gap-2"><ScrollIcon className="w-4 h-4" /> {t('dmScreen.rulesReference')}</span></h3>
 
                             <div className="flex flex-col gap-2">
                                 <div className="border border-ui-surface2 rounded-lg bg-ui-bg overflow-hidden shadow-sm">
@@ -274,7 +277,7 @@ function DMScreen() {
                                                 value={rulesContent}
                                                 onChange={(e) => updateCampaignRules(currentCampaignId, e.target.value)}
                                                 className="h-48 text-ui-muted leading-relaxed placeholder:text-ui-muted/50"
-                                                placeholder="Type your custom campaign rules, reminders, or table agreements here... (Plain text, auto-saves)"
+                                                placeholder={t('dmScreen.homebrewPlaceholder')}
                                             />
                                         </div>
                                     )}

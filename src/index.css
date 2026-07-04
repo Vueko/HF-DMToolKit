@@ -18,6 +18,7 @@
   --color-hope-primary: #E8640C;
   --color-hope-secondary: #C9962A;
   --color-hope-yellow: #F5C842;
+  --color-hope-gold: #F2B632;
 
   /*Colores para las cards */
   --color-card-bg: #F5EDD8;
@@ -32,6 +33,10 @@
   --color-ui-text: #F0EDE6;
   --color-ui-muted: #9E9BBF;
 
+  /*Acento primario (re-mapeable por tema) */
+  --color-accent: #684FA8;
+  --color-accent-fg: #FFFFFF;
+
   /*Fuentes */
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-display: 'Cinzel', serif;
@@ -39,15 +44,102 @@
 }
 
 body {
-  background-color: #1C1C2E;
+  background-color: var(--color-ui-bg);
   color: #F0EDE6;
   font-family: 'Inter', system-ui, sans-serif;
   margin: 0;
   height: 100%;
 }
 
+/* --- Temas: overrides del skin neutro + acento --- */
+[data-theme="ember"] {
+  --color-ui-bg: #221A18;
+  --color-ui-canvas: #150F0E;
+  --color-ui-surface: #362A26;
+  --color-ui-surface2: #4A382F;
+  --color-ui-text: #F1E9E3;
+  --color-ui-muted: #B6A79C;
+}
+[data-theme="slate"] {
+  --color-ui-bg: #161B22;
+  --color-ui-canvas: #0D1117;
+  --color-ui-surface: #21262E;
+  --color-ui-surface2: #30363F;
+  --color-ui-text: #E6EDF3;
+  --color-ui-muted: #8B98A6;
+}
+[data-theme="daylight"] {
+  --color-ui-bg: #FBF7EE;
+  --color-ui-canvas: #F3EEE2;
+  --color-ui-surface: #FFFFFF;
+  --color-ui-surface2: #EAE2D0;
+  --color-ui-text: #241E14;
+  --color-ui-muted: #7A6F5B;
+  --color-accent: #F2B632;
+  --color-accent-fg: #241E14;
+}
+
+/* --- Scrollbar temático (global, acorde al tema oscuro de la app) --- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ui-surface2) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-ui-surface2);
+  background-clip: content-box;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-ui-muted);
+  background-clip: content-box;
+  border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 #root {
   height: 100%;
+}
+
+/* --- Transiciones de ruta (solo CSS) --- */
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-fade {
+  animation: page-fade-in 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-fade { animation: none; }
+}
+
+@keyframes modal-pop-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.modal-enter {
+  animation: modal-pop-in 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-enter { animation: none; }
 }
 
 /* Markdown Typography */
@@ -122,6 +214,97 @@ body {
 .prose hr {
   @apply border-t border-ui-surface2 my-8;
 }
+
+/* Inline code */
+.prose :not(pre) > code {
+  @apply bg-ui-canvas text-hope-yellow px-1.5 py-0.5 rounded text-[0.85em] font-mono border border-ui-surface2;
+}
+
+/* Code blocks */
+.prose pre {
+  @apply bg-ui-canvas border border-ui-surface2 rounded-lg p-4 my-5 overflow-x-auto text-[0.85em] font-mono;
+}
+
+.prose pre code {
+  @apply bg-transparent border-0 p-0 text-ui-text;
+}
+
+/* Tables */
+.prose table {
+  @apply w-full my-5 text-sm border border-ui-surface2 rounded-lg overflow-hidden border-collapse;
+}
+
+.prose th {
+  @apply bg-ui-surface2 text-ui-text font-semibold text-left px-3 py-2 border-b border-ui-surface2;
+}
+
+.prose td {
+  @apply px-3 py-2 border-b border-ui-surface2/60;
+}
+
+.prose tr:last-child td {
+  @apply border-b-0;
+}
+
+/* Links rendered outside the vault component fallback */
+.prose a {
+  @apply text-hope-gold;
+}
+
+/* --- Callouts --- */
+.callout {
+  @apply my-4 rounded-lg border-l-4 overflow-hidden bg-ui-surface2/20;
+}
+
+.callout-header {
+  @apply flex items-center gap-2 px-3.5 py-2 font-semibold text-sm not-italic;
+}
+
+.callout-icon {
+  @apply text-base leading-none;
+}
+
+.callout-body {
+  @apply px-3.5 pb-2.5 pt-0 text-sm text-ui-text;
+}
+
+.prose .callout-body p {
+  @apply mb-2 last:mb-0;
+}
+
+.prose .callout-body > :first-child {
+  @apply mt-0;
+}
+
+/* Per-type accent: left border + header color/icon tint */
+.callout-note, .callout-info, .callout-todo { @apply border-sky-500/70; }
+.callout-note .callout-header, .callout-info .callout-header, .callout-todo .callout-header { @apply text-sky-300; }
+
+.callout-tip, .callout-hint, .callout-important,
+.callout-abstract, .callout-summary, .callout-tldr { @apply border-teal-500/70; }
+.callout-tip .callout-header, .callout-hint .callout-header, .callout-important .callout-header,
+.callout-abstract .callout-header, .callout-summary .callout-header, .callout-tldr .callout-header { @apply text-teal-300; }
+
+.callout-success, .callout-check, .callout-done { @apply border-emerald-500/70; }
+.callout-success .callout-header, .callout-check .callout-header, .callout-done .callout-header { @apply text-emerald-300; }
+
+.callout-question, .callout-help, .callout-faq { @apply border-amber-400/70; }
+.callout-question .callout-header, .callout-help .callout-header, .callout-faq .callout-header { @apply text-amber-200; }
+
+.callout-warning, .callout-caution, .callout-attention { @apply border-orange-500/70; }
+.callout-warning .callout-header, .callout-caution .callout-header, .callout-attention .callout-header { @apply text-orange-300; }
+
+.callout-failure, .callout-fail, .callout-missing, .callout-bug { @apply border-red-500/70; }
+.callout-failure .callout-header, .callout-fail .callout-header, .callout-missing .callout-header, .callout-bug .callout-header { @apply text-red-300; }
+
+.callout-danger, .callout-error { @apply border-red-600/80; }
+.callout-danger .callout-header, .callout-error .callout-header { @apply text-red-400; }
+
+.callout-example { @apply border-violet-500/70; }
+.callout-example .callout-header { @apply text-violet-300; }
+
+.callout-quote, .callout-cite { @apply border-slate-400/60; }
+.callout-quote .callout-header, .callout-cite .callout-header { @apply text-slate-300; }
 
 .prose-secret h1 {
   @apply text-fear-light border-fear-light/30;

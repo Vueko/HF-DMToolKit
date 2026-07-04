@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { electronStorage } from '../utils/electronStorage'
+import { createMigrate } from './persistMigration'
 
 interface MusicState {
     currentTrackIndex: number
@@ -58,6 +59,8 @@ export const useMusicStore = create<MusicState>()(
         }),
         {
             name: 'dh-music',
+            version: 1,
+            migrate: createMigrate<MusicState>(1, {}),
             storage: createJSONStorage(() => electronStorage),
             partialize: (s) => ({ volume: s.volume, loop: s.loop, shuffle: s.shuffle, activePlaylistId: s.activePlaylistId }),
         }

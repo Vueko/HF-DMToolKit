@@ -1,9 +1,11 @@
 import { app, BrowserWindow, Menu, shell, ipcMain, dialog, session, screen } from 'electron'
 import { join } from 'path'
+import * as path from 'path'
 import * as fs from 'fs'
+import { autoUpdater } from 'electron-updater'
 
 // Allows UUIDs and simple slug IDs (e.g. "shared-map"), blocks path traversal
-const SAFE_ID_RE = /^[a-zA-Z0-9_\-]{1,80}$/
+const SAFE_ID_RE = /^[a-zA-Z0-9_-]{1,80}$/
 
 const STORE_KEYS = new Set(['dh-fear', 'dh-campaigns', 'dh-cards', 'dh-music', 'dh-soundboard', 'dh-settings'])
 
@@ -22,7 +24,7 @@ class DataStore {
       if (fs.existsSync(this.filePath)) {
         this.cache = JSON.parse(fs.readFileSync(this.filePath, 'utf-8'))
       }
-    } catch { }
+    } catch { /* corrupt or unreadable store: start with an empty cache */ }
   }
 
   private scheduleFlush(): void {
@@ -48,16 +50,110 @@ function ensureDir(dir: string): void {
 let mainWindow: BrowserWindow | null = null
 let playerWin: BrowserWindow | null = null
 
+let vaultRoot: string | null = null
+let didBackupThisSession = false
+
+const VAULT_IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'])
+
+function toPosix(p: string): string {
+  return p.split(path.sep).join('/')
+}
+
+function isInsideRoot(root: string, target: string): boolean {
+  const rel = path.relative(root, target)
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel))
+}
+
+interface VaultNodeShape {
+  name: string
+  path: string
+  type: 'folder' | 'note' | 'image'
+  children?: VaultNodeShape[]
+}
+
+function buildVaultTree(absDir: string, root: string): VaultNodeShape {
+  const children: VaultNodeShape[] = []
+  let entries: fs.Dirent[] = []
+  try { entries = fs.readdirSync(absDir, { withFileTypes: true }) } catch { entries = [] }
+  for (const e of entries) {
+    if (e.name.startsWith('.')) continue
+    const abs = path.join(absDir, e.name)
+    if (e.isDirectory()) {
+      children.push(buildVaultTree(abs, root))
+    } else {
+      const ext = path.extname(e.name).toLowerCase()
+      if (ext === '.md') children.push({ name: e.name, path: toPosix(path.relative(root, abs)), type: 'note' })
+      else if (VAULT_IMAGE_EXT.has(ext)) children.push({ name: e.name, path: toPosix(path.relative(root, abs)), type: 'image' })
+    }
+  }
+  children.sort((a, b) => {
+    if (a.type === 'folder' && b.type !== 'folder') return -1
+    if (a.type !== 'folder' && b.type === 'folder') return 1
+    return a.name.localeCompare(b.name)
+  })
+  return { name: path.basename(absDir), path: toPosix(path.relative(root, absDir)), type: 'folder', children }
+}
+
+interface VaultSearchResult {
+  path: string
+  name: string
+  snippet: string
+  nameMatch: boolean
+}
+
+function makeSnippet(content: string, matchIndex: number): string {
+  const start = Math.max(0, matchIndex - 30)
+  const end = Math.min(content.length, matchIndex + 60)
+  const raw = content.slice(start, end).replace(/\s+/g, ' ').trim()
+  return (start > 0 ? '…' : '') + raw + (end < content.length ? '…' : '')
+}
+
+function searchVault(root: string, query: string): VaultSearchResult[] {
+  const q = query.trim().toLowerCase()
+  if (q.length < 2) return []
+  const results: VaultSearchResult[] = []
+  const walk = (absDir: string): void => {
+    let entries: fs.Dirent[] = []
+    try { entries = fs.readdirSync(absDir, { withFileTypes: true }) } catch { return }
+    for (const e of entries) {
+      if (e.name.startsWith('.')) continue
+      const abs = path.join(absDir, e.name)
+      if (e.isDirectory()) { walk(abs); continue }
+      if (path.extname(e.name).toLowerCase() !== '.md') continue
+      const base = e.name.replace(/\.md$/i, '')
+      const nameMatch = base.toLowerCase().includes(q)
+      let snippet = ''
+      let contentMatch = false
+      try {
+        const content = fs.readFileSync(abs, 'utf-8')
+        const idx = content.toLowerCase().indexOf(q)
+        if (idx !== -1) { contentMatch = true; snippet = makeSnippet(content, idx) }
+      } catch { /* unreadable file: skip content match */ }
+      if (nameMatch || contentMatch) {
+        results.push({ path: toPosix(path.relative(root, abs)), name: base, snippet, nameMatch })
+      }
+    }
+  }
+  walk(root)
+  results.sort((a, b) => (a.nameMatch === b.nameMatch ? a.name.localeCompare(b.name) : a.nameMatch ? -1 : 1))
+  return results.slice(0, 100)
+}
+
 // Pending state to replay when player window signals it's ready
 let pendingMapId: string | null = null
 let pendingFog: unknown[] | null = null
 let pendingViewport: { offsetX: number; offsetY: number; scale: number } | null = null
 let pendingFear: number = 0
+let pendingRotation: 0 | 90 = 0
 
 function setPendingFear(count: number): boolean {
   if (!Number.isInteger(count) || count < 0 || count > 12) return false
   pendingFear = count
   return true
+}
+
+function sendUpdaterEvent(ev: unknown): void {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('updater:event', ev)
 }
 
 function createWindow(): void {
@@ -95,7 +191,7 @@ function createWindow(): void {
     try {
       const { protocol } = new URL(details.url)
       if (protocol === 'https:' || protocol === 'http:') shell.openExternal(details.url)
-    } catch { }
+    } catch { /* malformed URL: fall through and deny */ }
     return { action: 'deny' }
   })
 }
@@ -143,6 +239,7 @@ function createPlayerWindow(displayIndex?: number): void {
             if (pendingFog) playerWin.webContents.send('player:set-fog', pendingFog)
             if (pendingViewport) playerWin.webContents.send('player:set-viewport', pendingViewport)
             playerWin.webContents.send('player:set-fear', pendingFear)
+            playerWin.webContents.send('player:set-rotation', pendingRotation)
         }, 300)
     })
 }
@@ -171,17 +268,75 @@ app.whenReady().then(() => {
   ensureDir(mapsDir)
   ensureDir(playerScreenDir)
 
+  // The vault root is owned by main (persisted here), so the renderer cannot point the
+  // vault reader at arbitrary folders. Loaded on startup; updated only via the folder picker.
+  const vaultRootFile = join(app.getPath('userData'), 'vault-root')
+  const persistVaultRoot = (p: string): void => {
+    try { fs.writeFileSync(vaultRootFile, p, 'utf-8') } catch { /* ignore write failure */ }
+  }
+  try {
+    if (fs.existsSync(vaultRootFile)) {
+      const saved = fs.readFileSync(vaultRootFile, 'utf-8').trim()
+      if (saved) vaultRoot = saved
+    }
+  } catch { /* ignore corrupt vault-root file */ }
+
   ipcMain.on('window:minimize', () => mainWindow?.minimize())
   ipcMain.on('window:maximize', () => {
     if (!mainWindow) return
-    mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize()
+    if (mainWindow.isMaximized()) mainWindow.unmaximize()
+    else mainWindow.maximize()
   })
   ipcMain.on('window:close', () => mainWindow?.close())
   ipcMain.handle('window:is-maximized', () => mainWindow?.isMaximized() ?? false)
+  ipcMain.handle('app:get-version', () => app.getVersion())
+
+  autoUpdater.autoDownload = false
+  autoUpdater.autoInstallOnAppQuit = false
+  autoUpdater.on('checking-for-update', () => sendUpdaterEvent({ type: 'checking' }))
+  autoUpdater.on('update-available', (info) => sendUpdaterEvent({ type: 'available', version: info.version }))
+  autoUpdater.on('update-not-available', () => sendUpdaterEvent({ type: 'not-available' }))
+  autoUpdater.on('download-progress', (p) => sendUpdaterEvent({ type: 'progress', percent: Math.round(p.percent) }))
+  autoUpdater.on('update-downloaded', (info) => sendUpdaterEvent({ type: 'downloaded', version: info.version }))
+  autoUpdater.on('error', (err) => sendUpdaterEvent({ type: 'error', message: err?.message ?? String(err) }))
+
+  ipcMain.handle('updater:check', async () => {
+    if (!app.isPackaged) {
+      sendUpdaterEvent({ type: 'error', message: 'Actualizaciones no disponibles en desarrollo' })
+      return
+    }
+    try { await autoUpdater.checkForUpdates() }
+    catch (e) { sendUpdaterEvent({ type: 'error', message: (e as Error)?.message ?? 'Error al comprobar' }) }
+  })
+  ipcMain.handle('updater:download', async () => {
+    try { await autoUpdater.downloadUpdate() }
+    catch (e) { sendUpdaterEvent({ type: 'error', message: (e as Error)?.message ?? 'Error al descargar' }) }
+  })
+  ipcMain.on('updater:install', () => { autoUpdater.quitAndInstall() })
 
   ipcMain.handle('store:get', (_, key: string) => store.get(key))
   ipcMain.on('store:set', (_, key: string, value: unknown) => { if (STORE_KEYS.has(key)) store.set(key, value) })
   ipcMain.on('store:delete', (_, key: string) => { if (STORE_KEYS.has(key)) store.delete(key) })
+
+  ipcMain.handle('store:backup', () => {
+    if (didBackupThisSession) return
+    const storeFile = join(app.getPath('userData'), 'store.json')
+    if (!fs.existsSync(storeFile)) return
+    const dir = join(app.getPath('userData'), 'backups')
+    ensureDir(dir)
+    const ts = new Date().toISOString().replace(/[:.]/g, '-')
+    fs.copyFileSync(storeFile, join(dir, `store-${ts}.json`))
+    didBackupThisSession = true
+    const files = fs.readdirSync(dir)
+      .filter((f) => f.startsWith('store-') && f.endsWith('.json'))
+      .sort()
+    while (files.length > 10) {
+      const oldest = files.shift()
+      if (oldest) {
+        try { fs.unlinkSync(join(dir, oldest)) } catch { /* ignore prune failure */ }
+      }
+    }
+  })
 
   ipcMain.handle('fs:save-audio', (_, id: string, data: Uint8Array) => {
     if (!SAFE_ID_RE.test(id)) return
@@ -213,24 +368,24 @@ app.whenReady().then(() => {
     if (fs.existsSync(p)) fs.unlinkSync(p)
   })
 
-  ipcMain.handle('fs:write-file', (_, filePath: string, data: string) => {
-    const resolved = join(filePath)
-    if (!resolved.endsWith('.json')) return
-    fs.writeFileSync(resolved, data, 'utf-8')
+  // JSON export/import: main owns the path (from the native dialog); the renderer never
+  // passes a raw filesystem path, so it cannot read/write arbitrary files.
+  ipcMain.handle('dialog:save-json', async (_, content: string, opts) => {
+    if (!mainWindow || typeof content !== 'string') return { canceled: true }
+    const res = await dialog.showSaveDialog(mainWindow, opts)
+    if (res.canceled || !res.filePath) return { canceled: true }
+    const target = res.filePath.toLowerCase().endsWith('.json') ? res.filePath : `${res.filePath}.json`
+    fs.writeFileSync(target, content, 'utf-8')
+    return { canceled: false }
   })
-  ipcMain.handle('fs:read-file', (_, filePath: string): string | null => {
-    const resolved = join(filePath)
-    if (!resolved.endsWith('.json')) return null
-    return fs.existsSync(resolved) ? fs.readFileSync(resolved, 'utf-8') : null
-  })
-
-  ipcMain.handle('dialog:save', (_, opts) => {
-    if (!mainWindow) return { canceled: true }
-    return dialog.showSaveDialog(mainWindow, opts)
-  })
-  ipcMain.handle('dialog:open', (_, opts) => {
-    if (!mainWindow) return { canceled: true, filePaths: [] }
-    return dialog.showOpenDialog(mainWindow, opts)
+  ipcMain.handle('dialog:open-json', async (_, opts) => {
+    if (!mainWindow) return { canceled: true, content: null }
+    const res = await dialog.showOpenDialog(mainWindow, { ...opts, properties: ['openFile'] })
+    if (res.canceled || res.filePaths.length === 0) return { canceled: true, content: null }
+    const p = res.filePaths[0]
+    if (!p.toLowerCase().endsWith('.json')) return { canceled: false, content: null }
+    try { return { canceled: false, content: fs.readFileSync(p, 'utf-8') } }
+    catch { return { canceled: false, content: null } }
   })
 
   ipcMain.handle('player:get-displays', () =>
@@ -262,6 +417,13 @@ app.whenReady().then(() => {
     if (pendingFog) playerWin.webContents.send('player:set-fog', pendingFog)
     if (pendingViewport) playerWin.webContents.send('player:set-viewport', pendingViewport)
     playerWin.webContents.send('player:set-fear', pendingFear)
+    playerWin.webContents.send('player:set-rotation', pendingRotation)
+  })
+  ipcMain.on('player:set-rotation', (_, rotation: 0 | 90) => {
+    pendingRotation = rotation === 90 ? 90 : 0
+    if (playerWin && !playerWin.isDestroyed()) {
+      playerWin.webContents.send('player:set-rotation', pendingRotation)
+    }
   })
   ipcMain.on('player:show-overlay', (_, storedId: string, name: string) => {
     if (playerWin && !playerWin.isDestroyed()) {
@@ -324,6 +486,48 @@ app.whenReady().then(() => {
     if (!SAFE_ID_RE.test(id)) return
     const p = join(playerScreenDir, id)
     if (fs.existsSync(p)) fs.unlinkSync(p)
+  })
+
+  ipcMain.handle('vault:pick-folder', async (): Promise<string | null> => {
+    if (!mainWindow) return null
+    const res = await dialog.showOpenDialog(mainWindow, { properties: ['openDirectory'] })
+    if (res.canceled || res.filePaths.length === 0) return null
+    vaultRoot = res.filePaths[0]
+    persistVaultRoot(vaultRoot)
+    return vaultRoot
+  })
+
+  ipcMain.handle('vault:read-tree', (_, root: string): VaultNodeShape | null => {
+    if (typeof root !== 'string' || !fs.existsSync(root)) return null
+    try {
+      if (!fs.statSync(root).isDirectory()) return null
+    } catch {
+      return null
+    }
+    // Harden: only serve the remembered vault root. Trust-on-first-use when none is
+    // remembered yet (e.g. installs from before the root was persisted).
+    if (vaultRoot && root !== vaultRoot) return null
+    if (!vaultRoot) { vaultRoot = root; persistVaultRoot(root) }
+    return buildVaultTree(root, root)
+  })
+
+  ipcMain.handle('vault:read-file', (_, rel: string): string | null => {
+    if (!vaultRoot || typeof rel !== 'string') return null
+    const abs = path.resolve(vaultRoot, rel)
+    if (!isInsideRoot(vaultRoot, abs) || path.extname(abs).toLowerCase() !== '.md') return null
+    return fs.existsSync(abs) ? fs.readFileSync(abs, 'utf-8') : null
+  })
+
+  ipcMain.handle('vault:read-image', (_, rel: string): Uint8Array | null => {
+    if (!vaultRoot || typeof rel !== 'string') return null
+    const abs = path.resolve(vaultRoot, rel)
+    if (!isInsideRoot(vaultRoot, abs) || !VAULT_IMAGE_EXT.has(path.extname(abs).toLowerCase())) return null
+    return fs.existsSync(abs) ? fs.readFileSync(abs) : null
+  })
+
+  ipcMain.handle('vault:search', (_, query: string): VaultSearchResult[] => {
+    if (!vaultRoot || typeof query !== 'string') return []
+    return searchVault(vaultRoot, query)
   })
 
   createWindow()

@@ -1,10 +1,12 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webFrame } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 
-const PLAYER_CHANNELS = ['player:set-map', 'player:clear-map', 'player:show-overlay', 'player:clear-overlay', 'player:closed', 'player:set-fog', 'player:set-viewport', 'player:set-campaign-map', 'player:set-fear'] as const
+const PLAYER_CHANNELS = ['player:set-map', 'player:clear-map', 'player:show-overlay', 'player:clear-overlay', 'player:closed', 'player:set-fog', 'player:set-viewport', 'player:set-campaign-map', 'player:set-fear', 'player:set-rotation'] as const
 
 contextBridge.exposeInMainWorld('electron', {
     platform: process.platform,
+    setZoom: (factor: number) => webFrame.setZoomFactor(factor),
+    getVersion: (): Promise<string> => ipcRenderer.invoke('app:get-version'),
 
     window: {
         minimize: () => ipcRenderer.send('window:minimize'),
@@ -22,6 +24,7 @@ contextBridge.exposeInMainWorld('electron', {
         get: (key: string): Promise<unknown> => ipcRenderer.invoke('store:get', key),
         set: (key: string, value: unknown): void => ipcRenderer.send('store:set', key, value),
         delete: (key: string): void => ipcRenderer.send('store:delete', key),
+        backup: (): Promise<void> => ipcRenderer.invoke('store:backup'),
     },
 
     fs: {
@@ -37,10 +40,6 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.invoke('fs:get-map-image', id),
         deleteMapImage: (id: string): Promise<void> =>
             ipcRenderer.invoke('fs:delete-map-image', id),
-        writeFile: (filePath: string, data: string): Promise<void> =>
-            ipcRenderer.invoke('fs:write-file', filePath, data),
-        readFile: (filePath: string): Promise<string | null> =>
-            ipcRenderer.invoke('fs:read-file', filePath),
         savePlayerImage: (id: string, data: ArrayBuffer): Promise<void> =>
             ipcRenderer.invoke('fs:save-player-image', id, new Uint8Array(data)),
         getPlayerImage: (id: string): Promise<Uint8Array | null> =>
@@ -50,10 +49,10 @@ contextBridge.exposeInMainWorld('electron', {
     },
 
     dialog: {
-        save: (options: Electron.SaveDialogOptions) =>
-            ipcRenderer.invoke('dialog:save', options),
-        open: (options: Electron.OpenDialogOptions) =>
-            ipcRenderer.invoke('dialog:open', options),
+        saveJson: (content: string, options: Electron.SaveDialogOptions): Promise<{ canceled: boolean }> =>
+            ipcRenderer.invoke('dialog:save-json', content, options),
+        openJson: (options: Electron.OpenDialogOptions): Promise<{ canceled: boolean; content: string | null }> =>
+            ipcRenderer.invoke('dialog:open-json', options),
     },
 
     player: {
@@ -76,6 +75,26 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.invoke('player:get-window-bounds'),
         ready: () => ipcRenderer.send('player:ready'),
         setFear: (count: number) => ipcRenderer.send('player:set-fear', count),
+        setRotation: (rotation: 0 | 90) => ipcRenderer.send('player:set-rotation', rotation),
+    },
+
+    vault: {
+        pickFolder: (): Promise<string | null> => ipcRenderer.invoke('vault:pick-folder'),
+        readTree: (root: string): Promise<unknown> => ipcRenderer.invoke('vault:read-tree', root),
+        readFile: (rel: string): Promise<string | null> => ipcRenderer.invoke('vault:read-file', rel),
+        readImage: (rel: string): Promise<Uint8Array | null> => ipcRenderer.invoke('vault:read-image', rel),
+        search: (query: string): Promise<unknown> => ipcRenderer.invoke('vault:search', query),
+    },
+
+    updater: {
+        check: (): Promise<void> => ipcRenderer.invoke('updater:check'),
+        download: (): Promise<void> => ipcRenderer.invoke('updater:download'),
+        install: (): void => ipcRenderer.send('updater:install'),
+        onEvent: (cb: (ev: unknown) => void): (() => void) => {
+            const handler = (_: IpcRendererEvent, ev: unknown) => cb(ev)
+            ipcRenderer.on('updater:event', handler)
+            return () => ipcRenderer.off('updater:event', handler)
+        },
     },
 
     on: (channel: string, cb: (...args: unknown[]) => void): (() => void) => {

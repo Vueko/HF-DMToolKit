@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useCampaignStore } from '../../store/campaignStore'
 import type { FogZone } from '../../types'
+import { useT } from '../../i18n'
 
 const ZOOM_SPEED = 0.1
 const MIN_SCALE = 0.1
@@ -14,6 +15,7 @@ type FogInteract =
 type WidgetMode = 'fog' | 'viewport'
 
 function MapFogWidget() {
+    const t = useT()
     const { campaigns, currentCampaignId, updateCampaignMap } = useCampaignStore()
 
     const currentCampaign = useMemo(
@@ -59,6 +61,8 @@ function MapFogWidget() {
         if (!activeMapStoredId) {
             if (mapUrlRef.current) URL.revokeObjectURL(mapUrlRef.current)
             mapUrlRef.current = null
+            // Intentional sync: clear map URL immediately when map is removed
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setMapUrl(null)
             return
         }
@@ -148,10 +152,12 @@ function MapFogWidget() {
 
     const clearAllFog = useCallback(() => {
         if (!currentCampaignId) return
-        if (!window.confirm('Clear revealed zones? The entire map will return to fog.')) return
+        if (!window.confirm(t('mapfog.clearFogConfirm'))) return
         updateCampaignMap(currentCampaignId, { fogZones: [] })
-    }, [currentCampaignId, updateCampaignMap])
+    }, [currentCampaignId, updateCampaignMap, t])
 
+    // Optional-chained dep (mapData?.fogZones) makes React Compiler flag this memo; intentional for push-on-change
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     const pushToPlayers = useCallback(async () => {
         if (!currentCampaignId || !mapUrl || !activeMapStoredId) return
         const bounds = await window.electron.player.getWindowBounds()
@@ -332,25 +338,25 @@ function MapFogWidget() {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-ui-surface2/40">
                 <div className="flex items-center gap-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted">Map Control</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted">{t('mapfog.mapControl')}</p>
                     <div className="flex bg-ui-bg p-0.5 rounded-lg border border-ui-surface2">
                         <button
                             onClick={() => setMode('fog')}
                             className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${mode === 'fog' ? 'bg-fear-light text-ui-text' : 'text-ui-muted hover:text-ui-text'}`}
                         >
-                            Fog of War
+                            {t('mapfog.fogOfWar')}
                         </button>
                         <button
                             onClick={() => setMode('viewport')}
                             className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${mode === 'viewport' ? 'bg-fear-light text-ui-text' : 'text-ui-muted hover:text-ui-text'}`}
                         >
-                            Player View
+                            {t('mapfog.playerView')}
                         </button>
                     </div>
                     <span className="text-[10px] text-ui-muted italic">
                         {mode === 'fog'
-                            ? 'Drag to reveal areas · Hover zones to move/resize/delete'
-                            : 'Drag & scroll to set player camera · Push when ready'}
+                            ? t('mapfog.fogHint')
+                            : t('mapfog.viewportHint')}
                     </span>
                 </div>
 
@@ -358,10 +364,10 @@ function MapFogWidget() {
                     {mode === 'fog' && (
                         <>
                             <button onClick={revealAll} className="px-2 py-1 text-xs bg-ui-surface2 text-ui-text rounded-lg border border-ui-surface2 hover:bg-ui-surface transition-colors">
-                                Reveal All
+                                {t('mapfog.revealAll')}
                             </button>
                             <button onClick={clearAllFog} className="px-2 py-1 text-xs bg-red-900/10 text-red-400 border border-red-900/20 rounded-lg hover:bg-red-900/20 transition-colors">
-                                Clear Fog
+                                {t('mapfog.clearFog')}
                             </button>
                         </>
                     )}
@@ -370,7 +376,7 @@ function MapFogWidget() {
                             onClick={() => setLiveSync(s => !s)}
                             className={`px-2 py-1 text-xs rounded-lg border transition-colors ${liveSync ? 'bg-hope-primary/20 text-hope-primary border-hope-primary/40' : 'bg-ui-surface2 text-ui-muted border-ui-surface2 hover:text-ui-text'}`}
                         >
-                            {liveSync ? 'Live: ON' : 'Live: OFF'}
+                            {liveSync ? t('mapfog.liveOn') : t('mapfog.liveOff')}
                         </button>
                     )}
                     {isPlayerOpen && (
@@ -379,7 +385,7 @@ function MapFogWidget() {
                             disabled={!mapUrl}
                             className="px-2 py-1 text-xs bg-hope-primary text-white rounded-lg hover:bg-hope-primary/80 transition-colors disabled:opacity-50"
                         >
-                            Push to Players
+                            {t('mapfog.pushToPlayers')}
                         </button>
                     )}
                 </div>
@@ -404,8 +410,8 @@ function MapFogWidget() {
             >
                 {!mapUrl ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-ui-muted gap-2">
-                        <p className="text-sm">No map set.</p>
-                        <p className="text-xs opacity-60">Set a Map Canvas in the Player Screen section above.</p>
+                        <p className="text-sm">{t('mapfog.noMapSet')}</p>
+                        <p className="text-xs opacity-60">{t('mapfog.setMapCanvasHint')}</p>
                     </div>
                 ) : (
                     <div
@@ -418,7 +424,7 @@ function MapFogWidget() {
                     >
                         <img
                             src={mapUrl}
-                            alt="Campaign Map"
+                            alt={t('mapfog.campaignMapAlt')}
                             className="max-w-none block pointer-events-none"
                             draggable={false}
                         />
@@ -491,6 +497,8 @@ function MapFogWidget() {
                         ))}
 
                         {/* Player viewport preview — viewport mode only */}
+                        {/* Reads mapRef.current during render to compute preview rect; intentional for live preview */}
+                        {/* eslint-disable-next-line react-hooks/refs */}
                         {mode === 'viewport' && (() => {
                             const imgW = mapRef.current?.offsetWidth ?? 1
                             const imgH = mapRef.current?.offsetHeight ?? 1
@@ -530,7 +538,7 @@ function MapFogWidget() {
                         }
                         img.src = mapUrl
                     }}
-                    title="Reset view"
+                    title={t('mapfog.resetView')}
                     className="absolute bottom-2 right-2 p-1.5 bg-ui-surface rounded-lg border border-ui-surface2 text-ui-muted hover:text-ui-text transition-colors text-xs shadow"
                 >
                     ⌂
@@ -539,7 +547,7 @@ function MapFogWidget() {
 
             {!isPlayerOpen && (
                 <div className="px-4 py-2 border-t border-ui-surface2/40">
-                    <p className="text-[10px] text-ui-muted text-center">Open the Player Screen window to push content</p>
+                    <p className="text-[10px] text-ui-muted text-center">{t('mapfog.openPlayerWindow')}</p>
                 </div>
             )}
         </div>

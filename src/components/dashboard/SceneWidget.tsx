@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useCampaignStore } from '../../store/campaignStore'
 import { useFearStore } from '../../store/fearStore'
 import type { Scene, SceneFlagType } from '../../types'
+import { useT } from '../../i18n'
 
 const FLAG_CONFIG: Record<SceneFlagType, { icon: string; bg: string; border: string; text: string }> = {
     event: { icon: '', bg: 'bg-hope-primary/10', border: 'border-hope-primary/25', text: 'text-hope-primary' },
@@ -16,10 +17,10 @@ const STATUS_BADGE: Record<Scene['status'], string> = {
     completed: 'bg-fear-light/20 text-fear-light border border-fear-light/30',
 }
 
-const STATUS_LABEL: Record<Scene['status'], string> = {
-    upcoming: 'Next',
-    active: 'Active',
-    completed: 'Done',
+const STATUS_LABEL_KEY: Record<Scene['status'], string> = {
+    upcoming: 'dashboard.statusNext',
+    active: 'dashboard.statusActive',
+    completed: 'dashboard.statusDone',
 }
 
 const nextStatus: Record<Scene['status'], Scene['status']> = {
@@ -29,6 +30,7 @@ const nextStatus: Record<Scene['status'], Scene['status']> = {
 }
 
 function SceneWidget() {
+    const t = useT()
     const {
         campaigns,
         currentCampaignId,
@@ -55,8 +57,8 @@ function SceneWidget() {
     if (!currentCampaignId || !currentSessionId) {
         return (
             <div className="bg-ui-surface rounded-xl border border-ui-surface2/60 p-5 flex flex-col gap-3">
-                <h3 className="text-ui-text font-display font-semibold">Scene Tracker</h3>
-                <p className="text-ui-muted text-sm text-center py-4">No active session. Go to Campaigns to set one.</p>
+                <h3 className="text-ui-text font-display font-semibold">{t('dashboard.sceneTracker')}</h3>
+                <p className="text-ui-muted text-sm text-center py-4">{t('dashboard.noActiveSessionGoCampaigns')}</p>
             </div>
         )
     }
@@ -79,7 +81,7 @@ function SceneWidget() {
                     <div className="flex flex-col gap-1">
                         <div className="flex justify-between items-center">
                             <span className={`text-[10px] font-bold ${fearTriggered ? 'text-purple-700' : 'text-purple-500/80'}`}>
-                                {fearTriggered ? '⚠ TRIGGERED' : 'Fear progress'}
+                                {fearTriggered ? `⚠ ${t('dashboard.triggered')}` : t('dashboard.fearProgress')}
                             </span>
                             <span className="text-[10px] font-mono font-bold text-purple-700">{fearCount} / {scene.fearThreshold}</span>
                         </div>
@@ -99,15 +101,18 @@ function SceneWidget() {
         <div className="bg-ui-surface rounded-xl border border-ui-surface2/60 p-5 flex flex-col gap-3">
 
             <div className="flex items-center justify-between">
-                <h3 className="text-ui-text font-display font-semibold">Scene Tracker</h3>
+                <h3 className="text-ui-text font-display font-semibold">{t('dashboard.sceneTracker')}</h3>
                 <span className="text-ui-muted text-xs">
-                    {sessionScenes.length} scenes · {sessionScenes.filter((s) => s.status === 'active').length} active
+                    {t('dashboard.scenesCount', {
+                        count: sessionScenes.length,
+                        active: sessionScenes.filter((s) => s.status === 'active').length,
+                    })}
                 </span>
             </div>
 
             <div className="flex flex-col gap-2">
                 {sessionScenes.length === 0 && (
-                    <p className="text-ui-muted text-sm text-center py-4">No scenes in this session.</p>
+                    <p className="text-ui-muted text-sm text-center py-4">{t('dashboard.noScenesInSession')}</p>
                 )}
 
                 {sessionScenes.map((scene) => {
@@ -133,7 +138,7 @@ function SceneWidget() {
                                         onClick={() => updateScene(currentCampaignId, scene.id, { status: nextStatus[scene.status] })}
                                         className={`text-[10px] px-2 py-0.5 rounded-lg font-bold uppercase tracking-wide transition-colors ${STATUS_BADGE[scene.status]}`}
                                     >
-                                        {STATUS_LABEL[scene.status]}
+                                        {t(STATUS_LABEL_KEY[scene.status])}
                                     </button>
                                     <button
                                         onClick={() => removeSceneFromSession(currentCampaignId, currentSessionId, scene.id)}
@@ -157,7 +162,7 @@ function SceneWidget() {
                                 <div className="flex flex-col gap-1.5">
                                     <div className="flex items-center justify-between">
                                         <span className={`text-[10px] font-black uppercase tracking-widest ${isFull ? 'text-hope-gold' : 'text-card-text/50'}`}>
-                                            {isFull ? '⚠ Clock Full' : '⏱ Clock'}
+                                            {isFull ? `⚠ ${t('dashboard.clockFull')}` : `⏱ ${t('dashboard.clock')}`}
                                         </span>
                                         <span className={`text-xs font-bold tabular-nums ${isFull ? 'text-hope-gold' : 'text-card-text/80'}`}>
                                             {count} / {max}
@@ -184,7 +189,7 @@ function SceneWidget() {
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[10px] uppercase font-bold text-card-text/50 tracking-wider">Count</span>
+                                    <span className="text-[10px] uppercase font-bold text-card-text/50 tracking-wider">{t('dashboard.count')}</span>
                                     <div className="flex items-center gap-1 ml-auto bg-card-border/20 rounded-lg px-1.5 py-0.5">
                                         <button
                                             onClick={() => updateScene(currentCampaignId, scene.id, { count: Math.max(0, count - 1) })}
@@ -205,7 +210,7 @@ function SceneWidget() {
 
             {unlinkedScenes.length > 0 && (
                 <div className="flex flex-col gap-1">
-                    <span className="text-ui-muted text-xs">Add existing scene from campaign:</span>
+                    <span className="text-ui-muted text-xs">{t('dashboard.addExistingScene')}</span>
                     <div className="flex flex-wrap gap-1">
                         {unlinkedScenes.map((s) => (
                             <button

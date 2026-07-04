@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { electronStorage } from '../utils/electronStorage'
+import { createMigrate } from './persistMigration'
 import { generateId } from '../utils/generateId'
 import type { Sound, SoundCategory } from '../types'
 
@@ -62,6 +63,8 @@ export const useSoundboardStore = create<SoundboardState>()(
         }),
         {
             name: 'dh-soundboard',
+            version: 1,
+            migrate: createMigrate<SoundboardState>(1, {}),
             storage: createJSONStorage(() => electronStorage),
             partialize: (s) => ({ categories: s.categories, sounds: s.sounds }),
         }

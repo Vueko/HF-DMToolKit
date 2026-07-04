@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useCampaignStore } from '../../store/campaignStore'
-import type { FogZone, PlayerScreenImage } from '../../types'
+import { useSettingsStore } from '../../store/settingsStore'
+import type { FogZone, PlayerScreenImage, MapLibraryEntry } from '../../types'
 import { generateId } from '../../utils/generateId'
+import { useT } from '../../i18n'
 
 const MAP_HEIGHT = 420
 
@@ -10,10 +12,15 @@ type FogInteract =
     | { kind: 'resize'; zoneId: string; startPct: { x: number; y: number }; origZone: { x: number; y: number; w: number; h: number } }
 
 function PlayerScreenWidget() {
+    const t = useT()
     const {
         campaigns, currentCampaignId, updateCampaignMap,
         addPlayerScreenImage, removePlayerScreenImage, setActiveMap,
+        addMapLibraryEntry, removeMapLibraryEntry, setActiveMapRotation,
     } = useCampaignStore()
+
+    const playerWidgetCollapsed = useSettingsStore((s) => s.playerWidgetCollapsed)
+    const setPlayerWidgetCollapsed = useSettingsStore((s) => s.setPlayerWidgetCollapsed)
 
     const campaign = useMemo(
         () => campaigns.find(c => c.id === currentCampaignId) ?? null,
@@ -21,6 +28,8 @@ function PlayerScreenWidget() {
     )
     const mapData = campaign?.map
     const images = campaign?.playerScreenImages ?? []
+    const mapLibrary = campaign?.mapLibrary ?? []
+    const rotation = (campaign?.activeMapRotation ?? 0) as 0 | 90
 
     // Window state
     const [isOpen, setIsOpen] = useState(false)
@@ -55,6 +64,8 @@ function PlayerScreenWidget() {
         if (!storedId) {
             if (mapUrlRef.current) URL.revokeObjectURL(mapUrlRef.current)
             mapUrlRef.current = null
+            // Intentional sync: clear map URL immediately when active map is removed
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setMapUrl(null)
             return
         }
@@ -72,6 +83,8 @@ function PlayerScreenWidget() {
     // Auto-fit map when it loads — read-only, no interactive pan/zoom
     useEffect(() => {
         if (!mapUrl) {
+            // Intentional sync: reset pan/zoom state when map is cleared
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setDmScale(1)
             setDmOffset({ x: 0, y: 0 })
             return
@@ -109,13 +122,20 @@ function PlayerScreenWidget() {
         return () => off()
     }, [])
 
+    // Optional-chained dep (campaign?.activeMapStoredId) makes React Compiler flag this; intentional for open-window action
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     const handleOpenWindow = useCallback(() => {
+        // Un mapa activo sin revelados se fuerza a niebla total ([]), para que no salga descubierto
+        // a los jugadores al abrir la ventana. Si ya tenía revelados, se respetan.
+        if (currentCampaignId && campaign?.activeMapStoredId && (mapData?.fogZones?.length ?? 0) === 0) {
+            updateCampaignMap(currentCampaignId, { fogZones: [] })
+        }
         window.electron.player.open(selectedDisplay)
         setIsOpen(true)
         if (campaign?.activeMapStoredId) {
             window.electron.player.setMap(campaign.activeMapStoredId)
         }
-    }, [selectedDisplay, campaign?.activeMapStoredId])
+    }, [selectedDisplay, campaign?.activeMapStoredId, currentCampaignId, mapData, updateCampaignMap])
 
     const handleCloseWindow = useCallback(() => {
         window.electron.player.close()
@@ -131,29 +151,22 @@ function PlayerScreenWidget() {
         try {
             const buffer = await file.arrayBuffer()
             const storedId = generateId()
-            const oldStoredId = campaign?.activeMapStoredId
+            const name = file.name.replace(/\.[^.]+$/, '')
             await window.electron.fs.savePlayerImage(storedId, buffer)
-            if (oldStoredId) await window.electron.fs.deletePlayerImage(oldStoredId)
+            const entry: MapLibraryEntry = { id: generateId(), name, storedId }
+            addMapLibraryEntry(currentCampaignId, entry)
             setActiveMap(currentCampaignId, storedId)
             if (isOpen) window.electron.player.setMap(storedId)
         } finally {
             setSaving(false)
         }
-    }, [currentCampaignId, campaign?.activeMapStoredId, isOpen, setActiveMap])
+    }, [currentCampaignId, isOpen, setActiveMap, addMapLibraryEntry])
 
-    const handleClearMap = useCallback(async () => {
+    const handleClearMap = useCallback(() => {
         if (!currentCampaignId) return
-        setSaving(true)
-        try {
-            if (campaign?.activeMapStoredId) {
-                await window.electron.fs.deletePlayerImage(campaign.activeMapStoredId)
-            }
-            setActiveMap(currentCampaignId, null)
-            if (isOpen) window.electron.player.clearMap()
-        } finally {
-            setSaving(false)
-        }
-    }, [currentCampaignId, campaign?.activeMapStoredId, isOpen, setActiveMap])
+        setActiveMap(currentCampaignId, null)
+        if (isOpen) window.electron.player.clearMap()
+    }, [currentCampaignId, isOpen, setActiveMap])
 
     const handleImageFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -170,6 +183,28 @@ function PlayerScreenWidget() {
             setSaving(false)
         }
     }, [currentCampaignId, addPlayerScreenImage])
+
+    const handleToggleRotation = useCallback(() => {
+        if (!currentCampaignId) return
+        const next: 0 | 90 = rotation === 0 ? 90 : 0
+        setActiveMapRotation(currentCampaignId, next)
+        if (isOpen) window.electron.player.setRotation(next)
+    }, [currentCampaignId, rotation, isOpen, setActiveMapRotation])
+
+    const handleSetMapFromLibrary = useCallback((entry: MapLibraryEntry) => {
+        if (!currentCampaignId) return
+        setActiveMap(currentCampaignId, entry.storedId)
+        if (isOpen) window.electron.player.setMap(entry.storedId)
+    }, [currentCampaignId, isOpen, setActiveMap])
+
+    const handleRemoveMapEntry = useCallback(async (entry: MapLibraryEntry) => {
+        if (!currentCampaignId) return
+        if (campaign?.activeMapStoredId === entry.storedId) {
+            if (isOpen) window.electron.player.clearMap()
+        }
+        await window.electron.fs.deletePlayerImage(entry.storedId)
+        removeMapLibraryEntry(currentCampaignId, entry.id)
+    }, [currentCampaignId, campaign?.activeMapStoredId, isOpen, removeMapLibraryEntry])
 
     const handleShowOverlay = useCallback((image: PlayerScreenImage) => {
         window.electron.player.showOverlay(image.storedId, image.name)
@@ -234,17 +269,20 @@ function PlayerScreenWidget() {
 
     const clearAllFog = useCallback(() => {
         if (!currentCampaignId) return
-        if (!window.confirm('Clear revealed zones? The entire map will return to fog.')) return
+        if (!window.confirm(t('player.clearFogConfirm'))) return
         updateCampaignMap(currentCampaignId, { fogZones: [] })
-    }, [currentCampaignId, updateCampaignMap])
+    }, [currentCampaignId, updateCampaignMap, t])
 
+    // Optional-chained deps (campaign?.activeMapStoredId, mapData?.fogZones) make React Compiler flag this; intentional push-on-change
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     const pushToPlayers = useCallback(() => {
         if (!campaign?.activeMapStoredId) return
         window.electron.player.setMap(campaign.activeMapStoredId)
+        window.electron.player.setRotation(rotation)
         if (mapData?.fogZones !== undefined) {
             window.electron.player.setFog(mapData.fogZones)
         }
-    }, [campaign?.activeMapStoredId, mapData?.fogZones])
+    }, [campaign?.activeMapStoredId, mapData?.fogZones, rotation])
 
     // Fog interaction — no map navigation, only zone drawing/editing
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -322,20 +360,50 @@ function PlayerScreenWidget() {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-ui-surface2/40">
                 <div className="flex items-center gap-2.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted">Player Screen</p>
+                    <button
+                        onClick={() => setPlayerWidgetCollapsed(!playerWidgetCollapsed)}
+                        title={playerWidgetCollapsed ? t('player.expand') : t('player.collapse')}
+                        aria-label={playerWidgetCollapsed ? t('player.expand') : t('player.collapse')}
+                        className="text-ui-muted hover:text-ui-text transition-colors -ml-1 p-0.5 rounded"
+                    >
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-150 ${playerWidgetCollapsed ? '' : 'rotate-90'}`}>
+                            <path d="M9 6l6 6-6 6" />
+                        </svg>
+                    </button>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted">{t('player.playerScreen')}</p>
                     {isOpen && (
                         <div className="flex items-center gap-1.5">
                             <div className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]" />
-                            <span className="text-[10px] text-ui-muted">Window open</span>
+                            <span className="text-[10px] text-ui-muted">{t('player.windowOpen')}</span>
                         </div>
                     )}
                 </div>
                 {isOpen ? (
-                    <button onClick={handleCloseWindow} className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-2 py-1 rounded-lg transition-colors text-xs">
-                        Close Window
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                        {mapUrl && (
+                            <button
+                                onClick={handleToggleRotation}
+                                title={rotation === 0 ? t('player.rotateToVertical') : t('player.rotateToHorizontal')}
+                                className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-2 py-1 rounded-lg transition-colors text-xs"
+                            >
+                                {rotation === 0 ? `↻ ${t('player.rotate')}` : `↺ ${t('player.rotate')}`}
+                            </button>
+                        )}
+                        <button onClick={handleCloseWindow} className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-2 py-1 rounded-lg transition-colors text-xs">
+                            {t('player.closeWindow')}
+                        </button>
+                    </div>
                 ) : (
                     <div className="flex items-center gap-1.5">
+                        {mapUrl && (
+                            <button
+                                onClick={handleToggleRotation}
+                                title={rotation === 0 ? t('player.rotateToVertical') : t('player.rotateToHorizontal')}
+                                className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-2 py-1 rounded-lg transition-colors text-xs"
+                            >
+                                {rotation === 0 ? `↻ ${t('player.rotate')}` : `↺ ${t('player.rotate')}`}
+                            </button>
+                        )}
                         {displays.length > 1 && (
                             <select
                                 value={selectedDisplay}
@@ -344,31 +412,32 @@ function PlayerScreenWidget() {
                             >
                                 {displays.map(d => (
                                     <option key={d.index} value={d.index}>
-                                        {d.label}{d.isPrimary ? ' (primary)' : ''}
+                                        {d.label}{d.isPrimary ? ` (${t('player.primary')})` : ''}
                                     </option>
                                 ))}
                             </select>
                         )}
                         <button onClick={handleOpenWindow} className="bg-fear-light hover:bg-fear-secondary text-ui-canvas px-3 py-1 rounded-lg transition-colors text-xs font-medium">
-                            Open Window
+                            {t('player.openWindow')}
                         </button>
                     </div>
                 )}
             </div>
 
+            {!playerWidgetCollapsed && (<>
             {/* Toolbar */}
             <div className="flex items-center justify-between px-4 py-2 border-b border-ui-surface2/40 bg-ui-bg/30">
                 <span className="text-[10px] text-ui-muted italic hidden lg:block">
-                    {mapUrl ? 'Drag to reveal · Click zone to move/resize/delete' : 'Set a map to start editing fog'}
+                    {mapUrl ? t('player.fogHint') : t('player.setMapToEditFog')}
                 </span>
                 <div className="flex items-center gap-1.5 ml-auto">
                     {mapUrl && (
                         <>
                             <button onClick={revealAll} className="px-2 py-1 text-xs bg-ui-surface2 text-ui-text rounded-lg border border-ui-surface2 hover:bg-ui-surface transition-colors">
-                                Reveal All
+                                {t('player.revealAll')}
                             </button>
                             <button onClick={clearAllFog} className="px-2 py-1 text-xs bg-red-900/10 text-red-400 border border-red-900/20 rounded-lg hover:bg-red-900/20 transition-colors">
-                                Clear Fog
+                                {t('player.clearFog')}
                             </button>
                         </>
                     )}
@@ -378,7 +447,7 @@ function PlayerScreenWidget() {
                             disabled={!mapUrl}
                             className="px-2 py-1 text-xs bg-hope-primary text-white rounded-lg hover:bg-hope-primary/80 transition-colors disabled:opacity-50"
                         >
-                            Push to Players
+                            {t('player.pushToPlayers')}
                         </button>
                     )}
                     <div className="flex items-center gap-1 ml-1 pl-1 border-l border-ui-surface2">
@@ -387,8 +456,17 @@ function PlayerScreenWidget() {
                             disabled={saving}
                             className="px-2 py-1 text-xs bg-ui-surface2 border border-ui-surface2 text-ui-text rounded-lg hover:border-fear-light/50 transition-colors disabled:opacity-50"
                         >
-                            {campaign?.activeMapStoredId ? 'Change Map' : 'Set Map'}
+                            {mapUrl ? t('player.changeMap') : t('player.setMap')}
                         </button>
+                        {mapUrl && (
+                            <button
+                                onClick={handleToggleRotation}
+                                title={rotation === 0 ? t('player.rotateToVertical') : t('player.rotateToHorizontal')}
+                                className="px-2 py-1 text-xs bg-ui-surface2 border border-ui-surface2 text-ui-text rounded-lg hover:border-fear-light/50 transition-colors"
+                            >
+                                {rotation === 0 ? '↻' : '↺'}
+                            </button>
+                        )}
                         {campaign?.activeMapStoredId && (
                             <button onClick={handleClearMap} className="text-red-400 hover:bg-red-900/20 px-1.5 py-1 rounded-lg transition-colors text-[10px]">
                                 ✕
@@ -411,12 +489,12 @@ function PlayerScreenWidget() {
             >
                 {!mapUrl ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-ui-muted gap-2">
-                        <p className="text-sm">No map set.</p>
+                        <p className="text-sm">{t('player.noMapSet')}</p>
                         <button
                             onClick={() => mapFileRef.current?.click()}
                             className="text-xs bg-ui-surface2 border border-ui-surface2 text-ui-text px-3 py-1.5 rounded-lg hover:border-fear-light/50 transition-colors"
                         >
-                            Set Map Canvas
+                            {t('player.setMapCanvas')}
                         </button>
                     </div>
                 ) : (
@@ -428,7 +506,13 @@ function PlayerScreenWidget() {
                         }}
                         className="relative inline-block"
                     >
-                        <img src={mapUrl} alt="Player Map" className="max-w-none block pointer-events-none" draggable={false} />
+                        <img
+                            src={mapUrl}
+                            alt={t('player.playerMapAlt')}
+                            className="max-w-none block pointer-events-none"
+                            draggable={false}
+                            style={rotation === 90 ? { transform: 'rotate(90deg)', transformOrigin: 'center center' } : undefined}
+                        />
 
                         {/* Fog overlay — always shown for editing context */}
                         <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
@@ -486,53 +570,90 @@ function PlayerScreenWidget() {
 
                 {!isOpen && mapUrl && (
                     <div className="absolute bottom-2 left-2 px-2 py-1 bg-ui-surface/80 rounded text-[10px] text-ui-muted border border-ui-surface2/40">
-                        Open Player Window to push content
+                        {t('player.openWindowToPush')}
                     </div>
                 )}
             </div>
 
-            {/* Image library */}
-            <div className="p-4 flex flex-col gap-3 border-t border-ui-surface2/40">
-                <div className="flex items-center justify-between">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-ui-muted/60">Image Library</p>
-                    <button
-                        onClick={() => imageFileRef.current?.click()}
-                        disabled={saving}
-                        className="bg-ui-surface2 border border-ui-surface2 text-ui-text text-xs px-3 py-1.5 rounded-lg hover:border-fear-light/50 transition-colors disabled:opacity-50"
-                    >
-                        + Import
-                    </button>
-                </div>
-                {images.length === 0 ? (
-                    <p className="text-ui-muted text-xs italic text-center py-2">No images — import one.</p>
-                ) : (
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-2">
-                        {images.map(image => (
-                            <ImageCard
-                                key={image.id}
-                                image={image}
-                                isActive={activeOverlayId === image.id}
-                                canShow={isOpen}
-                                onShow={() => handleShowOverlay(image)}
-                                onRemove={() => handleRemoveImage(image)}
-                            />
-                        ))}
-                    </div>
-                )}
-                {activeOverlayId && (
-                    <div className="flex items-center justify-between bg-fear-light/10 border border-fear-light/20 rounded-lg px-3 py-2">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-fear-light shadow-[0_0_6px_rgba(104,79,168,0.5)]" />
-                            <p className="text-xs text-fear-light">
-                                Showing: <span className="font-semibold">{images.find(i => i.id === activeOverlayId)?.name}</span>
-                            </p>
-                        </div>
-                        <button onClick={handleClearOverlay} className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-2 py-1 rounded-lg transition-colors text-[10px]">
-                            Clear overlay
+            {/* Image Library + Map Library */}
+            <div className="p-4 flex gap-4 border-t border-ui-surface2/40">
+
+                {/* Image Library */}
+                <div className="flex-1 flex flex-col gap-3 min-w-0">
+                    <div className="flex items-center justify-between">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-ui-muted/60">{t('player.imageLibrary')}</p>
+                        <button
+                            onClick={() => imageFileRef.current?.click()}
+                            disabled={saving}
+                            className="bg-ui-surface2 border border-ui-surface2 text-ui-text text-xs px-2 py-1 rounded-lg hover:border-fear-light/50 transition-colors disabled:opacity-50"
+                        >
+                            {t('player.import')}
                         </button>
                     </div>
-                )}
+                    {images.length === 0 ? (
+                        <p className="text-ui-muted text-xs italic text-center py-2">{t('player.noImages')}</p>
+                    ) : (
+                        <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2">
+                            {images.map(image => (
+                                <ImageCard
+                                    key={image.id}
+                                    image={image}
+                                    isActive={activeOverlayId === image.id}
+                                    canShow={isOpen}
+                                    onShow={() => handleShowOverlay(image)}
+                                    onRemove={() => handleRemoveImage(image)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                    {activeOverlayId && (
+                        <div className="flex items-center justify-between bg-fear-light/10 border border-fear-light/20 rounded-lg px-3 py-2">
+                            <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-fear-light shadow-[0_0_6px_rgba(104,79,168,0.5)]" />
+                                <p className="text-xs text-fear-light truncate">
+                                    <span className="font-semibold">{images.find(i => i.id === activeOverlayId)?.name}</span>
+                                </p>
+                            </div>
+                            <button onClick={handleClearOverlay} className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-2 py-1 rounded-lg transition-colors text-[10px] shrink-0">
+                                {t('player.clear')}
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Divider */}
+                <div className="w-px bg-ui-surface2/60 shrink-0" />
+
+                {/* Map Library */}
+                <div className="flex-1 flex flex-col gap-3 min-w-0">
+                    <div className="flex items-center justify-between">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-ui-muted/60">{t('player.mapLibrary')}</p>
+                        <button
+                            onClick={() => mapFileRef.current?.click()}
+                            disabled={saving}
+                            className="bg-ui-surface2 border border-ui-surface2 text-ui-text text-xs px-2 py-1 rounded-lg hover:border-fear-light/50 transition-colors disabled:opacity-50"
+                        >
+                            {t('player.import')}
+                        </button>
+                    </div>
+                    {mapLibrary.length === 0 ? (
+                        <p className="text-ui-muted text-xs italic text-center py-2">{t('player.noMaps')}</p>
+                    ) : (
+                        <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2">
+                            {mapLibrary.map(entry => (
+                                <MapCard
+                                    key={entry.id}
+                                    entry={entry}
+                                    isActive={campaign?.activeMapStoredId === entry.storedId}
+                                    onSet={() => handleSetMapFromLibrary(entry)}
+                                    onRemove={() => handleRemoveMapEntry(entry)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
+            </>)}
         </div>
     )
 }
@@ -546,6 +667,7 @@ interface ImageCardProps {
 }
 
 function ImageCard({ image, isActive, canShow, onShow, onRemove }: ImageCardProps) {
+    const t = useT()
     const [dataUrl, setDataUrl] = useState<string | null>(null)
 
     useEffect(() => {
@@ -580,7 +702,58 @@ function ImageCard({ image, isActive, canShow, onShow, onRemove }: ImageCardProp
                                 : 'bg-ui-surface2/40 text-ui-muted/40 cursor-not-allowed'
                     }`}
                 >
-                    {isActive ? 'Showing' : 'Show'}
+                    {isActive ? t('player.showing') : t('player.show')}
+                </button>
+            </div>
+            <button
+                onClick={onRemove}
+                className="absolute top-1 right-1 w-5 h-5 rounded flex items-center justify-center bg-black/50 text-white/60 hover:text-white hover:bg-red-900/60 transition-colors opacity-0 group-hover:opacity-100 text-[10px]"
+            >✕</button>
+        </div>
+    )
+}
+
+interface MapCardProps {
+    entry: MapLibraryEntry
+    isActive: boolean
+    onSet: () => void
+    onRemove: () => void
+}
+
+function MapCard({ entry, isActive, onSet, onRemove }: MapCardProps) {
+    const t = useT()
+    const [dataUrl, setDataUrl] = useState<string | null>(null)
+
+    useEffect(() => {
+        let url: string | null = null
+        let mounted = true
+        window.electron.fs.getPlayerImage(entry.storedId).then((data) => {
+            if (!mounted || !data) return
+            url = URL.createObjectURL(new Blob([new Uint8Array(data)]))
+            setDataUrl(url)
+        })
+        return () => {
+            mounted = false
+            if (url) URL.revokeObjectURL(url)
+        }
+    }, [entry.storedId])
+
+    return (
+        <div className={`group bg-ui-surface2/60 rounded-lg overflow-hidden border transition-colors relative ${isActive ? 'border-hope-primary/60' : 'border-ui-surface2/60'}`}>
+            <div className="h-14 bg-linear-to-br from-hope-primary/20 to-hope-gold/10 overflow-hidden">
+                {dataUrl && <img src={dataUrl} alt={entry.name} className="w-full h-full object-cover" />}
+            </div>
+            <div className="p-1.5 flex flex-col gap-1">
+                <p className="text-[10px] font-medium text-ui-muted truncate">{entry.name}</p>
+                <button
+                    onClick={isActive ? undefined : onSet}
+                    className={`w-full text-[9px] font-bold py-0.5 rounded transition-colors uppercase tracking-wide ${
+                        isActive
+                            ? 'bg-hope-primary/40 text-hope-primary cursor-default'
+                            : 'bg-hope-primary/15 text-hope-primary/70 hover:bg-hope-primary/30'
+                    }`}
+                >
+                    {isActive ? t('player.active') : t('player.setMap')}
                 </button>
             </div>
             <button

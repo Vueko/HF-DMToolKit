@@ -1,34 +1,40 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import type { ReactNode } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useCardsStore } from '../store/cardsStore'
 import { useCampaignStore } from '../store/campaignStore'
 import type { SessionCardInstance, AdversaryAbility, AbilityType, AdversaryCard, EnvironmentCard, EnvironmentFeature, EnvironmentFeatureType, Card } from '../types'
-import { Button, Input, Select, Textarea } from '../components/ui'
+import { Button, Input, Select, Textarea, PageHeader, EmptyState } from '../components/ui'
 import { renderBold } from '../utils/renderBold'
+import { buildCardsExport, parseImport, mergeCardsById } from '../utils/backup'
+import { SwordIcon, BoltIcon } from '../components/icons'
 
 type Tab = 'environment' | 'adversary'
 
-const ABILITY_CONFIG: Record<AbilityType, { label: string; icon: string; bg: string; border: string; text: string; btnBg: string }> = {
-    action:   { label: 'Action',       icon: '⚔', bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-300', btnBg: 'bg-orange-500/15 hover:bg-orange-500/30 border-orange-500/40 text-orange-300' },
+const ABILITY_CONFIG: Record<AbilityType, { label: string; icon: ReactNode; bg: string; border: string; text: string; btnBg: string }> = {
+    action:   { label: 'Action',       icon: <SwordIcon className="w-3 h-3" />, bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-300', btnBg: 'bg-orange-500/15 hover:bg-orange-500/30 border-orange-500/40 text-orange-300' },
     reaction: { label: 'Reaction',     icon: '↩', bg: 'bg-amber-400/10',  border: 'border-amber-400/30',  text: 'text-amber-300',  btnBg: 'bg-amber-400/15 hover:bg-amber-400/30 border-amber-400/40 text-amber-300' },
-    fear:     { label: 'Fear Feature', icon: '⚡', bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', btnBg: 'bg-purple-500/15 hover:bg-purple-500/30 border-purple-500/40 text-purple-300' },
+    fear:     { label: 'Fear Feature', icon: <BoltIcon className="w-3 h-3" />, bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', btnBg: 'bg-purple-500/15 hover:bg-purple-500/30 border-purple-500/40 text-purple-300' },
+    passive:  { label: 'Passive',      icon: '◈', bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   text: 'text-blue-300',   btnBg: 'bg-blue-500/15 hover:bg-blue-500/30 border-blue-500/40 text-blue-300' },
 }
 
-const FEATURE_CONFIG: Record<EnvironmentFeatureType, { label: string; icon: string; bg: string; border: string; text: string; btnBg: string }> = {
-    action:  { label: 'Action',       icon: '⚔', bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-300', btnBg: 'bg-orange-500/15 hover:bg-orange-500/30 border-orange-500/40 text-orange-300' },
+const FEATURE_CONFIG: Record<EnvironmentFeatureType, { label: string; icon: ReactNode; bg: string; border: string; text: string; btnBg: string }> = {
+    action:  { label: 'Action',       icon: <SwordIcon className="w-3 h-3" />, bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-300', btnBg: 'bg-orange-500/15 hover:bg-orange-500/30 border-orange-500/40 text-orange-300' },
     passive: { label: 'Passive',      icon: '◈', bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   text: 'text-blue-300',   btnBg: 'bg-blue-500/15 hover:bg-blue-500/30 border-blue-500/40 text-blue-300' },
-    fear:    { label: 'Fear Feature', icon: '⚡', bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', btnBg: 'bg-purple-500/15 hover:bg-purple-500/30 border-purple-500/40 text-purple-300' },
+    fear:    { label: 'Fear Feature', icon: <BoltIcon className="w-3 h-3" />, bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', btnBg: 'bg-purple-500/15 hover:bg-purple-500/30 border-purple-500/40 text-purple-300' },
 }
 
-const ENV_PREVIEW_STYLES: Record<EnvironmentFeatureType, { border: string; text: string; icon: string; label: string }> = {
-    action:  { border: 'border-l-orange-600', text: 'text-orange-700', icon: '⚔', label: 'Action' },
+const ENV_PREVIEW_STYLES: Record<EnvironmentFeatureType, { border: string; text: string; icon: ReactNode; label: string }> = {
+    action:  { border: 'border-l-orange-600', text: 'text-orange-700', icon: <SwordIcon className="w-3 h-3" />, label: 'Action' },
     passive: { border: 'border-l-blue-600',   text: 'text-blue-700',   icon: '◈', label: 'Passive' },
-    fear:    { border: 'border-l-purple-600', text: 'text-purple-700', icon: '⚡', label: 'Fear Feature' },
+    fear:    { border: 'border-l-purple-600', text: 'text-purple-700', icon: <BoltIcon className="w-3 h-3" />, label: 'Fear Feature' },
 }
 
-const ADV_PREVIEW_STYLES: Record<AbilityType, { border: string; text: string; icon: string; label: string }> = {
-    action:   { border: 'border-l-orange-600', text: 'text-orange-700', icon: '⚔', label: 'Action' },
+const ADV_PREVIEW_STYLES: Record<AbilityType, { border: string; text: string; icon: ReactNode; label: string }> = {
+    action:   { border: 'border-l-orange-600', text: 'text-orange-700', icon: <SwordIcon className="w-3 h-3" />, label: 'Action' },
     reaction: { border: 'border-l-amber-600',  text: 'text-amber-700',  icon: '↩', label: 'Reaction' },
-    fear:     { border: 'border-l-purple-600', text: 'text-purple-700', icon: '⚡', label: 'Fear Feature' },
+    fear:     { border: 'border-l-purple-600', text: 'text-purple-700', icon: <BoltIcon className="w-3 h-3" />, label: 'Fear Feature' },
+    passive:  { border: 'border-l-blue-600',   text: 'text-blue-700',   icon: '◈', label: 'Passive' },
 }
 
 function CardPreview({ card }: { card: EnvironmentCard | AdversaryCard }) {
@@ -94,7 +100,7 @@ function CardPreview({ card }: { card: EnvironmentCard | AdversaryCard }) {
                         <div className="px-4 pb-3">
                             <p className="text-card-text font-black text-[10px] uppercase tracking-widest mb-1.5">Abilities</p>
                             <div className="flex flex-col gap-1.5">
-                                {(['action', 'reaction', 'fear'] as AbilityType[]).map((atype) => {
+                                {(['action', 'reaction', 'fear', 'passive'] as AbilityType[]).map((atype) => {
                                     const group = (card.abilities ?? []).filter((a) => a.type === atype)
                                     if (group.length === 0) return null
                                     const s = ADV_PREVIEW_STYLES[atype]
@@ -241,60 +247,80 @@ function EnvironmentCards() {
     const [envSceneSelect, setEnvSceneSelect] = useState<Record<string, string>>({})
     const [importStatus, setImportStatus] = useState<string | null>(null)
 
-    async function handleImportJson() {
-        const result = await window.electron.dialog.open({
-            filters: [{ name: 'JSON', extensions: ['json'] }],
-            properties: ['openFile'],
-        })
-        if (result.canceled || result.filePaths.length === 0) return
+    function flashStatus(msg: string) {
+        setImportStatus(msg)
+        setTimeout(() => setImportStatus(null), 5000)
+    }
 
-        const raw = await window.electron.fs.readFile(result.filePaths[0])
-        if (!raw) { setImportStatus('Could not read file.'); return }
-
-        let data: Record<string, unknown>[]
-        try {
-            const parsed = JSON.parse(raw)
-            if (!Array.isArray(parsed) || parsed.length === 0) throw new Error()
-            data = parsed as Record<string, unknown>[]
-        } catch {
-            setImportStatus('Invalid JSON — expected a non-empty array.')
-            setTimeout(() => setImportStatus(null), 4000)
+    // Importador de formato externo/SRD: array crudo, heurística de tipo, dedup por título.
+    function importRawCards(items: unknown[]) {
+        const data = items as Record<string, unknown>[]
+        const first = data[0]
+        if (!first || typeof first !== 'object') {
+            flashStatus('Invalid JSON — expected a non-empty array.')
             return
         }
-
-        const first = data[0]
         const isAdversary = 'standardAttack' in first || 'minorThreshold' in first || 'majorThreshold' in first
-
         const existingTitles = new Set(
             cards
                 .filter((c) => c.type === (isAdversary ? 'adversary' : 'environment'))
                 .map((c) => c.title.toLowerCase())
         )
-
         const toAdd: Card[] = []
         for (const item of data) {
             const card = isAdversary ? mapAdversaryItem(item) : mapEnvironmentItem(item)
             if (!card || existingTitles.has(card.title.toLowerCase())) continue
             toAdd.push(card)
         }
-
         if (toAdd.length > 0) {
             bulkAddCards(toAdd)
             setActiveTab(isAdversary ? 'adversary' : 'environment')
         }
-
         const skipped = data.length - toAdd.length
         const label = isAdversary ? 'adversaries' : 'environments'
-        setImportStatus(
-            `Imported ${toAdd.length} ${label}${skipped > 0 ? ` (${skipped} skipped — already exist)` : ''}.`
-        )
-        setTimeout(() => setImportStatus(null), 5000)
+        flashStatus(`Imported ${toAdd.length} ${label}${skipped > 0 ? ` (${skipped} skipped — already exist)` : ''}.`)
     }
 
+    async function handleImportJson() {
+        const result = await window.electron.dialog.openJson({
+            filters: [{ name: 'JSON', extensions: ['json'] }],
+        })
+        if (result.canceled) return
+        if (!result.content) { flashStatus('Could not read file.'); return }
+
+        const parsed = parseImport(result.content)
+
+        if (parsed.kind === 'cards') {
+            const { merged, added, skipped } = mergeCardsById(cards, parsed.cards)
+            useCardsStore.setState({ cards: merged })
+            flashStatus(`Imported ${added} card${added === 1 ? '' : 's'}${skipped > 0 ? ` (${skipped} skipped — already exist)` : ''}.`)
+            return
+        }
+        if (parsed.kind === 'cards-raw') {
+            importRawCards(parsed.items)
+            return
+        }
+        flashStatus(parsed.kind === 'invalid' ? parsed.reason : 'Unsupported file.')
+    }
+
+    async function handleExportCards() {
+        const envelope = buildCardsExport(cards)
+        const result = await window.electron.dialog.saveJson(JSON.stringify(envelope, null, 2), {
+            defaultPath: `daggerheart-cards-${new Date().toISOString().split('T')[0]}.json`,
+            filters: [{ name: 'JSON', extensions: ['json'] }],
+        })
+        if (result.canceled) return
+        flashStatus(`Exported ${cards.length} card${cards.length === 1 ? '' : 's'}.`)
+    }
+
+    const scrollRef = useRef<HTMLDivElement>(null)
+
     useEffect(() => {
+        // Intentional sync: reset filters and scroll position when tab changes to avoid stale state
         setSearch('')
         setTypeFilter('')
         setTierFilter('')
+        if (scrollRef.current) scrollRef.current.scrollTop = 0
     }, [activeTab])
 
     const filteredCards = useMemo(() => {
@@ -309,6 +335,18 @@ function EnvironmentCards() {
             return true
         })
     }, [cards, activeTab, search, typeFilter, tierFilter])
+
+    // Virtualized 2-column grid: only visible rows are mounted, so switching tabs no longer
+    // mounts the whole (50+) card list synchronously. Rows are measured dynamically because
+    // adversary cards vary in height.
+    const CARD_COLS = 2
+    const rowCount = Math.ceil(filteredCards.length / CARD_COLS)
+    const rowVirtualizer = useVirtualizer({
+        count: rowCount,
+        getScrollElement: () => scrollRef.current,
+        estimateSize: () => 260,
+        overscan: 4,
+    })
 
     const currentCampaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
     const currentSession = currentCampaign?.sessions.find((s) => s.id === currentSessionId) ?? null
@@ -392,19 +430,15 @@ function EnvironmentCards() {
     }
 
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 h-full min-h-0">
 
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-ui-text font-display text-2xl font-bold">Cards</h1>
-                    <p className="text-ui-muted text-sm">Manage your environment and adversary cards</p>
-                </div>
+            <PageHeader title="Cards" subtitle="Manage your environment and adversary cards">
                 {!hasActiveSession && (
                     <span className="text-ui-muted text-xs px-3 py-2 bg-ui-surface rounded-lg">
                         No active session — cards cannot be added to the Dashboard
                     </span>
                 )}
-            </div>
+            </PageHeader>
 
             <div className="flex gap-2 border-b border-ui-surface2">
                 {(['environment', 'adversary'] as Tab[]).map((tab) => (
@@ -413,7 +447,7 @@ function EnvironmentCards() {
                         onClick={() => setActiveTab(tab)}
                         className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
                             activeTab === tab
-                                ? 'bg-ui-surface text-ui-text border-b-2 border-fear-light'
+                                ? 'bg-ui-surface text-accent border-b-2 border-accent'
                                 : 'text-ui-muted hover:text-ui-text'
                         }`}
                     >
@@ -428,6 +462,9 @@ function EnvironmentCards() {
                 </Button>
                 <Button variant="secondary" onClick={handleImportJson}>
                     Import from JSON
+                </Button>
+                <Button variant="secondary" onClick={handleExportCards}>
+                    Export Cards
                 </Button>
                 {importStatus && (
                     <span className="text-xs text-ui-muted bg-ui-surface border border-ui-surface2 px-3 py-1.5 rounded-lg">
@@ -475,13 +512,21 @@ function EnvironmentCards() {
                 </Select>
             </div>
 
-            {/* Card grid */}
-            <div className="grid grid-cols-2 gap-3">
-                {filteredCards.length === 0 && (
-                    <p className="col-span-2 text-ui-muted text-sm text-center py-8">No {activeTab} cards yet.</p>
-                )}
-
-                {filteredCards.map((card) => {
+            {/* Card grid (virtualized: only visible rows are mounted) */}
+            <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1">
+                {filteredCards.length === 0 ? (
+                    <EmptyState title={`No ${activeTab} cards yet.`} />
+                ) : (
+                    <div key={activeTab} className="page-fade" style={{ height: rowVirtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
+                        {rowVirtualizer.getVirtualItems().map((vRow) => (
+                            <div
+                                key={vRow.key}
+                                data-index={vRow.index}
+                                ref={rowVirtualizer.measureElement}
+                                className="grid grid-cols-2 gap-3 pb-3"
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${vRow.start}px)` }}
+                            >
+                                {filteredCards.slice(vRow.index * CARD_COLS, vRow.index * CARD_COLS + CARD_COLS).map((card) => {
                     const inSession = isInSession(card.id)
                     return (
                         <div key={card.id} className="bg-card-bg rounded-xl border border-card-border overflow-hidden flex flex-col">
@@ -595,7 +640,7 @@ function EnvironmentCards() {
                                         <div className="px-4 pb-3">
                                             <p className="text-card-text font-black text-[10px] uppercase tracking-widest mb-1.5">Abilities</p>
                                             <div className="flex flex-col gap-1.5">
-                                                {(['action', 'reaction', 'fear'] as AbilityType[]).map((atype) => {
+                                                {(['action', 'reaction', 'fear', 'passive'] as AbilityType[]).map((atype) => {
                                                     const group = ((card as AdversaryCard).abilities ?? []).filter((a) => a.type === atype)
                                                     if (group.length === 0) return null
                                                     const s = ADV_PREVIEW_STYLES[atype]
@@ -616,7 +661,11 @@ function EnvironmentCards() {
 
                         </div>
                     )
-                })}
+                                })}
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Edit modal */}
@@ -869,7 +918,7 @@ function EnvironmentCards() {
                                             <div className="flex items-center justify-between flex-wrap gap-2">
                                                 <label className="text-ui-muted text-[10px] uppercase font-bold tracking-wider">Abilities</label>
                                                 <div className="flex gap-1.5 flex-wrap">
-                                                    {(['action', 'reaction', 'fear'] as AbilityType[]).map((type) => {
+                                                    {(['action', 'reaction', 'fear', 'passive'] as AbilityType[]).map((type) => {
                                                         const cfg = ABILITY_CONFIG[type]
                                                         return (
                                                             <button

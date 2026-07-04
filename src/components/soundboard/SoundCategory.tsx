@@ -3,6 +3,7 @@ import { useSoundboard } from '../../context/SoundboardContext'
 import { useSoundboardStore } from '../../store/soundboardStore'
 import SoundButton from './SoundButton'
 import AddSoundModal from './AddSoundModal'
+import { useT } from '../../i18n'
 import type { Sound, SoundCategory as SoundCategoryType } from '../../types'
 
 interface SoundCategoryProps {
@@ -12,6 +13,7 @@ interface SoundCategoryProps {
 }
 
 function SoundCategory({ category, sounds, activeAmbientIds }: SoundCategoryProps) {
+    const t = useT()
     const [isRenaming, setIsRenaming] = useState(false)
     const [draftName, setDraftName] = useState('')
     const [showAddModal, setShowAddModal] = useState(false)
@@ -68,13 +70,13 @@ function SoundCategory({ category, sounds, activeAmbientIds }: SoundCategoryProp
                         onClick={() => { setDraftName(category.name); setIsRenaming(true) }}
                         className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-2 py-1 rounded-lg transition-colors text-xs"
                     >
-                        Renombrar
+                        {t('soundboard.rename')}
                     </button>
                     <button
                         onClick={() => setShowAddModal(true)}
                         className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-2 py-1 rounded-lg transition-colors text-xs"
                     >
-                        + Sonido
+                        {t('soundboard.addSound')}
                     </button>
                     <button
                         onClick={handleRemoveCategory}
@@ -87,7 +89,7 @@ function SoundCategory({ category, sounds, activeAmbientIds }: SoundCategoryProp
 
             {sounds.length === 0 ? (
                 <p className="text-ui-muted text-xs italic text-center py-2">
-                    Sin sonidos — agregá uno.
+                    {t('soundboard.noSounds')}
                 </p>
             ) : (
                 <div className="flex flex-wrap gap-2">

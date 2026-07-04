@@ -10,15 +10,22 @@
     "build:electron": "vite build && tsc -p tsconfig.electron.json",
     "dist:win": "npm run build:electron && electron-builder --win",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@fontsource/cinzel": "^5.2.8",
     "@fontsource/inter": "^5.2.8",
+    "@tanstack/react-virtual": "^3.14.5",
+    "electron-updater": "^6.8.9",
+    "immer": "^10.2.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.14.2",
+    "remark-gfm": "^4.0.1",
+    "yaml": "^2.9.0",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
@@ -39,12 +46,16 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
     "vite": "^8.0.9",
+    "vitest": "^3.2.6",
     "wait-on": "^8.0.0"
   },
   "build": {
     "appId": "com.daggerheart.toolkit",
     "productName": "HF DMToolKit",
     "copyright": "Copyright © 2025 Carlos",
+    "publish": [
+      { "provider": "github", "owner": "Vueko", "repo": "DaggerHeart-ToolKit" }
+    ],
     "directories": {
       "output": "release"
     },
@@ -53,6 +64,7 @@
       "dist-electron/**/*"
     ],
     "win": {
+      "artifactName": "HF DMToolkit.exe",
       "target": [
         {
           "target": "nsis",

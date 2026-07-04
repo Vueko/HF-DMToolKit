@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { generateId } from '../../utils/generateId'
+import { useT } from '../../i18n'
 import type { Sound } from '../../types'
 
 interface AddSoundModalProps {
@@ -9,6 +10,7 @@ interface AddSoundModalProps {
 }
 
 function AddSoundModal({ categoryId, onAdd, onClose }: AddSoundModalProps) {
+    const t = useT()
     const [name, setName] = useState('')
     const [type, setType] = useState<'oneshot' | 'ambient'>('oneshot')
     const [file, setFile] = useState<File | null>(null)
@@ -32,30 +34,30 @@ function AddSoundModal({ categoryId, onAdd, onClose }: AddSoundModalProps) {
 
     return (
         <div
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+            className="fixed inset-0 bg-ui-bg/50 z-50 flex items-center justify-center"
             onClick={onClose}
         >
             <div
                 className="bg-ui-surface rounded-xl border border-ui-surface2 p-6 w-96 flex flex-col gap-4"
                 onClick={(e) => e.stopPropagation()}
             >
-                <h3 className="text-ui-text font-display font-bold text-lg">Agregar sonido</h3>
+                <h3 className="text-ui-text font-display font-bold text-lg">{t('soundboard.addSoundTitle')}</h3>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     <div className="flex flex-col gap-1.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted">Nombre</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted">{t('soundboard.name')}</p>
                         <input
                             autoFocus
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="Ej: Lluvia intensa"
+                            placeholder={t('soundboard.namePlaceholder')}
                             className="bg-ui-surface2 border border-ui-surface2 focus:border-fear-light rounded-lg px-3 py-2 text-sm text-ui-text outline-none transition-colors w-full"
                         />
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted">Tipo</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted">{t('soundboard.type')}</p>
                         <div className="flex gap-2">
                             <button
                                 type="button"
@@ -66,7 +68,7 @@ function AddSoundModal({ categoryId, onAdd, onClose }: AddSoundModalProps) {
                                         : 'bg-ui-surface2 text-ui-text hover:bg-ui-surface2/80'
                                 }`}
                             >
-                                One-shot
+                                {t('soundboard.typeOneshot')}
                             </button>
                             <button
                                 type="button"
@@ -77,13 +79,13 @@ function AddSoundModal({ categoryId, onAdd, onClose }: AddSoundModalProps) {
                                         : 'bg-ui-surface2 text-ui-text hover:bg-ui-surface2/80'
                                 }`}
                             >
-                                Ambient
+                                {t('soundboard.typeAmbient')}
                             </button>
                         </div>
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted">Archivo</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted">{t('soundboard.file')}</p>
                         <input
                             ref={fileInputRef}
                             type="file"
@@ -96,7 +98,7 @@ function AddSoundModal({ categoryId, onAdd, onClose }: AddSoundModalProps) {
                             onClick={() => fileInputRef.current?.click()}
                             className="bg-ui-surface2 hover:bg-ui-surface2/80 text-ui-text px-4 py-2 rounded-lg transition-colors text-sm text-left truncate"
                         >
-                            {file ? file.name : 'Seleccionar archivo...'}
+                            {file ? file.name : t('soundboard.selectFile')}
                         </button>
                     </div>
 
@@ -106,14 +108,14 @@ function AddSoundModal({ categoryId, onAdd, onClose }: AddSoundModalProps) {
                             onClick={onClose}
                             className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-3 py-1.5 rounded-lg transition-colors text-sm"
                         >
-                            Cancelar
+                            {t('soundboard.cancel')}
                         </button>
                         <button
                             type="submit"
                             disabled={!name.trim() || !file || saving}
                             className="bg-fear-light hover:bg-fear-secondary text-ui-text px-4 py-2 rounded-lg transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {saving ? 'Guardando...' : 'Agregar'}
+                            {saving ? t('soundboard.saving') : t('soundboard.add')}
                         </button>
                     </div>
                 </form>

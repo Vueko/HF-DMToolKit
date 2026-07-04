@@ -28,3 +28,6 @@ release
 # Local docs and brainstorming
 docs/
 .superpowers/
+
+# Agent context (no versionar)
+CLAUDE.md

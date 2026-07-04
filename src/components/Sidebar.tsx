@@ -1,20 +1,22 @@
 import { NavLink } from 'react-router-dom'
 import { useCampaignStore } from '../store/campaignStore'
+import { useT } from '../i18n'
 
 const navItems = [
-    { path: '/', label: 'Dashboard' },
-    { path: '/campaigns', label: 'Campaigns' },
-    { path: '/scenes', label: 'Scene Tracker' },
-    { path: '/cards', label: 'Cards' },
-    { path: '/encounter', label: 'Encounter Builder' },
-    { path: '/dm-screen', label: 'DM Screen' },
-    { path: '/music', label: 'Music Player' },
-    { path: '/journal', label: 'Campaign Journal' },
-    { path: '/map', label: 'Campaign Map' },
-    { path: '/soundboard', label: 'Soundboard' },
+    { path: '/', label: 'nav.dashboard' },
+    { path: '/campaigns', label: 'nav.campaigns' },
+    { path: '/scenes', label: 'nav.scenes' },
+    { path: '/cards', label: 'nav.cards' },
+    { path: '/encounter', label: 'nav.encounter' },
+    { path: '/dm-screen', label: 'nav.dmScreen' },
+    { path: '/music', label: 'nav.music' },
+    { path: '/journal', label: 'nav.wiki' },
+    { path: '/map', label: 'nav.map' },
+    { path: '/soundboard', label: 'nav.soundboard' },
 ]
 
 function Sidebar() {
+    const t = useT()
     const { campaigns, currentCampaignId } = useCampaignStore()
     const currentCampaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
 
@@ -26,12 +28,12 @@ function Sidebar() {
                     to={item.path}
                     className={({ isActive }) =>
                         `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive
-                            ? 'bg-fear-light text-ui-text font-medium'
+                            ? 'bg-accent text-accent-fg font-medium'
                             : 'text-ui-muted hover:text-ui-text hover:bg-ui-surface2'
                         }`
                     }
                 >
-                    <span>{item.label}</span>
+                    <span>{t(item.label)}</span>
                 </NavLink>
             ))}
             <div className="mt-auto flex flex-col gap-1">
@@ -39,17 +41,17 @@ function Sidebar() {
                     to="/settings"
                     className={({ isActive }) =>
                         `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive
-                            ? 'bg-fear-light text-ui-text font-medium'
+                            ? 'bg-accent text-accent-fg font-medium'
                             : 'text-ui-muted hover:text-ui-text hover:bg-ui-surface2'
                         }`
                     }
                 >
-                    <span>⚙ Settings</span>
+                    <span>⚙ {t('nav.settings')}</span>
                 </NavLink>
                 <div className="pt-3 border-t border-ui-surface/30">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted px-3 mb-1">Campaña</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted px-3 mb-1">{t('sidebar.campaignLabel')}</p>
                     <p className="text-xs text-ui-text px-3 truncate">
-                        {currentCampaign?.name ?? 'Sin campaña activa'}
+                        {currentCampaign?.name ?? t('sidebar.noCampaign')}
                     </p>
                 </div>
             </div>

@@ -1,8 +1,12 @@
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react'
-import ReactMarkdown from 'react-markdown'
+import { useNavigate } from 'react-router-dom'
 import { useCampaignStore } from '../store/campaignStore'
-import type { MapMarker, LoreEntry } from '../types'
+import type { MapMarker } from '../types'
+import { useVaultStore } from '../vault/vaultStore'
+import type { NoteRef } from '../vault/wikilinks'
 import { saveMapImage, getMapImage } from '../utils/mapDb'
+import { MapIcon } from '../components/icons'
+import { useT } from '../i18n'
 
 
 const ZOOM_SPEED = 0.1
@@ -12,23 +16,20 @@ const MAX_SCALE = 5
 type MapMode = 'pan' | 'path' | 'marker'
 
 
-interface LoreSearchProps {
-    lore: LoreEntry[]
-    onSelect: (entry: LoreEntry) => void
+interface NoteSearchProps {
+    notes: NoteRef[]
+    onSelect: (note: NoteRef) => void
     placeholder?: string
 }
 
-function LoreSearch({ lore, onSelect, placeholder = 'Search lore...' }: LoreSearchProps) {
+function NoteSearch({ notes, onSelect, placeholder }: NoteSearchProps) {
+    const t = useT()
     const [query, setQuery] = useState('')
-
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase()
-        if (!q) return lore
-        return lore.filter(e =>
-            e.title.toLowerCase().includes(q) ||
-            e.category.toLowerCase().includes(q)
-        )
-    }, [lore, query])
+        if (!q) return notes
+        return notes.filter((n) => n.name.toLowerCase().includes(q))
+    }, [notes, query])
 
     return (
         <div className="flex flex-col gap-2">
@@ -36,21 +37,20 @@ function LoreSearch({ lore, onSelect, placeholder = 'Search lore...' }: LoreSear
                 autoFocus
                 type="text"
                 value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder={placeholder}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={placeholder ?? t('map.searchNotePlaceholder')}
                 className="bg-ui-bg text-ui-text text-xs p-2 rounded-lg border border-ui-surface2 focus:border-fear-light outline-none w-full"
             />
             <div className="flex flex-col gap-1 max-h-52 overflow-y-auto pr-1">
                 {filtered.length === 0 ? (
-                    <p className="text-ui-muted text-xs italic py-2">No results found.</p>
-                ) : filtered.map(entry => (
+                    <p className="text-ui-muted text-xs italic py-2">{t('map.noResults')}</p>
+                ) : filtered.map((note) => (
                     <button
-                        key={entry.id}
-                        onClick={() => onSelect(entry)}
+                        key={note.path}
+                        onClick={() => onSelect(note)}
                         className="text-left px-3 py-2 text-xs bg-ui-surface2 hover:bg-ui-bg text-ui-text rounded-lg border border-ui-surface2 transition-colors"
                     >
-                        {entry.title}
-                        <span className="text-ui-muted ml-1.5">({entry.category})</span>
+                        {note.name}
                     </button>
                 ))}
             </div>
@@ -60,14 +60,16 @@ function LoreSearch({ lore, onSelect, placeholder = 'Search lore...' }: LoreSear
 
 
 function CampaignMap() {
+    const t = useT()
     const { campaigns, currentCampaignId, updateCampaignMap } = useCampaignStore()
+    const navigate = useNavigate()
+    const notes = useVaultStore((s) => s.notes)
 
     const currentCampaign = useMemo(
         () => campaigns.find(c => c.id === currentCampaignId),
         [campaigns, currentCampaignId]
     )
     const mapData = currentCampaign?.map
-    const lore = useMemo(() => currentCampaign?.lore ?? [], [currentCampaign?.lore])
 
     const [mode, setMode] = useState<MapMode>('pan')
     const [scale, setScale] = useState(1)
@@ -178,15 +180,15 @@ function CampaignMap() {
         }
     }, [mapUrl, currentCampaignId, isDragging, mode, mapData, updateCampaignMap])
 
-    const commitMarker = useCallback((loreEntry?: LoreEntry) => {
+    const commitMarker = useCallback((note?: NoteRef) => {
         if (!pendingPos || !currentCampaignId) return
-        const label = pendingName.trim() || loreEntry?.title || 'New Marker'
+        const label = pendingName.trim() || note?.name || 'New Marker'
         const newMarker: MapMarker = {
             id: crypto.randomUUID(),
             x: pendingPos.x,
             y: pendingPos.y,
             label,
-            loreId: loreEntry?.id,
+            noteRef: note?.path,
         }
         updateCampaignMap(currentCampaignId, {
             markers: [...(mapData?.markers ?? []), newMarker],
@@ -195,25 +197,25 @@ function CampaignMap() {
         setPendingName('')
     }, [pendingPos, pendingName, currentCampaignId, mapData, updateCampaignMap])
 
-    const linkMarker = useCallback((markerId: string, loreEntry: LoreEntry) => {
+    const linkMarker = useCallback((markerId: string, note: NoteRef) => {
         if (!currentCampaignId) return
         updateCampaignMap(currentCampaignId, {
-            markers: (mapData?.markers ?? []).map(m =>
-                m.id === markerId ? { ...m, loreId: loreEntry.id } : m
+            markers: (mapData?.markers ?? []).map((m) =>
+                m.id === markerId ? { ...m, noteRef: note.path } : m
             ),
         })
         setLinkingMode(false)
-        setSelectedMarker(prev => prev?.id === markerId ? { ...prev, loreId: loreEntry.id } : prev)
+        setSelectedMarker((prev) => prev?.id === markerId ? { ...prev, noteRef: note.path } : prev)
     }, [currentCampaignId, mapData, updateCampaignMap])
 
     const unlinkMarker = useCallback((markerId: string) => {
         if (!currentCampaignId) return
         updateCampaignMap(currentCampaignId, {
-            markers: (mapData?.markers ?? []).map(m =>
-                m.id === markerId ? { ...m, loreId: undefined } : m
+            markers: (mapData?.markers ?? []).map((m) =>
+                m.id === markerId ? { ...m, noteRef: undefined } : m
             ),
         })
-        setSelectedMarker(prev => prev?.id === markerId ? { ...prev, loreId: undefined } : prev)
+        setSelectedMarker((prev) => prev?.id === markerId ? { ...prev, noteRef: undefined } : prev)
     }, [currentCampaignId, mapData, updateCampaignMap])
 
     const removeMarker = useCallback((id: string) => {
@@ -231,25 +233,26 @@ function CampaignMap() {
 
     const clearPath = useCallback(() => {
         if (!currentCampaignId) return
-        if (!window.confirm('Clear all journey points?')) return
+        if (!window.confirm(t('map.clearPathConfirm'))) return
         updateCampaignMap(currentCampaignId, { path: [] })
-    }, [currentCampaignId, updateCampaignMap])
+    }, [currentCampaignId, updateCampaignMap, t])
 
-    const linkedLore = useMemo(() => {
-        if (!selectedMarker?.loreId) return null
-        return lore.find(l => l.id === selectedMarker.loreId) ?? null
-    }, [selectedMarker, lore])
+    const linkedNoteName = useMemo(() => {
+        if (!selectedMarker?.noteRef) return null
+        const ref = selectedMarker.noteRef
+        return notes.find((n) => n.path === ref)?.name ?? ref
+    }, [selectedMarker, notes])
 
     const MODE_LABELS: Record<MapMode, string> = {
-        pan: 'Drag to pan · Scroll to zoom',
-        path: "Click on the map to add a point to your party's travel path",
-        marker: 'Click on the map to drop a pin',
+        pan: 'map.modePan',
+        path: 'map.modePath',
+        marker: 'map.modeMarker',
     }
 
     if (!currentCampaignId) {
         return (
             <div className="flex items-center justify-center h-full text-ui-muted">
-                <p>Please select a campaign first.</p>
+                <p>{t('map.selectCampaignFirst')}</p>
             </div>
         )
     }
@@ -261,7 +264,7 @@ function CampaignMap() {
 
             <div className="flex items-center justify-between bg-ui-surface p-4 rounded-xl border border-ui-surface2">
                 <div className="flex items-center gap-6">
-                    <h1 className="text-ui-text font-display font-bold text-lg">World Map</h1>
+                    <h1 className="text-ui-text font-display font-bold text-lg">{t('map.worldMap')}</h1>
                     <div className="flex bg-ui-bg p-1 rounded-lg border border-ui-surface2">
                         {(['pan', 'path', 'marker'] as MapMode[]).map(m => (
                             <button
@@ -269,13 +272,13 @@ function CampaignMap() {
                                 onClick={() => setMode(m)}
                                 className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${mode === m ? 'bg-fear-light text-ui-text' : 'text-ui-muted hover:text-ui-text'}`}
                             >
-                                {m === 'pan' ? 'Pan' : m === 'path' ? 'Path' : 'Pin'}
+                                {m === 'pan' ? t('map.tabPan') : m === 'path' ? t('map.tabPath') : t('map.tabPin')}
                             </button>
                         ))}
                     </div>
 
                     <span className="text-xs text-ui-muted italic hidden md:block">
-                        {MODE_LABELS[mode]}
+                        {t(MODE_LABELS[mode])}
                     </span>
                 </div>
 
@@ -283,15 +286,15 @@ function CampaignMap() {
                     {mode === 'path' && (mapData?.path?.length ?? 0) > 0 && (
                         <>
                             <button onClick={undoPathPoint} className="px-3 py-1.5 text-xs bg-ui-surface2 text-ui-text rounded-lg border border-ui-surface2 hover:bg-ui-surface transition-colors">
-                                Undo Point
+                                {t('map.undoPoint')}
                             </button>
                             <button onClick={clearPath} className="px-3 py-1.5 text-xs bg-red-900/10 text-red-400 border border-red-900/20 rounded-lg hover:bg-red-900/20 transition-colors">
-                                Clear Path
+                                {t('map.clearPath')}
                             </button>
                         </>
                     )}
                     <label className="px-3 py-1.5 text-xs bg-ui-surface2 text-ui-text rounded-lg border border-ui-surface2 cursor-pointer hover:bg-ui-surface transition-colors">
-                        {mapUrl ? 'Change Image' : 'Upload Map'}
+                        {mapUrl ? t('map.changeImage') : t('map.uploadMap')}
                         <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
                     </label>
                 </div>
@@ -310,10 +313,10 @@ function CampaignMap() {
                 >
                     {!mapUrl ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-ui-muted gap-4">
-                            <div className="w-16 h-16 rounded-full bg-ui-surface2 flex items-center justify-center text-3xl">🗺️</div>
-                            <p className="text-sm">No map image uploaded yet.</p>
+                            <div className="w-16 h-16 rounded-full bg-ui-surface2 flex items-center justify-center"><MapIcon className="w-8 h-8 text-ui-muted" /></div>
+                            <p className="text-sm">{t('map.noMapUploaded')}</p>
                             <label className="px-6 py-2 bg-fear-light text-ui-text rounded-lg cursor-pointer hover:bg-fear-secondary transition-colors font-semibold text-sm">
-                                Upload Map
+                                {t('map.uploadMap')}
                                 <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
                             </label>
                         </div>
@@ -330,7 +333,7 @@ function CampaignMap() {
                         >
                             <img
                                 src={mapUrl}
-                                alt="Campaign World Map"
+                                alt={t('map.worldMapAlt')}
                                 className="max-w-none block pointer-events-none"
                                 draggable={false}
                             />
@@ -374,7 +377,7 @@ function CampaignMap() {
 
                     <button
                         onClick={() => { setScale(1); setOffset({ x: 0, y: 0 }) }}
-                        title="Reset view"
+                        title={t('map.resetView')}
                         className="absolute bottom-3 right-3 p-2 bg-ui-surface rounded-lg border border-ui-surface2 text-ui-muted hover:text-ui-text transition-colors text-sm shadow"
                     >
                         ⌂
@@ -387,18 +390,18 @@ function CampaignMap() {
                         {pendingPos && (
                             <>
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-ui-text font-bold">New Pin</h3>
+                                    <h3 className="text-ui-text font-bold">{t('map.newPin')}</h3>
                                     <button onClick={() => setPendingPos(null)} className="text-ui-muted hover:text-ui-text">✕</button>
                                 </div>
 
                                 <div className="flex flex-col gap-1">
-                                    <label className="text-ui-muted text-xs uppercase font-bold tracking-wider">Name</label>
+                                    <label className="text-ui-muted text-xs uppercase font-bold tracking-wider">{t('map.name')}</label>
                                     <input
                                         autoFocus
                                         type="text"
                                         value={pendingName}
                                         onChange={e => setPendingName(e.target.value)}
-                                        placeholder="e.g. Thornwall City"
+                                        placeholder={t('map.namePlaceholder')}
                                         maxLength={80}
                                         className="bg-ui-bg text-ui-text text-sm p-2 rounded-lg border border-ui-surface2 focus:border-fear-light outline-none"
                                         onKeyDown={e => { if (e.key === 'Enter') commitMarker() }}
@@ -406,15 +409,11 @@ function CampaignMap() {
                                 </div>
 
                                 <div className="flex flex-col gap-2">
-                                    <label className="text-ui-muted text-xs uppercase font-bold tracking-wider">Link to Wiki Entry</label>
-                                    {lore.length === 0 ? (
-                                        <p className="text-ui-muted text-xs italic">No lore entries yet.</p>
+                                    <label className="text-ui-muted text-xs uppercase font-bold tracking-wider">{t('map.linkToVaultNote')}</label>
+                                    {notes.length === 0 ? (
+                                        <p className="text-ui-muted text-xs italic">{t('map.noNotesInVault')}</p>
                                     ) : (
-                                        <LoreSearch
-                                            lore={lore}
-                                            placeholder="Search wiki..."
-                                            onSelect={entry => commitMarker(entry)}
-                                        />
+                                        <NoteSearch notes={notes} onSelect={(note) => commitMarker(note)} />
                                     )}
                                 </div>
 
@@ -422,7 +421,7 @@ function CampaignMap() {
                                     onClick={() => commitMarker()}
                                     className="mt-auto py-2 text-sm font-semibold bg-fear-light hover:bg-fear-secondary text-ui-text rounded-lg transition-colors"
                                 >
-                                    Place Pin (no link)
+                                    {t('map.placePinNoLink')}
                                 </button>
                             </>
                         )}
@@ -434,58 +433,31 @@ function CampaignMap() {
                                     <button onClick={() => { setSelectedMarker(null); setLinkingMode(false) }} className="text-ui-muted hover:text-ui-text shrink-0">✕</button>
                                 </div>
 
-                                {linkedLore && !linkingMode ? (
-                                    <>
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="text-[10px] uppercase font-black bg-fear-light px-2 py-0.5 rounded text-ui-text">
-                                                {linkedLore.category}
-                                            </span>
-                                            {linkedLore.tags.map(tag => (
-                                                <span key={tag} className="text-[10px] uppercase font-bold bg-ui-surface2 px-2 py-0.5 rounded text-ui-muted">
-                                                    #{tag}
-                                                </span>
-                                            ))}
-                                            <button
-                                                onClick={() => unlinkMarker(selectedMarker.id)}
-                                                className="ml-auto text-[10px] text-red-400 hover:underline"
-                                            >
-                                                Unlink
-                                            </button>
+                                {linkedNoteName && !linkingMode ? (
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] uppercase font-black bg-fear-light px-2 py-0.5 rounded text-ui-text">{t('map.noteBadge')}</span>
+                                            <span className="text-sm text-ui-text truncate">{linkedNoteName}</span>
+                                            <button onClick={() => unlinkMarker(selectedMarker.id)} className="ml-auto text-[10px] text-red-400 hover:underline">{t('map.unlink')}</button>
                                         </div>
-
-                                        <div className="text-ui-muted text-sm leading-relaxed bg-ui-bg p-3 rounded-xl border border-ui-surface2">
-                                            <ReactMarkdown>{linkedLore.publicContent}</ReactMarkdown>
-                                        </div>
-
-                                        {linkedLore.secretContent && (
-                                            <div className="bg-fear-light/10 p-3 rounded-xl border border-fear-light/20 flex flex-col gap-1">
-                                                <span className="text-[10px] font-bold uppercase tracking-widest text-fear-light">Secret DM Info</span>
-                                                <div className="text-ui-text text-sm italic">
-                                                    <ReactMarkdown>{linkedLore.secretContent}</ReactMarkdown>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </>
+                                        <button
+                                            onClick={() => navigate(`/journal?note=${encodeURIComponent(selectedMarker.noteRef!)}`)}
+                                            className="py-2 text-xs font-semibold bg-hope-primary hover:bg-hope-gold text-white rounded-lg transition-colors"
+                                        >
+                                            {t('map.openInWiki')}
+                                        </button>
+                                    </div>
                                 ) : linkingMode ? (
                                     <>
-                                        <p className="text-ui-muted text-xs">Select a wiki entry to link:</p>
-                                        <LoreSearch
-                                            lore={lore}
-                                            placeholder="Search wiki..."
-                                            onSelect={entry => linkMarker(selectedMarker.id, entry)}
-                                        />
-                                        <button onClick={() => setLinkingMode(false)} className="text-xs text-ui-muted hover:text-ui-text underline">
-                                            Cancel
-                                        </button>
+                                        <p className="text-ui-muted text-xs">{t('map.selectNoteToLink')}</p>
+                                        <NoteSearch notes={notes} onSelect={(note) => linkMarker(selectedMarker.id, note)} />
+                                        <button onClick={() => setLinkingMode(false)} className="text-xs text-ui-muted hover:text-ui-text underline">{t('map.cancel')}</button>
                                     </>
                                 ) : (
                                     <div className="flex flex-col gap-2">
-                                        <p className="text-ui-muted text-xs italic">No wiki entry linked.</p>
-                                        <button
-                                            onClick={() => setLinkingMode(true)}
-                                            className="py-2 text-xs font-semibold bg-ui-surface2 hover:bg-ui-bg text-ui-text rounded-lg border border-ui-surface2 transition-colors"
-                                        >
-                                            Link to Wiki Entry
+                                        <p className="text-ui-muted text-xs italic">{t('map.noLinkedNote')}</p>
+                                        <button onClick={() => setLinkingMode(true)} className="py-2 text-xs font-semibold bg-ui-surface2 hover:bg-ui-bg text-ui-text rounded-lg border border-ui-surface2 transition-colors">
+                                            {t('map.linkToNote')}
                                         </button>
                                     </div>
                                 )}
@@ -495,7 +467,7 @@ function CampaignMap() {
                                         onClick={() => removeMarker(selectedMarker.id)}
                                         className="w-full py-2 text-xs text-red-400 bg-red-900/10 hover:bg-red-900/20 rounded-lg border border-red-900/20 transition-colors"
                                     >
-                                        Delete Marker
+                                        {t('map.deleteMarker')}
                                     </button>
                                 </div>
                             </>
