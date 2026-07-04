@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useMusicStore } from '../store/musicStore'
 import { useCampaignStore } from '../store/campaignStore'
 import { getTrackUrl } from '../utils/musicDb'
+import { useT } from '../i18n'
 
 function formatTime(secs: number): string {
     if (!secs || isNaN(secs)) return '0:00'
@@ -11,6 +12,7 @@ function formatTime(secs: number): string {
 }
 
 function MusicBar() {
+    const t = useT()
     const audioRef = useRef<HTMLAudioElement>(null)
     const blobUrlRef = useRef<string | null>(null)
     const isLoadingRef = useRef(false)
@@ -117,9 +119,9 @@ function MusicBar() {
     }
 
     const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const t = Number(e.target.value)
-        if (audioRef.current) audioRef.current.currentTime = t
-        setLocalCurrentTime(t)
+        const seekTime = Number(e.target.value)
+        if (audioRef.current) audioRef.current.currentTime = seekTime
+        setLocalCurrentTime(seekTime)
     }
 
     return (
@@ -139,7 +141,7 @@ function MusicBar() {
                     </div>
                     <div className="flex flex-col min-w-0">
                         <span className="text-ui-text text-sm font-medium truncate">
-                            {currentTrack ? currentTrack.title : 'No track selected'}
+                            {currentTrack ? currentTrack.title : t('music.noTrackSelected')}
                         </span>
                         <span className="text-ui-muted text-xs truncate">
                             {currentTrack ? currentTrack.artist : '—'}
@@ -152,7 +154,7 @@ function MusicBar() {
                         <button
                             onClick={toggleShuffle}
                             className={`text-xs transition-colors ${shuffle ? 'text-hope-primary' : 'text-ui-muted hover:text-ui-text'}`}
-                            title="Shuffle"
+                            title={t('music.shuffle')}
                         >
                             ⇄
                         </button>
@@ -180,7 +182,7 @@ function MusicBar() {
                         <button
                             onClick={toggleLoop}
                             className={`text-xs transition-colors ${loop ? 'text-hope-primary' : 'text-ui-muted hover:text-ui-text'}`}
-                            title="Loop"
+                            title={t('music.loop')}
                         >
                             ↻
                         </button>
@@ -202,7 +204,7 @@ function MusicBar() {
                 </div>
 
                 <div className="flex items-center gap-2 w-[18%] justify-end">
-                    <span className="text-ui-muted text-[10px] uppercase tracking-wide shrink-0">Vol</span>
+                    <span className="text-ui-muted text-[10px] uppercase tracking-wide shrink-0">{t('music.vol')}</span>
                     <input
                         type="range"
                         min={0}

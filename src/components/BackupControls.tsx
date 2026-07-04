@@ -1,7 +1,9 @@
 import { Button } from './ui'
 import { buildFullExport, parseImport, mergeCampaignBlobs, FULL_STORE_KEYS } from '../utils/backup'
+import { useT } from '../i18n'
 
 export function BackupControls() {
+    const t = useT()
     const handleExport = async () => {
         const blobs: Record<string, string | null> = {}
         await Promise.all(FULL_STORE_KEYS.map(async (key) => {
@@ -20,10 +22,10 @@ export function BackupControls() {
             filters: [{ name: 'JSON Backup', extensions: ['json'] }],
         })
         if (result.canceled) return
-        if (!result.content) { alert('No se pudo leer el archivo.'); return }
+        if (!result.content) { alert(t('backup.readError')); return }
         const parsed = parseImport(result.content)
         if (parsed.kind !== 'full') {
-            alert(parsed.kind === 'invalid' ? parsed.reason : 'El archivo no es un backup completo.')
+            alert(parsed.kind === 'invalid' ? parsed.reason : t('backup.notFullBackup'))
             return
         }
         for (const key of FULL_STORE_KEYS) {
@@ -37,14 +39,14 @@ export function BackupControls() {
                 window.electron.store.set(key, incoming)
             }
         }
-        alert('Datos importados correctamente. La aplicación se recargará.')
+        alert(t('backup.importSuccess'))
         window.location.reload()
     }
 
     return (
         <div className="flex items-center gap-3">
-            <Button variant="secondary" onClick={handleImport} title="Importar datos desde un backup">↓ Import Data</Button>
-            <Button variant="secondary" onClick={handleExport} title="Exportar todos los datos a un archivo JSON">↑ Export Data</Button>
+            <Button variant="secondary" onClick={handleImport} title={t('backup.importTitle')}>{t('backup.import')}</Button>
+            <Button variant="secondary" onClick={handleExport} title={t('backup.exportTitle')}>{t('backup.export')}</Button>
         </div>
     )
 }

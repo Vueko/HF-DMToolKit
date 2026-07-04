@@ -5,8 +5,17 @@ import { saveTrackFile, deleteTrackFile } from '../utils/musicDb'
 import { generateId } from '../utils/generateId'
 import type { Track } from '../types'
 import { EmptyState } from '../components/ui'
+import { useT } from '../i18n'
 
 type Mood = 'calm' | 'tense' | 'epic' | 'mystery' | 'ambient'
+
+const MOOD_LABELS: Record<Mood, string> = {
+    calm: 'music.moodCalm',
+    tense: 'music.moodTense',
+    epic: 'music.moodEpic',
+    mystery: 'music.moodMystery',
+    ambient: 'music.moodAmbient',
+}
 
 function formatDuration(secs?: number): string {
     if (!secs) return '—'
@@ -26,6 +35,7 @@ const MOOD_COLORS: Record<string, string> = {
 const MOOD_OPTIONS: Mood[] = ['calm', 'tense', 'epic', 'mystery', 'ambient']
 
 function MusicPlayer() {
+    const t = useT()
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [newPlaylistName, setNewPlaylistName] = useState('')
     const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(null)
@@ -50,8 +60,8 @@ function MusicPlayer() {
         return (
             <div className="flex-1 flex items-center justify-center">
                 <div className="text-center bg-ui-surface p-8 rounded-xl border border-ui-surface2">
-                    <h2 className="text-xl text-ui-text font-display mb-2">No Campaign Selected</h2>
-                    <p className="text-ui-muted text-sm">Please select a campaign to manage its music.</p>
+                    <h2 className="text-xl text-ui-text font-display mb-2">{t('music.noCampaignSelected')}</h2>
+                    <p className="text-ui-muted text-sm">{t('music.noCampaignHint')}</p>
                 </div>
             </div>
         )
@@ -74,7 +84,7 @@ function MusicPlayer() {
     const handleRemovePlaylist = async (playlistId: string) => {
         const pl = playlists.find((p) => p.id === playlistId)
         if (pl) {
-            for (const t of pl.tracks) await deleteTrackFile(t.id)
+            for (const trk of pl.tracks) await deleteTrackFile(trk.id)
         }
         if (activePlaylistId === playlistId) setActivePlaylistId(null)
         if (selectedPlaylistId === playlistId) setSelectedPlaylistId(playlists.find((p) => p.id !== playlistId)?.id ?? null)
@@ -136,13 +146,13 @@ function MusicPlayer() {
         <div className="flex flex-col h-full w-full overflow-hidden">
             <header className="flex items-center justify-between px-6 py-4 shrink-0 border-b border-ui-surface2">
                 <div>
-                    <h1 className="text-2xl font-display font-bold text-ui-text">Music Player</h1>
+                    <h1 className="text-2xl font-display font-bold text-ui-text">{t('music.title')}</h1>
                     <p className="text-sm text-ui-muted mt-0.5">{campaign.name}</p>
                 </div>
                 {activePlaylist && (
                     <div className="flex items-center gap-2 text-xs text-ui-muted bg-ui-surface border border-ui-surface2 px-3 py-1.5 rounded-lg">
                         <span className="text-hope-primary">▶</span>
-                        <span>Now playing from: <strong className="text-ui-text">{activePlaylist.name}</strong></span>
+                        <span>{t('music.nowPlayingFrom')} <strong className="text-ui-text">{activePlaylist.name}</strong></span>
                     </div>
                 )}
             </header>
@@ -150,14 +160,14 @@ function MusicPlayer() {
             <div className="flex flex-1 overflow-hidden">
                 <aside className="w-64 shrink-0 border-r border-ui-surface2 flex flex-col overflow-hidden bg-ui-bg">
                     <div className="p-4 border-b border-ui-surface2">
-                        <p className="text-xs text-ui-muted uppercase tracking-wider font-bold mb-3">Playlists</p>
+                        <p className="text-xs text-ui-muted uppercase tracking-wider font-bold mb-3">{t('music.playlists')}</p>
                         <div className="flex gap-2">
                             <input
                                 type="text"
                                 value={newPlaylistName}
                                 onChange={(e) => setNewPlaylistName(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleCreatePlaylist()}
-                                placeholder="New playlist..."
+                                placeholder={t('music.newPlaylistPlaceholder')}
                                 className="flex-1 bg-ui-surface text-ui-text text-xs px-2 py-1.5 rounded-lg outline-none border border-ui-surface2 focus:border-hope-primary transition-colors"
                             />
                             <button
@@ -171,7 +181,7 @@ function MusicPlayer() {
 
                     <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
                         {playlists.length === 0 && (
-                            <EmptyState size="sm" title="No playlists yet." description="Create one above." />
+                            <EmptyState size="sm" title={t('music.noPlaylists')} description={t('music.createOneAbove')} />
                         )}
                         {playlists.map((pl) => {
                             const isViewed = pl.id === (viewedPlaylist?.id ?? playlists[0]?.id)
@@ -205,12 +215,12 @@ function MusicPlayer() {
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEditingPlaylistId(pl.id); setEditingName(pl.name) }}
                                             className="text-ui-muted hover:text-ui-text text-[10px] transition-colors"
-                                            title="Rename"
+                                            title={t('music.rename')}
                                         >✎</button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleRemovePlaylist(pl.id) }}
                                             className="text-ui-muted hover:text-red-400 text-[10px] transition-colors"
-                                            title="Delete"
+                                            title={t('music.delete')}
                                         >✕</button>
                                     </div>
                                 </div>
@@ -225,21 +235,21 @@ function MusicPlayer() {
                             <div className="w-14 h-14 rounded-full bg-linear-to-br from-fear-secondary to-fear-light flex items-center justify-center text-ui-canvas/70 text-2xl select-none">
                                 ♩
                             </div>
-                            <p className="font-medium">Create a playlist to get started</p>
-                            <p className="text-xs">Use the panel on the left to create your first playlist.</p>
+                            <p className="font-medium">{t('music.createPlaylistCta')}</p>
+                            <p className="text-xs">{t('music.createPlaylistHint')}</p>
                         </div>
                     ) : (
                         <>
                             <div className="flex items-center justify-between px-6 py-3 border-b border-ui-surface2 shrink-0">
                                 <div>
                                     <h2 className="text-sm font-bold text-ui-text">{viewedPlaylist.name}</h2>
-                                    <p className="text-xs text-ui-muted">{tracks.length} track{tracks.length !== 1 ? 's' : ''}</p>
+                                    <p className="text-xs text-ui-muted">{t(tracks.length === 1 ? 'music.trackCountOne' : 'music.trackCountOther', { count: tracks.length })}</p>
                                 </div>
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
                                     className="flex items-center gap-1.5 text-xs bg-ui-surface hover:bg-ui-surface2 text-ui-text border border-ui-surface2 px-3 py-1.5 rounded-lg transition-colors font-medium"
                                 >
-                                    + Add Tracks
+                                    {t('music.addTracks')}
                                 </button>
                                 <input ref={fileInputRef} type="file" accept="audio/*" multiple className="hidden" onChange={handleFileImport} />
                             </div>
@@ -253,8 +263,8 @@ function MusicPlayer() {
                                         <div className="w-10 h-10 rounded-full bg-ui-surface2 group-hover:bg-fear-light/20 flex items-center justify-center text-xl text-ui-muted transition-colors select-none">
                                             ♩
                                         </div>
-                                        <p className="text-ui-muted group-hover:text-ui-text text-sm transition-colors">Click to import audio files</p>
-                                        <p className="text-ui-muted text-xs">.mp3, .ogg, .wav, .flac supported</p>
+                                        <p className="text-ui-muted group-hover:text-ui-text text-sm transition-colors">{t('music.clickToImport')}</p>
+                                        <p className="text-ui-muted text-xs">{t('music.formatsSupported')}</p>
                                     </div>
                                 ) : (
                                     <div className="flex flex-col gap-0.5">
@@ -305,14 +315,14 @@ function MusicPlayer() {
                                                                         ? MOOD_COLORS[m]
                                                                         : 'border-transparent text-ui-muted/50 hover:text-ui-muted'
                                                                 } opacity-0 group-hover:opacity-100`}
-                                                                title={m}
+                                                                title={t(MOOD_LABELS[m])}
                                                             >
                                                                 {m[0].toUpperCase()}
                                                             </button>
                                                         ))}
                                                         {track.mood && (
                                                             <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ml-1 ${MOOD_COLORS[track.mood] ?? ''}`}>
-                                                                {track.mood}
+                                                                {t(MOOD_LABELS[track.mood as Mood])}
                                                             </span>
                                                         )}
                                                     </div>
@@ -324,7 +334,7 @@ function MusicPlayer() {
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); handleRemoveTrack(track.id, index) }}
                                                         className="text-ui-muted hover:text-red-400 transition-colors text-xs opacity-0 group-hover:opacity-100 shrink-0"
-                                                        title="Remove"
+                                                        title={t('music.remove')}
                                                     >
                                                         ✕
                                                     </button>

@@ -13,10 +13,10 @@ export function buildPrepSteps(campaign: Campaign | null, vaultPath: string | nu
     const hasEncounters = (campaign?.encounters?.length ?? 0) > 0
     const hasScenes = campaign?.sessions.some((s) => s.sceneIds.length > 0) ?? false
     return [
-        { id: 'campaign', label: 'Campaña creada', done: !!campaign, link: '/campaigns', linkLabel: 'Campaigns' },
-        { id: 'session', label: 'Sesión creada', done: hasSession, link: '/campaigns', linkLabel: 'Campaigns' },
-        { id: 'vault', label: 'Vault conectado', done: !!vaultPath, link: '/settings', linkLabel: 'Settings' },
-        { id: 'encounters', label: 'Encuentros preparados', done: hasEncounters, link: '/encounter', linkLabel: 'Encounter Builder' },
-        { id: 'scenes', label: 'Escenas configuradas', done: hasScenes, link: '/scenes', linkLabel: 'Scene Tracker' },
+        { id: 'campaign', label: 'prep.campaign', done: !!campaign, link: '/campaigns', linkLabel: 'nav.campaigns' },
+        { id: 'session', label: 'prep.session', done: hasSession, link: '/campaigns', linkLabel: 'nav.campaigns' },
+        { id: 'vault', label: 'prep.vault', done: !!vaultPath, link: '/settings', linkLabel: 'nav.settings' },
+        { id: 'encounters', label: 'prep.encounters', done: hasEncounters, link: '/encounter', linkLabel: 'nav.encounter' },
+        { id: 'scenes', label: 'prep.scenes', done: hasScenes, link: '/scenes', linkLabel: 'nav.scenes' },
     ]
 }

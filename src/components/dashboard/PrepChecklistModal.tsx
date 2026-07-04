@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { Campaign } from '../../types'
 import { useSettingsStore } from '../../store/settingsStore'
 import { buildPrepSteps } from './prepSteps'
+import { useT } from '../../i18n'
 
 interface PrepChecklistModalProps {
     campaign: Campaign | null
@@ -11,6 +12,7 @@ interface PrepChecklistModalProps {
 }
 
 function PrepChecklistModal({ campaign, open, onClose }: PrepChecklistModalProps) {
+    const t = useT()
     const vaultPath = useSettingsStore((s) => s.vaultPath)
 
     useEffect(() => {
@@ -36,10 +38,10 @@ function PrepChecklistModal({ campaign, open, onClose }: PrepChecklistModalProps
             >
                 <div className="flex items-center justify-between px-6 py-4 border-b border-ui-surface2">
                     <div>
-                        <h2 className="text-ui-text font-display font-semibold text-lg">Prepará tu sesión</h2>
-                        <p className="text-ui-muted text-xs">{campaign ? campaign.name : 'Primeros pasos'}</p>
+                        <h2 className="text-ui-text font-display font-semibold text-lg">{t('prep.title')}</h2>
+                        <p className="text-ui-muted text-xs">{campaign ? campaign.name : t('prep.firstSteps')}</p>
                     </div>
-                    <button onClick={onClose} className="text-ui-muted hover:text-ui-text transition-colors text-xl font-bold" aria-label="Cerrar">✕</button>
+                    <button onClick={onClose} className="text-ui-muted hover:text-ui-text transition-colors text-xl font-bold" aria-label={t('prep.close')}>✕</button>
                 </div>
 
                 <div className="p-4 flex flex-col gap-2">
@@ -49,11 +51,11 @@ function PrepChecklistModal({ campaign, open, onClose }: PrepChecklistModalProps
                                 {item.done ? '✓' : '○'}
                             </span>
                             <span className={`text-sm flex-1 ${item.done ? 'text-ui-muted line-through' : 'text-ui-text font-medium'}`}>
-                                {item.label}
+                                {t(item.label)}
                             </span>
                             {!item.done && item.link && item.linkLabel && (
                                 <Link to={item.link} onClick={onClose} className="text-fear-light hover:text-fear-secondary text-xs transition-colors shrink-0">
-                                    {item.linkLabel} →
+                                    {t(item.linkLabel)} →
                                 </Link>
                             )}
                         </div>
@@ -67,7 +69,7 @@ function PrepChecklistModal({ campaign, open, onClose }: PrepChecklistModalProps
                                 : 'bg-ui-surface2 text-ui-muted hover:bg-ui-surface hover:text-ui-text'
                         }`}
                     >
-                        {allDone ? 'Todo listo — Activar sesión →' : 'Activar sesión →'}
+                        {allDone ? t('prep.allReadyActivate') : t('prep.activateSession')}
                     </Link>
                 </div>
             </div>

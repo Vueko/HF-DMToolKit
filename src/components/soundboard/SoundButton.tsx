@@ -1,7 +1,16 @@
+import { useT } from '../../i18n'
 import type { Sound } from '../../types'
 
 const MOOD_OPTIONS = ['calm', 'tense', 'epic', 'mystery', 'ambient'] as const
 type SoundMood = typeof MOOD_OPTIONS[number]
+
+const MOOD_LABELS: Record<SoundMood, string> = {
+    calm: 'soundboard.moodCalm',
+    tense: 'soundboard.moodTense',
+    epic: 'soundboard.moodEpic',
+    mystery: 'soundboard.moodMystery',
+    ambient: 'soundboard.moodAmbient',
+}
 
 const MOOD_COLORS: Record<SoundMood, string> = {
     calm: 'bg-hope-secondary/15 text-hope-secondary border-hope-secondary/25',
@@ -20,6 +29,7 @@ interface SoundButtonProps {
 }
 
 function SoundButton({ sound, isActive, onPlay, onRemove, onMoodChange }: SoundButtonProps) {
+    const t = useT()
     const buttonClass =
         sound.type === 'ambient' && isActive
             ? 'bg-fear-light text-ui-canvas'
@@ -35,7 +45,7 @@ function SoundButton({ sound, isActive, onPlay, onRemove, onMoodChange }: SoundB
             >
                 {sound.name}
                 {sound.type === 'ambient' && (
-                    <span className="text-[9px] ml-1.5 opacity-60">loop</span>
+                    <span className="text-[9px] ml-1.5 opacity-60">{t('soundboard.loop')}</span>
                 )}
                 {sound.mood && (
                     <span className={`ml-1.5 text-[9px] font-bold uppercase px-1 py-0.5 rounded border ${MOOD_COLORS[sound.mood as SoundMood]}`}>
@@ -55,7 +65,7 @@ function SoundButton({ sound, isActive, onPlay, onRemove, onMoodChange }: SoundB
                                     ? MOOD_COLORS[m]
                                     : 'border-transparent text-ui-muted/40 hover:text-ui-muted'
                             }`}
-                            title={m}
+                            title={t(MOOD_LABELS[m])}
                         >
                             {m[0].toUpperCase()}
                         </button>

@@ -5,14 +5,16 @@ import { PageHeader, Panel, Button } from '../components/ui'
 import { useVaultStore } from '../vault/vaultStore'
 import { BackupControls } from '../components/BackupControls'
 import { useUpdateStore } from '../store/updateStore'
+import { useT } from '../i18n'
 
 const SCALE_LABELS: Record<number, string> = { 0.9: '90%', 1.0: '100%', 1.1: '110%', 1.25: '125%' }
 const THEME_LABELS: Record<Theme, string> = { midnight: 'Midnight', ember: 'Ember', slate: 'Slate', daylight: 'Daylight' }
 
 function Settings() {
-    const { uiScale, setUiScale, theme, setTheme, vaultPath, setVaultPath } = useSettingsStore()
+    const { uiScale, setUiScale, theme, setTheme, vaultPath, setVaultPath, language, setLanguage } = useSettingsStore()
     const pickVault = useVaultStore((s) => s.pickVault)
     const [version, setVersion] = useState('')
+    const t = useT()
     useEffect(() => { window.electron.getVersion().then(setVersion) }, [])
 
     const updateStatus = useUpdateStore((s) => s.status)
@@ -20,12 +22,12 @@ function Settings() {
     const updatePercent = useUpdateStore((s) => s.percent)
     const updateError = useUpdateStore((s) => s.error)
     const updateText =
-        updateStatus === 'checking' ? 'Comprobando…'
-        : updateStatus === 'available' ? `Disponible: v${updateVersion}`
-        : updateStatus === 'not-available' ? 'Estás al día'
-        : updateStatus === 'downloading' ? `Descargando… ${updatePercent}%`
-        : updateStatus === 'downloaded' ? `Descargada v${updateVersion} — reinicia para instalar`
-        : updateStatus === 'error' ? (updateError ?? 'Error')
+        updateStatus === 'checking' ? t('settings.updateStatusChecking')
+        : updateStatus === 'available' ? t('settings.updateStatusAvailable', { version: updateVersion ?? '' })
+        : updateStatus === 'not-available' ? t('settings.updateStatusUpToDate')
+        : updateStatus === 'downloading' ? t('settings.updateStatusDownloading', { percent: updatePercent })
+        : updateStatus === 'downloaded' ? t('settings.updateStatusDownloaded', { version: updateVersion ?? '' })
+        : updateStatus === 'error' ? (updateError ?? t('settings.updateStatusErrorDefault'))
         : ''
 
     const disconnectVault = () => {
@@ -35,16 +37,16 @@ function Settings() {
 
     return (
         <div className="flex flex-col gap-6">
-            <PageHeader title="Settings" subtitle="Customize your DaggerHeart Toolkit experience" />
+            <PageHeader title={t('settings.title')} subtitle={t('settings.subtitle')} />
 
             <Panel className="flex flex-col gap-4">
                 <div>
-                    <h3 className="text-ui-text font-display font-semibold">Appearance</h3>
-                    <p className="text-ui-muted text-sm">Interface scale and theme</p>
+                    <h3 className="text-ui-text font-display font-semibold">{t('settings.appearance')}</h3>
+                    <p className="text-ui-muted text-sm">{t('settings.appearanceSubtitle')}</p>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <p className="text-ui-muted text-xs uppercase tracking-wider font-bold">Interface scale</p>
+                    <p className="text-ui-muted text-xs uppercase tracking-wider font-bold">{t('settings.interfaceScale')}</p>
                     <div className="flex gap-2">
                         {UI_SCALES.map((s) => (
                             <button
@@ -61,17 +63,34 @@ function Settings() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <p className="text-ui-muted text-xs uppercase tracking-wider font-bold">Theme</p>
+                    <p className="text-ui-muted text-xs uppercase tracking-wider font-bold">{t('settings.theme')}</p>
                     <div className="flex gap-2 flex-wrap">
-                        {THEMES.map((t) => (
+                        {THEMES.map((th) => (
                             <button
-                                key={t}
-                                onClick={() => setTheme(t)}
+                                key={th}
+                                onClick={() => setTheme(th)}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                    theme === t ? 'bg-accent text-accent-fg' : 'bg-ui-surface2 text-ui-muted hover:text-ui-text'
+                                    theme === th ? 'bg-accent text-accent-fg' : 'bg-ui-surface2 text-ui-muted hover:text-ui-text'
                                 }`}
                             >
-                                {THEME_LABELS[t]}
+                                {THEME_LABELS[th]}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                    <p className="text-ui-muted text-xs uppercase tracking-wider font-bold">{t('settings.language')}</p>
+                    <div className="flex gap-2">
+                        {(['en', 'es'] as const).map((l) => (
+                            <button
+                                key={l}
+                                onClick={() => setLanguage(l)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                    language === l ? 'bg-accent text-accent-fg' : 'bg-ui-surface2 text-ui-muted hover:text-ui-text'
+                                }`}
+                            >
+                                {l === 'en' ? 'English' : 'Español'}
                             </button>
                         ))}
                     </div>
@@ -80,38 +99,38 @@ function Settings() {
 
             <Panel className="flex flex-col gap-3">
                 <div>
-                    <h3 className="text-ui-text font-display font-semibold">Vault (Obsidian)</h3>
-                    <p className="text-ui-muted text-sm">Carpeta del vault para el World Wiki</p>
+                    <h3 className="text-ui-text font-display font-semibold">{t('settings.vaultTitle')}</h3>
+                    <p className="text-ui-muted text-sm">{t('settings.vaultSubtitle')}</p>
                 </div>
                 <p className="text-ui-text text-sm bg-ui-bg/40 rounded-lg px-3 py-2 truncate">
-                    {vaultPath ?? 'Sin vault conectado'}
+                    {vaultPath ?? t('settings.vaultNotConnected')}
                 </p>
                 <div className="flex gap-2">
-                    <Button variant="primary" onClick={() => pickVault()}>{vaultPath ? 'Cambiar carpeta' : 'Conectar vault'}</Button>
-                    {vaultPath && <Button variant="secondary" onClick={disconnectVault}>Desconectar</Button>}
+                    <Button variant="primary" onClick={() => pickVault()}>{vaultPath ? t('settings.changeFolder') : t('settings.connectVault')}</Button>
+                    {vaultPath && <Button variant="secondary" onClick={disconnectVault}>{t('settings.disconnect')}</Button>}
                 </div>
             </Panel>
 
             <Panel className="flex flex-col gap-3">
                 <div>
-                    <h3 className="text-ui-text font-display font-semibold">Backup</h3>
-                    <p className="text-ui-muted text-sm">Exporta o restaura todos tus datos</p>
+                    <h3 className="text-ui-text font-display font-semibold">{t('settings.backupTitle')}</h3>
+                    <p className="text-ui-muted text-sm">{t('settings.backupSubtitle')}</p>
                 </div>
                 <BackupControls />
             </Panel>
 
             <Panel className="flex flex-col gap-2">
-                <h3 className="text-ui-text font-display font-semibold">Acerca de</h3>
-                <p className="text-ui-muted text-sm">DaggerHeart Toolkit · v{version || '—'}</p>
+                <h3 className="text-ui-text font-display font-semibold">{t('settings.about')}</h3>
+                <p className="text-ui-muted text-sm">{t('settings.aboutVersion', { version: version || '—' })}</p>
                 <a href="https://github.com/Vueko/DaggerHeart-ToolKit" target="_blank" rel="noreferrer" className="text-accent hover:underline text-sm w-fit">
-                    Repositorio en GitHub →
+                    {t('settings.githubRepo')}
                 </a>
             </Panel>
 
             <Panel className="flex flex-col gap-3">
                 <div>
-                    <h3 className="text-ui-text font-display font-semibold">Actualizaciones</h3>
-                    <p className="text-ui-muted text-sm">Busca e instala nuevas versiones</p>
+                    <h3 className="text-ui-text font-display font-semibold">{t('settings.updatesTitle')}</h3>
+                    <p className="text-ui-muted text-sm">{t('settings.updatesSubtitle')}</p>
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
                     <Button
@@ -119,7 +138,7 @@ function Settings() {
                         onClick={() => window.electron.updater.check()}
                         disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
                     >
-                        Buscar actualizaciones
+                        {t('settings.checkUpdates')}
                     </Button>
                     {updateText && <span className="text-ui-muted text-sm">{updateText}</span>}
                 </div>

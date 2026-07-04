@@ -7,6 +7,7 @@ import { useFearStore } from '../../store/fearStore'
 import type { AdversaryCard, EncounterAdjustment, AbilityType } from '../../types'
 import { renderBold } from '../../utils/renderBold'
 import { SwordIcon, BoltIcon } from '../icons'
+import { useT } from '../../i18n'
 
 const ROLE_COST: Record<string, number> = {
     Minion: 1, Social: 1, Support: 1,
@@ -30,6 +31,7 @@ const ABILITY_STYLES: Record<AbilityType, { icon: ReactNode; label: string; text
 function getRoleCost(role?: string) { return ROLE_COST[role ?? ''] ?? 2 }
 
 function EncounterWidget() {
+    const t = useT()
     const { campaigns, currentCampaignId, currentSessionId, updateEncounterInstance, updateEncounter, setActiveEncounter } = useCampaignStore()
     const { cards } = useCardsStore()
     const { fearCount, removeFear } = useFearStore()
@@ -102,11 +104,11 @@ function EncounterWidget() {
         return (
             <div className="bg-ui-surface rounded-xl border border-ui-surface2/60 p-4 flex items-center justify-between">
                 <div>
-                    <p className="text-ui-text text-sm font-semibold">Encounter Tracker</p>
-                    <p className="text-ui-muted text-xs">No active encounter — set one in Encounter Builder</p>
+                    <p className="text-ui-text text-sm font-semibold">{t('dashboard.encounterTracker')}</p>
+                    <p className="text-ui-muted text-xs">{t('dashboard.noActiveEncounter')}</p>
                 </div>
                 <Link to="/encounter" className="px-3 py-1.5 text-xs bg-fear-light hover:bg-fear-secondary text-ui-text rounded-lg transition-colors font-medium">
-                    Open Builder
+                    {t('dashboard.openBuilder')}
                 </Link>
             </div>
         )
@@ -135,13 +137,13 @@ function EncounterWidget() {
             {/* Widget header */}
             <div className="flex items-center justify-between gap-4 shrink-0">
                 <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-fear-light bg-fear-light/10 px-2 py-0.5 rounded shrink-0">Encounter</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-fear-light bg-fear-light/10 px-2 py-0.5 rounded shrink-0">{t('dashboard.encounterChip')}</span>
                     <span className="text-ui-text text-sm font-semibold truncate">{encounter.name}</span>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                    <span className={`text-xs font-bold ${textColor}`}>{spentPoints}/{totalPoints} pts</span>
-                    <Button variant="secondary" size="sm" onClick={resetHP}>Reset HP</Button>
-                    <Link to="/encounter" className="text-xs text-ui-muted hover:text-ui-text transition-colors underline">Edit</Link>
+                    <span className={`text-xs font-bold ${textColor}`}>{t('dashboard.ptsShort', { spent: spentPoints, total: totalPoints })}</span>
+                    <Button variant="secondary" size="sm" onClick={resetHP}>{t('dashboard.resetHP')}</Button>
+                    <Link to="/encounter" className="text-xs text-ui-muted hover:text-ui-text transition-colors underline">{t('dashboard.edit')}</Link>
                 </div>
             </div>
 
@@ -153,8 +155,14 @@ function EncounterWidget() {
             {instances.length === 0 ? (
                 <p className="text-ui-muted text-xs italic">
                     {encounter.entries.length > 0
-                        ? <>Open the <Link to="/encounter" className="underline hover:text-ui-text">Encounter Builder</Link> once to activate combat tracking.</>
-                        : <>No adversaries yet. Add them in the <Link to="/encounter" className="underline hover:text-ui-text">Encounter Builder</Link>.</>
+                        ? (() => {
+                            const [before, after] = t('dashboard.openBuilderPrompt').split('{link}')
+                            return <>{before}<Link to="/encounter" className="underline hover:text-ui-text">{t('nav.encounter')}</Link>{after}</>
+                        })()
+                        : (() => {
+                            const [before, after] = t('dashboard.noAdversariesPrompt').split('{link}')
+                            return <>{before}<Link to="/encounter" className="underline hover:text-ui-text">{t('nav.encounter')}</Link>{after}</>
+                        })()
                     }
                 </p>
             ) : (
@@ -248,7 +256,7 @@ function EncounterWidget() {
                                 {/* ── Features / Abilities ── */}
                                 {hasAbilities && (
                                     <div className="px-4 pb-3">
-                                        <p className="text-card-text font-black text-[10px] uppercase tracking-widest mb-2">Features</p>
+                                        <p className="text-card-text font-black text-[10px] uppercase tracking-widest mb-2">{t('dashboard.features')}</p>
                                         <div className="flex flex-col gap-2">
                                             {(['action', 'reaction', 'fear', 'passive'] as AbilityType[]).map((type) => {
                                                 const group = card.abilities!.filter((a) => a.type === type)
@@ -267,7 +275,7 @@ function EncounterWidget() {
                                                             <button
                                                                 onClick={() => removeFear(ability.fearCost!)}
                                                                 disabled={fearCount < ability.fearCost}
-                                                                title={`Spend ${ability.fearCost} Fear`}
+                                                                title={t('dashboard.spendFear', { cost: ability.fearCost })}
                                                                 className={`shrink-0 flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded border transition-colors ${fearCount >= ability.fearCost
                                                                         ? 'text-purple-700 bg-purple-100/60 border-purple-300/60 hover:bg-purple-200/80 cursor-pointer'
                                                                         : 'text-card-text/30 bg-card-border/20 border-card-border/30 cursor-not-allowed'

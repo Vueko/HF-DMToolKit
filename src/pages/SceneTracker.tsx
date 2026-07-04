@@ -5,15 +5,17 @@ import type { Scene, SceneFlagType } from '../types'
 import { SharedMarkdown } from '../components/SharedMarkdown'
 import { Button, Input, Textarea } from '../components/ui'
 import { BoltIcon, ClockIcon, ScalesIcon } from '../components/icons'
+import { useT } from '../i18n'
 
-const FLAG_CONFIG: Record<SceneFlagType, { icon: ReactNode; bg: string; border: string; text: string; activeBg: string; placeholder: string }> = {
-    event:    { icon: <BoltIcon className="w-4 h-4"/>, bg: 'bg-hope-primary/10', border: 'border-hope-primary/25', text: 'text-hope-primary', activeBg: 'bg-hope-primary/20 border-hope-primary/50',  placeholder: 'e.g. When the players enter the forest' },
-    fear:     { icon: '💀', bg: 'bg-purple-500/10',  border: 'border-purple-500/30',   text: 'text-purple-700',  activeBg: 'bg-purple-500/20 border-purple-500/50',         placeholder: 'e.g. When darkness has consumed the land' },
-    time:     { icon: <ClockIcon className="w-4 h-4"/>, bg: 'bg-amber-500/10',   border: 'border-amber-400/30',    text: 'text-amber-700',   activeBg: 'bg-amber-500/20 border-amber-400/50',           placeholder: 'e.g. After 3 sessions / at the winter solstice' },
-    decision: { icon: <ScalesIcon className="w-4 h-4"/>, bg: 'bg-cyan-500/10',    border: 'border-cyan-500/30',     text: 'text-cyan-700',    activeBg: 'bg-cyan-500/20 border-cyan-500/50',             placeholder: 'e.g. If the players spared the merchant' },
+const FLAG_CONFIG: Record<SceneFlagType, { icon: ReactNode; bg: string; border: string; text: string; activeBg: string; label: string; placeholder: string }> = {
+    event:    { icon: <BoltIcon className="w-4 h-4"/>, bg: 'bg-hope-primary/10', border: 'border-hope-primary/25', text: 'text-hope-primary', activeBg: 'bg-hope-primary/20 border-hope-primary/50',  label: 'scenes.flagTypeEvent',    placeholder: 'scenes.flagPlaceholderEvent' },
+    fear:     { icon: '💀', bg: 'bg-purple-500/10',  border: 'border-purple-500/30',   text: 'text-purple-700',  activeBg: 'bg-purple-500/20 border-purple-500/50',         label: 'scenes.flagTypeFear',     placeholder: 'scenes.flagPlaceholderFear' },
+    time:     { icon: <ClockIcon className="w-4 h-4"/>, bg: 'bg-amber-500/10',   border: 'border-amber-400/30',    text: 'text-amber-700',   activeBg: 'bg-amber-500/20 border-amber-400/50',           label: 'scenes.flagTypeTime',     placeholder: 'scenes.flagPlaceholderTime' },
+    decision: { icon: <ScalesIcon className="w-4 h-4"/>, bg: 'bg-cyan-500/10',    border: 'border-cyan-500/30',     text: 'text-cyan-700',    activeBg: 'bg-cyan-500/20 border-cyan-500/50',             label: 'scenes.flagTypeDecision', placeholder: 'scenes.flagPlaceholderDecision' },
 }
 
 function SceneTracker() {
+    const t = useT()
     const { campaigns, currentCampaignId, updateScene, addScene, removeScene } = useCampaignStore()
     const currentCampaign = campaigns.find((c) => c.id === currentCampaignId) ?? null
 
@@ -61,8 +63,8 @@ function SceneTracker() {
         return (
             <div className="flex-1 flex items-center justify-center">
                 <div className="text-center bg-ui-surface p-8 rounded-xl border border-ui-surface2">
-                    <h2 className="text-xl text-ui-text font-display mb-2">No Campaign Selected</h2>
-                    <p className="text-ui-muted text-sm">Please go to the Campaigns page to select or create a campaign.</p>
+                    <h2 className="text-xl text-ui-text font-display mb-2">{t('scenes.noCampaignSelected')}</h2>
+                    <p className="text-ui-muted text-sm">{t('scenes.noCampaignHint')}</p>
                 </div>
             </div>
         )
@@ -109,9 +111,9 @@ function SceneTracker() {
     }
 
     const statusConfig: Record<Scene['status'], { label: string; badge: string }> = {
-        upcoming: { label: 'Upcoming', badge: 'bg-ui-surface2 text-ui-muted hover:bg-ui-surface border border-ui-surface2' },
-        active:   { label: 'Active',   badge: 'bg-hope-primary text-white hover:bg-hope-gold' },
-        completed:{ label: 'Done',     badge: 'bg-fear-light/20 text-fear-light hover:bg-fear-light/30 border border-fear-light/30' },
+        upcoming: { label: 'scenes.statusUpcoming', badge: 'bg-ui-surface2 text-ui-muted hover:bg-ui-surface border border-ui-surface2' },
+        active:   { label: 'scenes.statusActive',   badge: 'bg-hope-primary text-white hover:bg-hope-gold' },
+        completed:{ label: 'scenes.statusDone',     badge: 'bg-fear-light/20 text-fear-light hover:bg-fear-light/30 border border-fear-light/30' },
     }
 
     const renderSceneCard = (scene: Scene) => {
@@ -145,7 +147,7 @@ function SceneTracker() {
                         }}
                         className={`text-[10px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-wide transition-colors shrink-0 ${cfg.badge}`}
                     >
-                        {cfg.label}
+                        {t(cfg.label)}
                     </button>
                 </div>
 
@@ -166,7 +168,7 @@ function SceneTracker() {
                                 <div className="flex flex-col gap-1">
                                     <div className="flex justify-between items-center">
                                         <span className={`text-[10px] font-bold ${fearTriggered ? 'text-purple-700' : 'text-purple-500/80'}`}>
-                                            {fearTriggered ? '⚠ TRIGGERED' : 'Fear progress'}
+                                            {fearTriggered ? `⚠ ${t('scenes.triggered')}` : t('scenes.fearProgress')}
                                         </span>
                                         <span className="text-[10px] font-mono font-bold text-purple-700">{fearCount} / {scene.fearThreshold}</span>
                                     </div>
@@ -194,7 +196,7 @@ function SceneTracker() {
                     <div className="flex flex-col gap-1.5 pt-1" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between">
                             <span className={`text-[10px] font-black uppercase tracking-widest ${isFull ? 'text-hope-gold' : 'text-ui-muted'}`}>
-                                {isFull ? '⚠ Clock Full' : '⏱ Clock'}
+                                {isFull ? `⚠ ${t('scenes.clockFull')}` : `⏱ ${t('scenes.clock')}`}
                             </span>
                             <span className={`text-xs font-bold tabular-nums ${isFull ? 'text-hope-gold' : 'text-ui-text'}`}>
                                 {count} / {max}
@@ -224,7 +226,7 @@ function SceneTracker() {
                 {/* Simple counter (no max set) */}
                 {!hasCountdown && (
                     <div className="flex items-center gap-2 pt-0.5" onClick={(e) => e.stopPropagation()}>
-                        <span className="text-[10px] uppercase font-bold text-ui-muted tracking-wider">Count</span>
+                        <span className="text-[10px] uppercase font-bold text-ui-muted tracking-wider">{t('scenes.count')}</span>
                         <div className="flex items-center gap-1 bg-ui-bg/60 rounded-lg px-1.5 py-0.5 ml-auto">
                             <button
                                 onClick={() => handleUpdateScene(scene.id, { count: Math.max(0, count - 1) })}
@@ -250,7 +252,7 @@ function SceneTracker() {
             {/* Sessions sidebar */}
             <div className="w-52 shrink-0 flex flex-col border-r border-ui-surface2 overflow-y-auto bg-ui-surface/30">
                 <div className="px-4 pt-5 pb-3 shrink-0">
-                    <h1 className="text-ui-text font-display text-lg font-bold">Scene Tracker</h1>
+                    <h1 className="text-ui-text font-display text-lg font-bold">{t('scenes.title')}</h1>
                     <p className="text-ui-muted text-xs mt-0.5 truncate">{currentCampaign.name}</p>
                 </div>
 
@@ -263,7 +265,7 @@ function SceneTracker() {
                                 : 'text-ui-muted hover:text-ui-text hover:bg-ui-surface2/60'
                         }`}
                     >
-                        <span>All Scenes</span>
+                        <span>{t('scenes.allScenes')}</span>
                         <span className="text-[10px] bg-ui-surface2 px-1.5 py-0.5 rounded-full text-ui-muted font-bold">{scenes.length}</span>
                     </button>
 
@@ -275,14 +277,14 @@ function SceneTracker() {
                                 : 'text-ui-muted hover:text-ui-text hover:bg-ui-surface2/60'
                         }`}
                     >
-                        <span>Unassigned</span>
+                        <span>{t('scenes.unassigned')}</span>
                         <span className="text-[10px] bg-ui-surface2 px-1.5 py-0.5 rounded-full text-ui-muted font-bold">{unassignedCount}</span>
                     </button>
 
                     {sessions.length > 0 && (
                         <>
                             <div className="px-3 pt-3 pb-1">
-                                <span className="text-[10px] text-ui-muted uppercase font-bold tracking-widest">Sessions</span>
+                                <span className="text-[10px] text-ui-muted uppercase font-bold tracking-widest">{t('scenes.sessions')}</span>
                             </div>
                             {sessions.map((s) => (
                                 <button
@@ -304,7 +306,7 @@ function SceneTracker() {
                     )}
 
                     {sessions.length === 0 && (
-                        <p className="px-3 py-2 text-xs text-ui-muted italic">No sessions yet.</p>
+                        <p className="px-3 py-2 text-xs text-ui-muted italic">{t('scenes.noSessions')}</p>
                     )}
                 </nav>
             </div>
@@ -315,18 +317,18 @@ function SceneTracker() {
                     <div>
                         <h2 className="text-ui-text font-semibold">
                             {selectedSessionId === 'all'
-                                ? 'All Scenes'
+                                ? t('scenes.allScenes')
                                 : selectedSessionId === 'unassigned'
-                                ? 'Unassigned Scenes'
-                                : selectedSession?.name ?? 'Session'}
+                                ? t('scenes.unassignedScenes')
+                                : selectedSession?.name ?? t('scenes.session')}
                         </h2>
-                        <p className="text-ui-muted text-xs">{visibleScenes.length} scene{visibleScenes.length !== 1 ? 's' : ''}</p>
+                        <p className="text-ui-muted text-xs">{t(visibleScenes.length === 1 ? 'scenes.sceneCountOne' : 'scenes.sceneCountOther', { count: visibleScenes.length })}</p>
                     </div>
                     <button
                         onClick={() => { setIsCreating(true); setDescriptionMode('write') }}
                         className="px-4 py-2 bg-hope-primary hover:bg-hope-gold text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
                     >
-                        + New Scene
+                        + {t('scenes.newScene')}
                     </button>
                 </header>
 
@@ -336,36 +338,36 @@ function SceneTracker() {
                         <div className="flex flex-col gap-3">
                             <div className="flex items-center gap-2 pb-2 border-b border-ui-surface2">
                                 <span className="w-2 h-2 rounded-full bg-ui-muted shrink-0" />
-                                <h3 className="text-ui-text text-sm font-semibold">Upcoming</h3>
+                                <h3 className="text-ui-text text-sm font-semibold">{t('scenes.colUpcoming')}</h3>
                                 <span className="ml-auto text-[10px] font-bold text-ui-muted bg-ui-surface2 px-2 py-0.5 rounded-full">{upcoming.length}</span>
                             </div>
                             <div className="flex flex-col gap-3">
                                 {upcoming.map(renderSceneCard)}
-                                {upcoming.length === 0 && <p className="text-xs text-ui-muted text-center py-6">No upcoming scenes</p>}
+                                {upcoming.length === 0 && <p className="text-xs text-ui-muted text-center py-6">{t('scenes.noUpcoming')}</p>}
                             </div>
                         </div>
 
                         <div className="flex flex-col gap-3">
                             <div className="flex items-center gap-2 pb-2 border-b border-hope-primary/40">
                                 <span className="w-2 h-2 rounded-full bg-hope-primary animate-pulse shrink-0" />
-                                <h3 className="text-ui-text text-sm font-semibold">Active</h3>
+                                <h3 className="text-ui-text text-sm font-semibold">{t('scenes.colActive')}</h3>
                                 <span className="ml-auto text-[10px] font-bold text-ui-muted bg-ui-surface2 px-2 py-0.5 rounded-full">{active.length}</span>
                             </div>
                             <div className="flex flex-col gap-3">
                                 {active.map(renderSceneCard)}
-                                {active.length === 0 && <p className="text-xs text-ui-muted text-center py-6">No active scenes</p>}
+                                {active.length === 0 && <p className="text-xs text-ui-muted text-center py-6">{t('scenes.noActive')}</p>}
                             </div>
                         </div>
 
                         <div className="flex flex-col gap-3">
                             <div className="flex items-center gap-2 pb-2 border-b border-fear-light/40">
                                 <span className="w-2 h-2 rounded-full bg-fear-light shrink-0" />
-                                <h3 className="text-ui-text text-sm font-semibold">Completed</h3>
+                                <h3 className="text-ui-text text-sm font-semibold">{t('scenes.colCompleted')}</h3>
                                 <span className="ml-auto text-[10px] font-bold text-ui-muted bg-ui-surface2 px-2 py-0.5 rounded-full">{completed.length}</span>
                             </div>
                             <div className="flex flex-col gap-3">
                                 {completed.map(renderSceneCard)}
-                                {completed.length === 0 && <p className="text-xs text-ui-muted text-center py-6">No completed scenes</p>}
+                                {completed.length === 0 && <p className="text-xs text-ui-muted text-center py-6">{t('scenes.noCompleted')}</p>}
                             </div>
                         </div>
 
@@ -380,7 +382,7 @@ function SceneTracker() {
 
                         <div className="flex items-center justify-between p-6 border-b border-ui-surface2">
                             <h2 className="text-xl font-display font-semibold text-ui-text">
-                                {isCreating ? 'Create New Scene' : 'Edit Scene'}
+                                {isCreating ? t('scenes.createTitle') : t('scenes.editTitle')}
                             </h2>
                             <Button variant="ghost" size="sm" onClick={() => { setEditingScene(null); setIsCreating(false) }}>✕</Button>
                         </div>
@@ -388,7 +390,7 @@ function SceneTracker() {
                         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
 
                             <div className="flex flex-col gap-2">
-                                <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">Scene Title</label>
+                                <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">{t('scenes.sceneTitle')}</label>
                                 <Input
                                     theme="hope"
                                     type="text"
@@ -397,13 +399,13 @@ function SceneTracker() {
                                         ? handleUpdateScene(editingScene.id, { title: e.target.value })
                                         : setNewTitle(e.target.value)
                                     }
-                                    placeholder="e.g. The Goblin Ambush"
+                                    placeholder={t('scenes.sceneTitlePlaceholder')}
                                 />
                             </div>
 
                             <div className="flex flex-col gap-3">
                                 <div className="flex flex-col gap-2">
-                                    <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">Trigger Type</label>
+                                    <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">{t('scenes.triggerType')}</label>
                                     <div className="flex gap-1.5">
                                         {(['event', 'fear', 'time', 'decision'] as SceneFlagType[]).map((type) => {
                                             const cfg = FLAG_CONFIG[type]
@@ -423,7 +425,7 @@ function SceneTracker() {
                                                     }`}
                                                 >
                                                     <span>{cfg.icon}</span>
-                                                    <span className="capitalize">{type}</span>
+                                                    <span className="capitalize">{t(cfg.label)}</span>
                                                 </button>
                                             )
                                         })}
@@ -431,7 +433,7 @@ function SceneTracker() {
                                 </div>
 
                                 <div className="flex flex-col gap-2">
-                                    <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">Trigger Condition</label>
+                                    <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">{t('scenes.triggerCondition')}</label>
                                     <Input
                                         theme="hope"
                                         type="text"
@@ -440,13 +442,13 @@ function SceneTracker() {
                                             ? handleUpdateScene(editingScene.id, { flag: e.target.value })
                                             : setNewFlag(e.target.value)
                                         }
-                                        placeholder={FLAG_CONFIG[editingScene ? (editingScene.flagType ?? 'event') : newFlagType].placeholder}
+                                        placeholder={t(FLAG_CONFIG[editingScene ? (editingScene.flagType ?? 'event') : newFlagType].placeholder)}
                                     />
                                 </div>
 
                                 {(editingScene ? (editingScene.flagType ?? 'event') : newFlagType) === 'fear' && (
                                     <div className="flex flex-col gap-2">
-                                        <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">Fear Threshold</label>
+                                        <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">{t('scenes.fearThreshold')}</label>
                                         <div className="flex items-center gap-3">
                                             <div className="w-36 shrink-0">
                                                 <Input
@@ -460,17 +462,17 @@ function SceneTracker() {
                                                         if (editingScene) handleUpdateScene(editingScene.id, { fearThreshold: val })
                                                         else setNewFearThreshold(val ?? 0)
                                                     }}
-                                                    placeholder="e.g. 8"
+                                                    placeholder={t('scenes.fearThresholdPlaceholder')}
                                                 />
                                             </div>
-                                            <p className="text-xs text-ui-muted flex-1">Triggers when fear reaches this value (max 12).</p>
+                                            <p className="text-xs text-ui-muted flex-1">{t('scenes.fearThresholdHint')}</p>
                                         </div>
                                     </div>
                                 )}
                             </div>
 
                             <div className="flex flex-col gap-2">
-                                <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">⏱ Countdown Clock</label>
+                                <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">⏱ {t('scenes.countdownClock')}</label>
                                 <div className="flex items-center gap-3">
                                     <div className="w-36 shrink-0">
                                         <Input
@@ -489,7 +491,7 @@ function SceneTracker() {
                                                     setNewCountMax(val)
                                                 }
                                             }}
-                                            placeholder="0 = off"
+                                            placeholder={t('scenes.countMaxPlaceholder')}
                                         />
                                     </div>
                                     {(() => {
@@ -499,7 +501,7 @@ function SceneTracker() {
                                         return max > 0 ? (
                                             <div className="flex-1 flex flex-col gap-1">
                                                 <div className="flex justify-between text-xs text-ui-muted">
-                                                    <span>Progress</span>
+                                                    <span>{t('scenes.progress')}</span>
                                                     <span className="font-bold text-ui-text">{count} / {max}</span>
                                                 </div>
                                                 <div className="h-2 bg-ui-surface2 rounded-full overflow-hidden">
@@ -507,7 +509,7 @@ function SceneTracker() {
                                                 </div>
                                             </div>
                                         ) : (
-                                            <p className="text-xs text-ui-muted flex-1">Set a max to enable a countdown clock. Fills from 0 → max.</p>
+                                            <p className="text-xs text-ui-muted flex-1">{t('scenes.countdownHint')}</p>
                                         )
                                     })()}
                                 </div>
@@ -515,16 +517,16 @@ function SceneTracker() {
 
                             <div className="flex flex-col gap-2 flex-1 min-h-[200px]">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">Description</label>
+                                    <label className="text-xs font-semibold text-ui-muted uppercase tracking-wider">{t('scenes.description')}</label>
                                     <div className="flex bg-ui-bg border border-ui-surface2 rounded p-0.5">
                                         <button
                                             onClick={() => setDescriptionMode('write')}
                                             className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${descriptionMode === 'write' ? 'bg-ui-surface text-ui-text shadow-sm' : 'text-ui-muted hover:text-ui-text'}`}
-                                        >Write</button>
+                                        >{t('scenes.write')}</button>
                                         <button
                                             onClick={() => setDescriptionMode('preview')}
                                             className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${descriptionMode === 'preview' ? 'bg-ui-surface text-ui-text shadow-sm' : 'text-ui-muted hover:text-ui-text'}`}
-                                        >Preview</button>
+                                        >{t('scenes.preview')}</button>
                                     </div>
                                 </div>
                                 {descriptionMode === 'write' ? (
@@ -536,14 +538,14 @@ function SceneTracker() {
                                             : setNewDescription(e.target.value)
                                         }
                                         className="flex-1 font-mono"
-                                        placeholder="Write your scene notes, DCs, or narrative text here..."
+                                        placeholder={t('scenes.descriptionPlaceholder')}
                                     />
                                 ) : (
                                     <div className="w-full bg-ui-surface border border-ui-surface2 rounded-xl p-4 overflow-y-auto min-h-[160px] prose max-w-none text-ui-text">
                                         {(editingScene ? editingScene.description : newDescription) ? (
                                             <SharedMarkdown>{(editingScene ? editingScene.description : newDescription) || ''}</SharedMarkdown>
                                         ) : (
-                                            <p className="italic opacity-50 text-sm">Nothing written yet.</p>
+                                            <p className="italic opacity-50 text-sm">{t('scenes.nothingWritten')}</p>
                                         )}
                                     </div>
                                 )}
@@ -553,14 +555,14 @@ function SceneTracker() {
                         <div className="p-6 border-t border-ui-surface2 flex justify-between bg-ui-surface/50 rounded-b-2xl">
                             {editingScene ? (
                                 <Button variant="destructive" onClick={() => { removeScene(currentCampaignId, editingScene.id); setEditingScene(null) }}>
-                                    Delete Scene
+                                    {t('scenes.deleteScene')}
                                 </Button>
                             ) : (
                                 <div />
                             )}
                             <div className="flex gap-3">
                                 <Button variant="ghost" onClick={() => { setEditingScene(null); setIsCreating(false) }}>
-                                    {isCreating ? 'Cancel' : 'Close'}
+                                    {isCreating ? t('scenes.cancel') : t('scenes.close')}
                                 </Button>
                                 {isCreating && (
                                     <button
@@ -568,7 +570,7 @@ function SceneTracker() {
                                         disabled={!newTitle.trim()}
                                         className="px-6 py-2 text-sm bg-hope-primary hover:bg-hope-gold text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Create Scene
+                                        {t('scenes.createScene')}
                                     </button>
                                 )}
                             </div>

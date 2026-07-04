@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useSettingsStore, migrateSettingsV1toV2 } from './settingsStore'
 
-beforeEach(() => useSettingsStore.setState({ uiScale: 1.0, theme: 'midnight', vaultPath: null, playerWidgetCollapsed: false }))
+beforeEach(() => useSettingsStore.setState({ uiScale: 1.0, theme: 'midnight', vaultPath: null, playerWidgetCollapsed: false, language: 'en' }))
 
 describe('settingsStore', () => {
     it('setUiScale', () => {
@@ -19,6 +19,10 @@ describe('settingsStore', () => {
     it('setPlayerWidgetCollapsed', () => {
         useSettingsStore.getState().setPlayerWidgetCollapsed(true)
         expect(useSettingsStore.getState().playerWidgetCollapsed).toBe(true)
+    })
+    it('setLanguage', () => {
+        useSettingsStore.getState().setLanguage('es')
+        expect(useSettingsStore.getState().language).toBe('es')
     })
 })
 

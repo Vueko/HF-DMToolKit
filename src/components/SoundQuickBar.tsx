@@ -1,10 +1,19 @@
 import { useState } from 'react'
 import { useSoundboardStore } from '../store/soundboardStore'
 import { useSoundboard } from '../context/SoundboardContext'
+import { useT } from '../i18n'
 import type { Sound } from '../types'
 
 const MOOD_OPTIONS = ['calm', 'tense', 'epic', 'mystery', 'ambient'] as const
 type SoundMood = typeof MOOD_OPTIONS[number]
+
+const MOOD_LABELS: Record<SoundMood, string> = {
+    calm: 'soundboard.moodCalm',
+    tense: 'soundboard.moodTense',
+    epic: 'soundboard.moodEpic',
+    mystery: 'soundboard.moodMystery',
+    ambient: 'soundboard.moodAmbient',
+}
 
 const MOOD_TAB_COLORS: Record<SoundMood, string> = {
     calm: 'text-hope-secondary',
@@ -23,6 +32,7 @@ const MOOD_TAB_ACTIVE: Record<SoundMood, string> = {
 }
 
 function SoundQuickBar() {
+    const t = useT()
     const { sounds, activeAmbientIds } = useSoundboardStore()
     const { toggleAmbient, playOneshot } = useSoundboard()
     const [activeTab, setActiveTab] = useState<SoundMood | null>(null)
@@ -54,7 +64,7 @@ function SoundQuickBar() {
                                 : `${MOOD_TAB_COLORS[m]} opacity-40 hover:opacity-70`
                         }`}
                     >
-                        {m}
+                        {t(MOOD_LABELS[m])}
                     </button>
                 ))}
             </div>
@@ -78,7 +88,7 @@ function SoundQuickBar() {
                         >
                             {sound.name}
                             {sound.type === 'ambient' && isActive && (
-                                <span className="text-[9px] opacity-60">loop</span>
+                                <span className="text-[9px] opacity-60">{t('soundboard.loop')}</span>
                             )}
                         </button>
                     )

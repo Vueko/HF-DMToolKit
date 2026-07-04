@@ -6,6 +6,7 @@ import { useFearStore } from '../../store/fearStore'
 import type { EnvironmentCard, EnvironmentFeatureType } from '../../types'
 import { renderBold } from '../../utils/renderBold'
 import { SwordIcon, BoltIcon } from '../icons'
+import { useT } from '../../i18n'
 
 const FEATURE_STYLES: Record<EnvironmentFeatureType, { label: string; icon: ReactNode; text: string; border: string }> = {
     action:  { label: 'Action',       icon: <SwordIcon className="w-3 h-3" />, text: 'text-orange-700', border: 'border-l-orange-600' },
@@ -14,6 +15,7 @@ const FEATURE_STYLES: Record<EnvironmentFeatureType, { label: string; icon: Reac
 }
 
 function ActiveCardsWidget() {
+    const t = useT()
     const { campaigns, currentCampaignId, currentSessionId, removeCardFromSession } = useCampaignStore()
     const { cards } = useCardsStore()
     const { fearCount, removeFear } = useFearStore()
@@ -33,8 +35,8 @@ function ActiveCardsWidget() {
     if (!currentCampaignId || !currentSessionId) {
         return (
             <div className="bg-ui-surface rounded-xl border border-ui-surface2/60 p-5 flex flex-col gap-3">
-                <h3 className="text-ui-text font-display font-semibold">Active Cards</h3>
-                <p className="text-ui-muted text-sm text-center py-4">No active session. Go to Campaigns to set one.</p>
+                <h3 className="text-ui-text font-display font-semibold">{t('dashboard.activeCards')}</h3>
+                <p className="text-ui-muted text-sm text-center py-4">{t('dashboard.noActiveSessionGoCampaigns')}</p>
             </div>
         )
     }
@@ -43,12 +45,12 @@ function ActiveCardsWidget() {
         <div className="bg-ui-surface rounded-xl border border-ui-surface2/60 p-5 flex flex-col gap-4">
 
             <div className="flex items-center justify-between">
-                <h3 className="text-ui-text font-display font-semibold">Active Cards</h3>
-                <span className="text-ui-muted text-xs">{envInstances.length} environment card{envInstances.length !== 1 ? 's' : ''} in play</span>
+                <h3 className="text-ui-text font-display font-semibold">{t('dashboard.activeCards')}</h3>
+                <span className="text-ui-muted text-xs">{t('dashboard.envCardsInPlay', { count: envInstances.length })}</span>
             </div>
 
             {envInstances.length === 0 ? (
-                <p className="text-ui-muted text-sm text-center py-4">No environment cards in this session. Add from the Cards page.</p>
+                <p className="text-ui-muted text-sm text-center py-4">{t('dashboard.noEnvCards')}</p>
             ) : (
                 <div className="flex flex-row flex-wrap gap-3 items-start">
                     {envInstances.map((instance) => {
@@ -90,7 +92,7 @@ function ActiveCardsWidget() {
                                 {/* Features */}
                                 {hasFeatures && (
                                     <div className="px-4 pb-3">
-                                        <p className="text-card-text font-black text-[10px] uppercase tracking-widest mb-2">Features</p>
+                                        <p className="text-card-text font-black text-[10px] uppercase tracking-widest mb-2">{t('dashboard.features')}</p>
                                         <div className="flex flex-col gap-2">
                                             {(['action', 'passive', 'fear'] as EnvironmentFeatureType[]).map((type) => {
                                                 const group = (envCard.features ?? []).filter((f) => f.type === type)
@@ -109,7 +111,7 @@ function ActiveCardsWidget() {
                                                             <button
                                                                 onClick={() => removeFear(feature.fearCost!)}
                                                                 disabled={fearCount < feature.fearCost}
-                                                                title={`Spend ${feature.fearCost} Fear`}
+                                                                title={t('dashboard.spendFear', { cost: feature.fearCost })}
                                                                 className={`shrink-0 flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded border transition-colors ${
                                                                     fearCount >= feature.fearCost
                                                                         ? 'text-purple-700 bg-purple-100/60 border-purple-300/60 hover:bg-purple-200/80 cursor-pointer'
@@ -132,7 +134,7 @@ function ActiveCardsWidget() {
                                         onClick={() => removeCardFromSession(currentCampaignId, currentSessionId, instance.instanceId)}
                                         className="text-[10px] text-card-text/40 hover:text-red-600 transition-colors font-semibold uppercase tracking-wide"
                                     >
-                                        Remove
+                                        {t('dashboard.remove')}
                                     </button>
                                 </div>
 

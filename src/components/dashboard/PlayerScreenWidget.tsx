@@ -3,6 +3,7 @@ import { useCampaignStore } from '../../store/campaignStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import type { FogZone, PlayerScreenImage, MapLibraryEntry } from '../../types'
 import { generateId } from '../../utils/generateId'
+import { useT } from '../../i18n'
 
 const MAP_HEIGHT = 420
 
@@ -11,6 +12,7 @@ type FogInteract =
     | { kind: 'resize'; zoneId: string; startPct: { x: number; y: number }; origZone: { x: number; y: number; w: number; h: number } }
 
 function PlayerScreenWidget() {
+    const t = useT()
     const {
         campaigns, currentCampaignId, updateCampaignMap,
         addPlayerScreenImage, removePlayerScreenImage, setActiveMap,
@@ -267,9 +269,9 @@ function PlayerScreenWidget() {
 
     const clearAllFog = useCallback(() => {
         if (!currentCampaignId) return
-        if (!window.confirm('Clear revealed zones? The entire map will return to fog.')) return
+        if (!window.confirm(t('player.clearFogConfirm'))) return
         updateCampaignMap(currentCampaignId, { fogZones: [] })
-    }, [currentCampaignId, updateCampaignMap])
+    }, [currentCampaignId, updateCampaignMap, t])
 
     // Optional-chained deps (campaign?.activeMapStoredId, mapData?.fogZones) make React Compiler flag this; intentional push-on-change
     // eslint-disable-next-line react-hooks/preserve-manual-memoization
@@ -360,19 +362,19 @@ function PlayerScreenWidget() {
                 <div className="flex items-center gap-2.5">
                     <button
                         onClick={() => setPlayerWidgetCollapsed(!playerWidgetCollapsed)}
-                        title={playerWidgetCollapsed ? 'Desplegar' : 'Plegar'}
-                        aria-label={playerWidgetCollapsed ? 'Desplegar' : 'Plegar'}
+                        title={playerWidgetCollapsed ? t('player.expand') : t('player.collapse')}
+                        aria-label={playerWidgetCollapsed ? t('player.expand') : t('player.collapse')}
                         className="text-ui-muted hover:text-ui-text transition-colors -ml-1 p-0.5 rounded"
                     >
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-150 ${playerWidgetCollapsed ? '' : 'rotate-90'}`}>
                             <path d="M9 6l6 6-6 6" />
                         </svg>
                     </button>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted">Player Screen</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted">{t('player.playerScreen')}</p>
                     {isOpen && (
                         <div className="flex items-center gap-1.5">
                             <div className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]" />
-                            <span className="text-[10px] text-ui-muted">Window open</span>
+                            <span className="text-[10px] text-ui-muted">{t('player.windowOpen')}</span>
                         </div>
                     )}
                 </div>
@@ -381,14 +383,14 @@ function PlayerScreenWidget() {
                         {mapUrl && (
                             <button
                                 onClick={handleToggleRotation}
-                                title={rotation === 0 ? 'Rotar a vertical' : 'Rotar a horizontal'}
+                                title={rotation === 0 ? t('player.rotateToVertical') : t('player.rotateToHorizontal')}
                                 className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-2 py-1 rounded-lg transition-colors text-xs"
                             >
-                                {rotation === 0 ? '↻ Rotar' : '↺ Rotar'}
+                                {rotation === 0 ? `↻ ${t('player.rotate')}` : `↺ ${t('player.rotate')}`}
                             </button>
                         )}
                         <button onClick={handleCloseWindow} className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-2 py-1 rounded-lg transition-colors text-xs">
-                            Close Window
+                            {t('player.closeWindow')}
                         </button>
                     </div>
                 ) : (
@@ -396,10 +398,10 @@ function PlayerScreenWidget() {
                         {mapUrl && (
                             <button
                                 onClick={handleToggleRotation}
-                                title={rotation === 0 ? 'Rotar a vertical' : 'Rotar a horizontal'}
+                                title={rotation === 0 ? t('player.rotateToVertical') : t('player.rotateToHorizontal')}
                                 className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-2 py-1 rounded-lg transition-colors text-xs"
                             >
-                                {rotation === 0 ? '↻ Rotar' : '↺ Rotar'}
+                                {rotation === 0 ? `↻ ${t('player.rotate')}` : `↺ ${t('player.rotate')}`}
                             </button>
                         )}
                         {displays.length > 1 && (
@@ -410,13 +412,13 @@ function PlayerScreenWidget() {
                             >
                                 {displays.map(d => (
                                     <option key={d.index} value={d.index}>
-                                        {d.label}{d.isPrimary ? ' (primary)' : ''}
+                                        {d.label}{d.isPrimary ? ` (${t('player.primary')})` : ''}
                                     </option>
                                 ))}
                             </select>
                         )}
                         <button onClick={handleOpenWindow} className="bg-fear-light hover:bg-fear-secondary text-ui-canvas px-3 py-1 rounded-lg transition-colors text-xs font-medium">
-                            Open Window
+                            {t('player.openWindow')}
                         </button>
                     </div>
                 )}
@@ -426,16 +428,16 @@ function PlayerScreenWidget() {
             {/* Toolbar */}
             <div className="flex items-center justify-between px-4 py-2 border-b border-ui-surface2/40 bg-ui-bg/30">
                 <span className="text-[10px] text-ui-muted italic hidden lg:block">
-                    {mapUrl ? 'Drag to reveal · Click zone to move/resize/delete' : 'Set a map to start editing fog'}
+                    {mapUrl ? t('player.fogHint') : t('player.setMapToEditFog')}
                 </span>
                 <div className="flex items-center gap-1.5 ml-auto">
                     {mapUrl && (
                         <>
                             <button onClick={revealAll} className="px-2 py-1 text-xs bg-ui-surface2 text-ui-text rounded-lg border border-ui-surface2 hover:bg-ui-surface transition-colors">
-                                Reveal All
+                                {t('player.revealAll')}
                             </button>
                             <button onClick={clearAllFog} className="px-2 py-1 text-xs bg-red-900/10 text-red-400 border border-red-900/20 rounded-lg hover:bg-red-900/20 transition-colors">
-                                Clear Fog
+                                {t('player.clearFog')}
                             </button>
                         </>
                     )}
@@ -445,7 +447,7 @@ function PlayerScreenWidget() {
                             disabled={!mapUrl}
                             className="px-2 py-1 text-xs bg-hope-primary text-white rounded-lg hover:bg-hope-primary/80 transition-colors disabled:opacity-50"
                         >
-                            Push to Players
+                            {t('player.pushToPlayers')}
                         </button>
                     )}
                     <div className="flex items-center gap-1 ml-1 pl-1 border-l border-ui-surface2">
@@ -454,12 +456,12 @@ function PlayerScreenWidget() {
                             disabled={saving}
                             className="px-2 py-1 text-xs bg-ui-surface2 border border-ui-surface2 text-ui-text rounded-lg hover:border-fear-light/50 transition-colors disabled:opacity-50"
                         >
-                            {mapUrl ? 'Change Map' : 'Set Map'}
+                            {mapUrl ? t('player.changeMap') : t('player.setMap')}
                         </button>
                         {mapUrl && (
                             <button
                                 onClick={handleToggleRotation}
-                                title={rotation === 0 ? 'Rotar a vertical' : 'Rotar a horizontal'}
+                                title={rotation === 0 ? t('player.rotateToVertical') : t('player.rotateToHorizontal')}
                                 className="px-2 py-1 text-xs bg-ui-surface2 border border-ui-surface2 text-ui-text rounded-lg hover:border-fear-light/50 transition-colors"
                             >
                                 {rotation === 0 ? '↻' : '↺'}
@@ -487,12 +489,12 @@ function PlayerScreenWidget() {
             >
                 {!mapUrl ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-ui-muted gap-2">
-                        <p className="text-sm">No map set.</p>
+                        <p className="text-sm">{t('player.noMapSet')}</p>
                         <button
                             onClick={() => mapFileRef.current?.click()}
                             className="text-xs bg-ui-surface2 border border-ui-surface2 text-ui-text px-3 py-1.5 rounded-lg hover:border-fear-light/50 transition-colors"
                         >
-                            Set Map Canvas
+                            {t('player.setMapCanvas')}
                         </button>
                     </div>
                 ) : (
@@ -506,7 +508,7 @@ function PlayerScreenWidget() {
                     >
                         <img
                             src={mapUrl}
-                            alt="Player Map"
+                            alt={t('player.playerMapAlt')}
                             className="max-w-none block pointer-events-none"
                             draggable={false}
                             style={rotation === 90 ? { transform: 'rotate(90deg)', transformOrigin: 'center center' } : undefined}
@@ -568,7 +570,7 @@ function PlayerScreenWidget() {
 
                 {!isOpen && mapUrl && (
                     <div className="absolute bottom-2 left-2 px-2 py-1 bg-ui-surface/80 rounded text-[10px] text-ui-muted border border-ui-surface2/40">
-                        Open Player Window to push content
+                        {t('player.openWindowToPush')}
                     </div>
                 )}
             </div>
@@ -579,17 +581,17 @@ function PlayerScreenWidget() {
                 {/* Image Library */}
                 <div className="flex-1 flex flex-col gap-3 min-w-0">
                     <div className="flex items-center justify-between">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-ui-muted/60">Image Library</p>
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-ui-muted/60">{t('player.imageLibrary')}</p>
                         <button
                             onClick={() => imageFileRef.current?.click()}
                             disabled={saving}
                             className="bg-ui-surface2 border border-ui-surface2 text-ui-text text-xs px-2 py-1 rounded-lg hover:border-fear-light/50 transition-colors disabled:opacity-50"
                         >
-                            + Import
+                            {t('player.import')}
                         </button>
                     </div>
                     {images.length === 0 ? (
-                        <p className="text-ui-muted text-xs italic text-center py-2">No images.</p>
+                        <p className="text-ui-muted text-xs italic text-center py-2">{t('player.noImages')}</p>
                     ) : (
                         <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2">
                             {images.map(image => (
@@ -613,7 +615,7 @@ function PlayerScreenWidget() {
                                 </p>
                             </div>
                             <button onClick={handleClearOverlay} className="text-ui-muted hover:text-ui-text hover:bg-ui-surface2/40 px-2 py-1 rounded-lg transition-colors text-[10px] shrink-0">
-                                Clear
+                                {t('player.clear')}
                             </button>
                         </div>
                     )}
@@ -625,17 +627,17 @@ function PlayerScreenWidget() {
                 {/* Map Library */}
                 <div className="flex-1 flex flex-col gap-3 min-w-0">
                     <div className="flex items-center justify-between">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-ui-muted/60">Map Library</p>
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-ui-muted/60">{t('player.mapLibrary')}</p>
                         <button
                             onClick={() => mapFileRef.current?.click()}
                             disabled={saving}
                             className="bg-ui-surface2 border border-ui-surface2 text-ui-text text-xs px-2 py-1 rounded-lg hover:border-fear-light/50 transition-colors disabled:opacity-50"
                         >
-                            + Import
+                            {t('player.import')}
                         </button>
                     </div>
                     {mapLibrary.length === 0 ? (
-                        <p className="text-ui-muted text-xs italic text-center py-2">No maps.</p>
+                        <p className="text-ui-muted text-xs italic text-center py-2">{t('player.noMaps')}</p>
                     ) : (
                         <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2">
                             {mapLibrary.map(entry => (
@@ -665,6 +667,7 @@ interface ImageCardProps {
 }
 
 function ImageCard({ image, isActive, canShow, onShow, onRemove }: ImageCardProps) {
+    const t = useT()
     const [dataUrl, setDataUrl] = useState<string | null>(null)
 
     useEffect(() => {
@@ -699,7 +702,7 @@ function ImageCard({ image, isActive, canShow, onShow, onRemove }: ImageCardProp
                                 : 'bg-ui-surface2/40 text-ui-muted/40 cursor-not-allowed'
                     }`}
                 >
-                    {isActive ? 'Showing' : 'Show'}
+                    {isActive ? t('player.showing') : t('player.show')}
                 </button>
             </div>
             <button
@@ -718,6 +721,7 @@ interface MapCardProps {
 }
 
 function MapCard({ entry, isActive, onSet, onRemove }: MapCardProps) {
+    const t = useT()
     const [dataUrl, setDataUrl] = useState<string | null>(null)
 
     useEffect(() => {
@@ -749,7 +753,7 @@ function MapCard({ entry, isActive, onSet, onRemove }: MapCardProps) {
                             : 'bg-hope-primary/15 text-hope-primary/70 hover:bg-hope-primary/30'
                     }`}
                 >
-                    {isActive ? 'Active' : 'Set Map'}
+                    {isActive ? t('player.active') : t('player.setMap')}
                 </button>
             </div>
             <button

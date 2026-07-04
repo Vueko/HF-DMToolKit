@@ -10,14 +10,15 @@ describe('ErrorBoundary.getDerivedStateFromError', () => {
 })
 
 describe('ErrorFallback', () => {
+    // ErrorFallback renders via i18n; the store default language is 'en'.
     it('renders the page fallback with the error message', () => {
         const html = renderToStaticMarkup(<ErrorFallback variant="page" error={new Error('boom')} />)
-        expect(html).toContain('Algo salió mal en esta sección')
+        expect(html).toContain('Something went wrong in this section')
         expect(html).toContain('boom')
     })
     it('renders the root fallback', () => {
         const html = renderToStaticMarkup(<ErrorFallback variant="root" error={new Error('x')} />)
-        expect(html).toContain('La aplicación encontró un error')
+        expect(html).toContain('The app encountered an error')
     })
 })
 
@@ -27,6 +28,6 @@ describe('ErrorBoundary render (no error)', () => {
             <ErrorBoundary variant="page"><span>ok</span></ErrorBoundary>,
         )
         expect(html).toContain('ok')
-        expect(html).not.toContain('Algo salió mal')
+        expect(html).not.toContain('Something went wrong')
     })
 })

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C d:/Vuelo/Profesional/Developer/Codigo/DaggerHeart_Toolkit diff src/components/ErrorBoundary.tsx)",
+      "Bash(git -C d:/Vuelo/Profesional/Developer/Codigo/DaggerHeart_Toolkit stash push -- src/components/dashboard/PlayerScreenWidget.tsx src/components/dashboard/MapFogWidget.tsx)",
+      "Bash(git -C d:/Vuelo/Profesional/Developer/Codigo/DaggerHeart_Toolkit stash pop)"
+    ]
+  }
+}

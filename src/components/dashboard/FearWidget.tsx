@@ -1,6 +1,8 @@
 import { useFearStore } from '../../store/fearStore'
+import { useT } from '../../i18n'
 
 function FearWidget() {
+    const t = useT()
     const { fearCount, addFear, removeFear, resetFear } = useFearStore()
 
     return (
@@ -8,13 +10,13 @@ function FearWidget() {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <span>💀</span>
-                    <h3 className="text-ui-text font-display font-semibold">Fear Tracker</h3>
+                    <h3 className="text-ui-text font-display font-semibold">{t('dashboard.fearTracker')}</h3>
                 </div>
                 <button
                     onClick={resetFear}
                     className="text-xs text-ui-muted hover:text-ui-text transition-colors px-2 py-1 rounded hover:bg-fear-secondary"
                 >
-                    Reset
+                    {t('dashboard.reset')}
                 </button>
             </div>
 
@@ -42,7 +44,7 @@ function FearWidget() {
             </div>
 
             <p className="text-ui-muted text-xs text-center">
-                Current session fear level
+                {t('dashboard.fearSessionLevel')}
             </p>
         </div>
     )

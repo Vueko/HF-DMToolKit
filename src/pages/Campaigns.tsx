@@ -3,8 +3,10 @@ import { useCampaignStore } from '../store/campaignStore'
 import type { Campaign, Session } from '../types'
 import { Button, Input, PageHeader, EmptyState } from '../components/ui'
 import { BackupControls } from '../components/BackupControls'
+import { useT } from '../i18n'
 
 function Campaigns() {
+    const t = useT()
     const {
         campaigns,
         currentCampaignId,
@@ -58,14 +60,14 @@ function Campaigns() {
     return (
         <div className="flex flex-col gap-6">
 
-            <PageHeader title="Campaigns" subtitle="Manage your campaigns and sessions">
+            <PageHeader title={t('campaigns.title')} subtitle={t('campaigns.subtitle')}>
                 <BackupControls />
             </PageHeader>
 
             <div className="grid grid-cols-2 gap-6">
 
                 <div className="flex flex-col gap-3">
-                    <h2 className="text-ui-text font-semibold text-sm">Campaigns</h2>
+                    <h2 className="text-ui-text font-semibold text-sm">{t('campaigns.campaigns')}</h2>
 
                     <div className="flex gap-2">
                         <Input
@@ -74,15 +76,15 @@ function Campaigns() {
                             value={newCampaignName}
                             onChange={(e) => setNewCampaignName(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleAddCampaign()}
-                            placeholder="Campaign name..."
+                            placeholder={t('campaigns.campaignNamePlaceholder')}
                             className="flex-1"
                         />
-                        <Button variant="primary" size="sm" onClick={handleAddCampaign}>Add</Button>
+                        <Button variant="primary" size="sm" onClick={handleAddCampaign}>{t('campaigns.add')}</Button>
                     </div>
 
                     <div className="flex flex-col gap-2">
                         {campaigns.length === 0 && (
-                            <EmptyState size="sm" title="No campaigns yet." />
+                            <EmptyState size="sm" title={t('campaigns.noCampaigns')} />
                         )}
                         {campaigns.map((c) => (
                             <div
@@ -96,10 +98,10 @@ function Campaigns() {
                             >
                                 <div className="flex flex-col gap-0.5">
                                     <span className="text-ui-text text-sm font-medium">{c.name}</span>
-                                    <span className="text-ui-muted text-xs">{c.sessions.length} sessions</span>
+                                    <span className="text-ui-muted text-xs">{t('campaigns.sessionsCount', { count: c.sessions.length })}</span>
                                 </div>
                                 <Button variant="destructive" size="sm" onClick={(e) => { e.stopPropagation(); removeCampaign(c.id) }}>
-                                    Delete
+                                    {t('campaigns.delete')}
                                 </Button>
                             </div>
                         ))}
@@ -108,11 +110,11 @@ function Campaigns() {
 
                 <div className="flex flex-col gap-3">
                     <h2 className="text-ui-text font-semibold text-sm">
-                        Sessions {selectedCampaign ? `— ${selectedCampaign.name}` : ''}
+                        {t('campaigns.sessions')} {selectedCampaign ? `— ${selectedCampaign.name}` : ''}
                     </h2>
 
                     {!selectedCampaign ? (
-                        <p className="text-ui-muted text-sm text-center py-4">Select a campaign to manage sessions.</p>
+                        <p className="text-ui-muted text-sm text-center py-4">{t('campaigns.selectCampaign')}</p>
                     ) : (
                         <>
                             <div className="flex gap-2">
@@ -122,15 +124,15 @@ function Campaigns() {
                                     value={newSessionName}
                                     onChange={(e) => setNewSessionName(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddSession()}
-                                    placeholder="Session name..."
+                                    placeholder={t('campaigns.sessionNamePlaceholder')}
                                     className="flex-1"
                                 />
-                                <Button variant="primary" size="sm" onClick={handleAddSession}>Add</Button>
+                                <Button variant="primary" size="sm" onClick={handleAddSession}>{t('campaigns.add')}</Button>
                             </div>
 
                             <div className="flex flex-col gap-2">
                                 {selectedCampaign.sessions.length === 0 && (
-                                    <EmptyState size="sm" title="No sessions yet." />
+                                    <EmptyState size="sm" title={t('campaigns.noSessions')} />
                                 )}
                                 {selectedCampaign.sessions.map((s) => {
                                     const isActive = currentCampaignId === selectedCampaignId && currentSessionId === s.id
@@ -145,23 +147,23 @@ function Campaigns() {
                                         >
                                             <div className="flex flex-col gap-0.5">
                                                 <span className="text-ui-text text-sm font-medium">
-                                                    Session {s.number} — {s.name}
+                                                    {t('campaigns.sessionLabel', { number: s.number, name: s.name })}
                                                 </span>
                                                 <span className="text-ui-muted text-xs">
-                                                    {s.cardInstances.length} cards · {s.sceneIds.length} scenes
+                                                    {t('campaigns.cardsScenesCount', { cards: s.cardInstances.length, scenes: s.sceneIds.length })}
                                                 </span>
                                                 {isActive && (
-                                                    <span className="text-hope-primary text-xs font-semibold">Active Session</span>
+                                                    <span className="text-hope-primary text-xs font-semibold">{t('campaigns.activeSession')}</span>
                                                 )}
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {!isActive && (
                                                     <Button variant="secondary" size="sm" onClick={() => handleSetActive(selectedCampaignId!, s.id)}>
-                                                        Set Active
+                                                        {t('campaigns.setActive')}
                                                     </Button>
                                                 )}
                                                 <Button variant="destructive" size="sm" onClick={() => removeSession(selectedCampaignId!, s.id)}>
-                                                    Delete
+                                                    {t('campaigns.delete')}
                                                 </Button>
                                             </div>
                                         </div>

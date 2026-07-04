@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { electronStorage } from '../utils/electronStorage'
 import { createMigrate } from './persistMigration'
+import type { Lang } from '../i18n/translations'
 
 export type Theme = 'midnight' | 'ember' | 'slate' | 'daylight'
 export const THEMES: Theme[] = ['midnight', 'ember', 'slate', 'daylight']
@@ -27,6 +28,8 @@ interface SettingsState {
     setVaultPath: (path: string | null) => void
     playerWidgetCollapsed: boolean
     setPlayerWidgetCollapsed: (v: boolean) => void
+    language: Lang
+    setLanguage: (language: Lang) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -40,6 +43,8 @@ export const useSettingsStore = create<SettingsState>()(
             setVaultPath: (vaultPath) => set({ vaultPath }),
             playerWidgetCollapsed: false,
             setPlayerWidgetCollapsed: (playerWidgetCollapsed) => set({ playerWidgetCollapsed }),
+            language: 'en',
+            setLanguage: (language) => set({ language }),
         }),
         {
             name: 'dh-settings',

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useT } from '../i18n'
 
 function TitleBar() {
+  const t = useT()
   const [isMaximized, setIsMaximized] = useState(false)
 
   useEffect(() => {
@@ -15,7 +17,7 @@ function TitleBar() {
     >
       <div className="w-64 px-4 flex items-center gap-2 shrink-0">
         <span className="text-hope-yellow font-display font-bold tracking-widest text-sm">HFTK</span>
-        <span className="text-ui-muted text-xs">DM Toolkit</span>
+        <span className="text-ui-muted text-xs">{t('titlebar.subtitle')}</span>
       </div>
 
       <div className="flex-1" />
@@ -27,21 +29,21 @@ function TitleBar() {
         <button
           onClick={() => window.electron.window.minimize()}
           className="h-full px-4 text-ui-muted hover:text-ui-text hover:bg-ui-surface2 transition-colors text-xs"
-          title="Minimizar"
+          title={t('titlebar.minimize')}
         >
           ─
         </button>
         <button
           onClick={() => window.electron.window.maximize()}
           className="h-full px-4 text-ui-muted hover:text-ui-text hover:bg-ui-surface2 transition-colors text-xs"
-          title={isMaximized ? 'Restaurar' : 'Maximizar'}
+          title={isMaximized ? t('titlebar.restore') : t('titlebar.maximize')}
         >
           {isMaximized ? '❐' : '□'}
         </button>
         <button
           onClick={() => window.electron.window.close()}
           className="h-full px-4 text-ui-muted hover:text-white hover:bg-red-500 transition-colors text-xs"
-          title="Cerrar"
+          title={t('titlebar.close')}
         >
           ✕
         </button>
