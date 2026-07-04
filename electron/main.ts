@@ -284,6 +284,7 @@ app.whenReady().then(() => {
   })
   ipcMain.on('window:close', () => mainWindow?.close())
   ipcMain.handle('window:is-maximized', () => mainWindow?.isMaximized() ?? false)
+  ipcMain.handle('app:get-version', () => app.getVersion())
 
   ipcMain.handle('store:get', (_, key: string) => store.get(key))
   ipcMain.on('store:set', (_, key: string, value: unknown) => { if (STORE_KEYS.has(key)) store.set(key, value) })

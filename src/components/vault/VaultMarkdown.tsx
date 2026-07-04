@@ -5,6 +5,11 @@ import { useVaultStore } from '../../vault/vaultStore'
 import { preprocessObsidian } from '../../vault/obsidianMarkdown'
 import { remarkCallouts } from '../../vault/remarkCallouts'
 import { slugifyHeading } from '../../vault/slug'
+import {
+    FileTextIcon, SquareIcon, LightbulbIcon, AlertIcon, ClipboardIcon, CheckCircleIcon,
+    HelpCircleIcon, XCircleIcon, FlameIcon, BugIcon, RulerIcon, QuoteIcon, ImageIcon,
+    InfoIcon, WarningIcon,
+} from '../icons'
 
 interface VaultMarkdownProps {
     body: string
@@ -63,7 +68,7 @@ function VaultImage({ rel, alt }: { rel: string; alt: string }) {
             if (revoked) URL.revokeObjectURL(revoked)
         }
     }, [rel])
-    if (failed) return <span className="text-ui-muted text-xs italic">🖼️ imagen no encontrada: {rel}</span>
+    if (failed) return <span className="text-ui-muted text-xs italic"><ImageIcon className="w-4 h-4 inline"/> imagen no encontrada: {rel}</span>
     if (!url) return <span className="text-ui-muted text-xs italic">cargando imagen…</span>
     return <img src={url} alt={alt} className="max-w-full h-auto rounded-lg border border-ui-surface2 my-2" />
 }
@@ -72,34 +77,34 @@ function VaultImage({ rel, alt }: { rel: string; alt: string }) {
 // Colors live in index.css (.callout-<type>); here we only map type -> icon/label.
 // Detection is by className (reliably passed by react-markdown), set by remarkCallouts.
 
-const CALLOUT_META: Record<string, { icon: string; label: string }> = {
-    note: { icon: '🗒️', label: 'Note' },
-    info: { icon: 'ℹ️', label: 'Info' },
-    todo: { icon: '🟦', label: 'Todo' },
-    tip: { icon: '💡', label: 'Tip' },
-    hint: { icon: '💡', label: 'Hint' },
-    important: { icon: '❗', label: 'Important' },
-    abstract: { icon: '📋', label: 'Abstract' },
-    summary: { icon: '📋', label: 'Summary' },
-    tldr: { icon: '📋', label: 'TL;DR' },
-    success: { icon: '✔️', label: 'Success' },
-    check: { icon: '✔️', label: 'Check' },
-    done: { icon: '✔️', label: 'Done' },
-    question: { icon: '❓', label: 'Question' },
-    help: { icon: '❓', label: 'Help' },
-    faq: { icon: '❓', label: 'FAQ' },
-    warning: { icon: '⚠️', label: 'Warning' },
-    caution: { icon: '⚠️', label: 'Caution' },
-    attention: { icon: '⚠️', label: 'Attention' },
-    failure: { icon: '❌', label: 'Failure' },
-    fail: { icon: '❌', label: 'Fail' },
-    missing: { icon: '❌', label: 'Missing' },
-    danger: { icon: '🔥', label: 'Danger' },
-    error: { icon: '🔥', label: 'Error' },
-    bug: { icon: '🐛', label: 'Bug' },
-    example: { icon: '📐', label: 'Example' },
-    quote: { icon: '❝', label: 'Quote' },
-    cite: { icon: '❝', label: 'Cite' },
+const CALLOUT_META: Record<string, { icon: ReactNode; label: string }> = {
+    note: { icon: <FileTextIcon className="w-4 h-4"/>, label: 'Note' },
+    info: { icon: <InfoIcon className="w-4 h-4"/>, label: 'Info' },
+    todo: { icon: <SquareIcon className="w-4 h-4"/>, label: 'Todo' },
+    tip: { icon: <LightbulbIcon className="w-4 h-4"/>, label: 'Tip' },
+    hint: { icon: <LightbulbIcon className="w-4 h-4"/>, label: 'Hint' },
+    important: { icon: <AlertIcon className="w-4 h-4"/>, label: 'Important' },
+    abstract: { icon: <ClipboardIcon className="w-4 h-4"/>, label: 'Abstract' },
+    summary: { icon: <ClipboardIcon className="w-4 h-4"/>, label: 'Summary' },
+    tldr: { icon: <ClipboardIcon className="w-4 h-4"/>, label: 'TL;DR' },
+    success: { icon: <CheckCircleIcon className="w-4 h-4"/>, label: 'Success' },
+    check: { icon: <CheckCircleIcon className="w-4 h-4"/>, label: 'Check' },
+    done: { icon: <CheckCircleIcon className="w-4 h-4"/>, label: 'Done' },
+    question: { icon: <HelpCircleIcon className="w-4 h-4"/>, label: 'Question' },
+    help: { icon: <HelpCircleIcon className="w-4 h-4"/>, label: 'Help' },
+    faq: { icon: <HelpCircleIcon className="w-4 h-4"/>, label: 'FAQ' },
+    warning: { icon: <WarningIcon className="w-4 h-4"/>, label: 'Warning' },
+    caution: { icon: <WarningIcon className="w-4 h-4"/>, label: 'Caution' },
+    attention: { icon: <WarningIcon className="w-4 h-4"/>, label: 'Attention' },
+    failure: { icon: <XCircleIcon className="w-4 h-4"/>, label: 'Failure' },
+    fail: { icon: <XCircleIcon className="w-4 h-4"/>, label: 'Fail' },
+    missing: { icon: <XCircleIcon className="w-4 h-4"/>, label: 'Missing' },
+    danger: { icon: <FlameIcon className="w-4 h-4"/>, label: 'Danger' },
+    error: { icon: <FlameIcon className="w-4 h-4"/>, label: 'Error' },
+    bug: { icon: <BugIcon className="w-4 h-4"/>, label: 'Bug' },
+    example: { icon: <RulerIcon className="w-4 h-4"/>, label: 'Example' },
+    quote: { icon: <QuoteIcon className="w-4 h-4"/>, label: 'Quote' },
+    cite: { icon: <QuoteIcon className="w-4 h-4"/>, label: 'Cite' },
 }
 
 function Callout({ type, title, children }: { type: string; title: string; children: ReactNode }) {

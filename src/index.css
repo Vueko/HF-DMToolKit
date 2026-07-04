@@ -33,6 +33,10 @@
   --color-ui-text: #F0EDE6;
   --color-ui-muted: #9E9BBF;
 
+  /*Acento primario (re-mapeable por tema) */
+  --color-accent: #684FA8;
+  --color-accent-fg: #FFFFFF;
+
   /*Fuentes */
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-display: 'Cinzel', serif;
@@ -40,11 +44,39 @@
 }
 
 body {
-  background-color: #1C1C2E;
+  background-color: var(--color-ui-bg);
   color: #F0EDE6;
   font-family: 'Inter', system-ui, sans-serif;
   margin: 0;
   height: 100%;
+}
+
+/* --- Temas: overrides del skin neutro + acento --- */
+[data-theme="ember"] {
+  --color-ui-bg: #221A18;
+  --color-ui-canvas: #150F0E;
+  --color-ui-surface: #362A26;
+  --color-ui-surface2: #4A382F;
+  --color-ui-text: #F1E9E3;
+  --color-ui-muted: #B6A79C;
+}
+[data-theme="slate"] {
+  --color-ui-bg: #161B22;
+  --color-ui-canvas: #0D1117;
+  --color-ui-surface: #21262E;
+  --color-ui-surface2: #30363F;
+  --color-ui-text: #E6EDF3;
+  --color-ui-muted: #8B98A6;
+}
+[data-theme="daylight"] {
+  --color-ui-bg: #FBF7EE;
+  --color-ui-canvas: #F3EEE2;
+  --color-ui-surface: #FFFFFF;
+  --color-ui-surface2: #EAE2D0;
+  --color-ui-text: #241E14;
+  --color-ui-muted: #7A6F5B;
+  --color-accent: #F2B632;
+  --color-accent-fg: #241E14;
 }
 
 /* --- Scrollbar temático (global, acorde al tema oscuro de la app) --- */

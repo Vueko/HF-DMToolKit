@@ -1,42 +1,98 @@
-import { useSettingsStore } from '../store/settingsStore'
-import type { FontSize } from '../store/settingsStore'
-import { PageHeader } from '../components/ui'
+import { useEffect, useState } from 'react'
+import { useSettingsStore, THEMES, UI_SCALES } from '../store/settingsStore'
+import type { Theme } from '../store/settingsStore'
+import { PageHeader, Panel, Button } from '../components/ui'
+import { useVaultStore } from '../vault/vaultStore'
+import { BackupControls } from '../components/BackupControls'
 
-const SIZE_OPTIONS: { value: FontSize; label: string; description: string }[] = [
-    { value: 'sm', label: 'Small', description: '14px' },
-    { value: 'md', label: 'Medium', description: '16px' },
-    { value: 'lg', label: 'Large', description: '18px' },
-]
+const SCALE_LABELS: Record<number, string> = { 0.9: '90%', 1.0: '100%', 1.1: '110%', 1.25: '125%' }
+const THEME_LABELS: Record<Theme, string> = { midnight: 'Midnight', ember: 'Ember', slate: 'Slate', daylight: 'Daylight' }
 
 function Settings() {
-    const { fontSize, setFontSize } = useSettingsStore()
+    const { uiScale, setUiScale, theme, setTheme, vaultPath, setVaultPath } = useSettingsStore()
+    const pickVault = useVaultStore((s) => s.pickVault)
+    const [version, setVersion] = useState('')
+    useEffect(() => { window.electron.getVersion().then(setVersion) }, [])
+
+    const disconnectVault = () => {
+        setVaultPath(null)
+        useVaultStore.setState({ tree: null, notes: [], noteIndex: new Map(), imageIndex: new Map(), status: 'empty' })
+    }
 
     return (
         <div className="flex flex-col gap-6">
             <PageHeader title="Settings" subtitle="Customize your DaggerHeart Toolkit experience" />
 
-            <div className="bg-ui-surface rounded-xl border border-ui-surface2/60 p-5 flex flex-col gap-4">
+            <Panel className="flex flex-col gap-4">
                 <div>
-                    <h3 className="text-ui-text font-display font-semibold">Display</h3>
-                    <p className="text-ui-muted text-sm">Adjust the text size across the entire app</p>
+                    <h3 className="text-ui-text font-display font-semibold">Appearance</h3>
+                    <p className="text-ui-muted text-sm">Interface scale and theme</p>
                 </div>
+
+                <div className="flex flex-col gap-2">
+                    <p className="text-ui-muted text-xs uppercase tracking-wider font-bold">Interface scale</p>
+                    <div className="flex gap-2">
+                        {UI_SCALES.map((s) => (
+                            <button
+                                key={s}
+                                onClick={() => setUiScale(s)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                    uiScale === s ? 'bg-accent text-accent-fg' : 'bg-ui-surface2 text-ui-muted hover:text-ui-text'
+                                }`}
+                            >
+                                {SCALE_LABELS[s]}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                    <p className="text-ui-muted text-xs uppercase tracking-wider font-bold">Theme</p>
+                    <div className="flex gap-2 flex-wrap">
+                        {THEMES.map((t) => (
+                            <button
+                                key={t}
+                                onClick={() => setTheme(t)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                    theme === t ? 'bg-accent text-accent-fg' : 'bg-ui-surface2 text-ui-muted hover:text-ui-text'
+                                }`}
+                            >
+                                {THEME_LABELS[t]}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </Panel>
+
+            <Panel className="flex flex-col gap-3">
+                <div>
+                    <h3 className="text-ui-text font-display font-semibold">Vault (Obsidian)</h3>
+                    <p className="text-ui-muted text-sm">Carpeta del vault para el World Wiki</p>
+                </div>
+                <p className="text-ui-text text-sm bg-ui-bg/40 rounded-lg px-3 py-2 truncate">
+                    {vaultPath ?? 'Sin vault conectado'}
+                </p>
                 <div className="flex gap-2">
-                    {SIZE_OPTIONS.map((opt) => (
-                        <button
-                            key={opt.value}
-                            onClick={() => setFontSize(opt.value)}
-                            className={`flex flex-col items-center gap-0.5 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                                fontSize === opt.value
-                                    ? 'bg-fear-light text-ui-text'
-                                    : 'bg-ui-surface2 text-ui-muted hover:text-ui-text hover:bg-ui-surface2/80'
-                            }`}
-                        >
-                            <span>{opt.label}</span>
-                            <span className="text-[10px] opacity-60">{opt.description}</span>
-                        </button>
-                    ))}
+                    <Button variant="primary" onClick={() => pickVault()}>{vaultPath ? 'Cambiar carpeta' : 'Conectar vault'}</Button>
+                    {vaultPath && <Button variant="secondary" onClick={disconnectVault}>Desconectar</Button>}
                 </div>
-            </div>
+            </Panel>
+
+            <Panel className="flex flex-col gap-3">
+                <div>
+                    <h3 className="text-ui-text font-display font-semibold">Backup</h3>
+                    <p className="text-ui-muted text-sm">Exporta o restaura todos tus datos</p>
+                </div>
+                <BackupControls />
+            </Panel>
+
+            <Panel className="flex flex-col gap-2">
+                <h3 className="text-ui-text font-display font-semibold">Acerca de</h3>
+                <p className="text-ui-muted text-sm">DaggerHeart Toolkit · v{version || '—'}</p>
+                <a href="https://github.com/Vueko/DaggerHeart-ToolKit" target="_blank" rel="noreferrer" className="text-accent hover:underline text-sm w-fit">
+                    Repositorio en GitHub →
+                </a>
+            </Panel>
         </div>
     )
 }

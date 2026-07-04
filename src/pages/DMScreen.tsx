@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useCampaignStore } from '../store/campaignStore'
 import { Button, Textarea, Panel } from '../components/ui'
+import { UserIcon, ScrollIcon } from '../components/icons'
 
 const FIRST_NAMES_LATIN = [
     'Aurelius', 'Cassius', 'Lucius', 'Maximus', 'Octavius', 'Quintus', 'Silas', 'Titus', 'Valerius', 'Felix',
@@ -183,7 +184,7 @@ function DMScreen() {
                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
                         <Panel size="spacious" className="lg:col-span-2 flex flex-col gap-4 shadow-sm">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-md font-display font-bold text-ui-text">👤 Quick NPC Names</h3>
+                                <h3 className="text-md font-display font-bold text-ui-text"><span className="inline-flex items-center gap-2"><UserIcon className="w-4 h-4" /> Quick NPC Names</span></h3>
                                 <button
                                     onClick={handleGenerateNames}
                                     className="text-xs bg-hope-primary hover:bg-hope-gold text-white px-2 py-1 rounded transition-colors font-bold uppercase tracking-wider"
@@ -204,7 +205,7 @@ function DMScreen() {
                         </Panel>
 
                         <Panel size="spacious" className="lg:col-span-3 flex flex-col gap-3 shadow-sm">
-                            <h3 className="text-md font-display font-bold text-ui-text mb-2">📜 Rules Reference</h3>
+                            <h3 className="text-md font-display font-bold text-ui-text mb-2"><span className="inline-flex items-center gap-2"><ScrollIcon className="w-4 h-4" /> Rules Reference</span></h3>
 
                             <div className="flex flex-col gap-2">
                                 <div className="border border-ui-surface2 rounded-lg bg-ui-bg overflow-hidden shadow-sm">

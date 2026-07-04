@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import { useNavigate } from 'react-router-dom'
 import { useVaultStore } from '../vault/vaultStore'
 import { parseWikiTarget } from '../vault/wikilinks'
+import { LinkIcon } from './icons'
 
 interface SharedMarkdownProps {
     children: string
@@ -37,7 +38,7 @@ export function SharedMarkdown({ children }: SharedMarkdownProps) {
                                 className="text-hope-gold hover:text-hope-primary font-semibold cursor-pointer transition-colors bg-hope-primary/10 px-1 rounded inline-flex items-center gap-1"
                                 title="Abrir en World Wiki"
                             >
-                                <span className="text-[10px]">🔗</span>{children}
+                                <LinkIcon className="w-3 h-3" />{children}
                             </a>
                         )
                     }

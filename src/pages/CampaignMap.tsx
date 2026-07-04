@@ -5,6 +5,7 @@ import type { MapMarker } from '../types'
 import { useVaultStore } from '../vault/vaultStore'
 import type { NoteRef } from '../vault/wikilinks'
 import { saveMapImage, getMapImage } from '../utils/mapDb'
+import { MapIcon } from '../components/icons'
 
 
 const ZOOM_SPEED = 0.1
@@ -309,7 +310,7 @@ function CampaignMap() {
                 >
                     {!mapUrl ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-ui-muted gap-4">
-                            <div className="w-16 h-16 rounded-full bg-ui-surface2 flex items-center justify-center text-3xl">🗺️</div>
+                            <div className="w-16 h-16 rounded-full bg-ui-surface2 flex items-center justify-center"><MapIcon className="w-8 h-8 text-ui-muted" /></div>
                             <p className="text-sm">No map image uploaded yet.</p>
                             <label className="px-6 py-2 bg-fear-light text-ui-text rounded-lg cursor-pointer hover:bg-fear-secondary transition-colors font-semibold text-sm">
                                 Upload Map

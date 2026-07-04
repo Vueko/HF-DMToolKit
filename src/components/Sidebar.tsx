@@ -26,7 +26,7 @@ function Sidebar() {
                     to={item.path}
                     className={({ isActive }) =>
                         `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive
-                            ? 'bg-fear-light text-ui-text font-medium'
+                            ? 'bg-accent text-accent-fg font-medium'
                             : 'text-ui-muted hover:text-ui-text hover:bg-ui-surface2'
                         }`
                     }
@@ -39,7 +39,7 @@ function Sidebar() {
                     to="/settings"
                     className={({ isActive }) =>
                         `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive
-                            ? 'bg-fear-light text-ui-text font-medium'
+                            ? 'bg-accent text-accent-fg font-medium'
                             : 'text-ui-muted hover:text-ui-text hover:bg-ui-surface2'
                         }`
                     }

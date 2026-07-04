@@ -32,7 +32,7 @@ function AddSoundModal({ categoryId, onAdd, onClose }: AddSoundModalProps) {
 
     return (
         <div
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+            className="fixed inset-0 bg-ui-bg/50 z-50 flex items-center justify-center"
             onClick={onClose}
         >
             <div

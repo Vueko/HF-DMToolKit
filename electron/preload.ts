@@ -1,10 +1,12 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webFrame } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 
 const PLAYER_CHANNELS = ['player:set-map', 'player:clear-map', 'player:show-overlay', 'player:clear-overlay', 'player:closed', 'player:set-fog', 'player:set-viewport', 'player:set-campaign-map', 'player:set-fear', 'player:set-rotation'] as const
 
 contextBridge.exposeInMainWorld('electron', {
     platform: process.platform,
+    setZoom: (factor: number) => webFrame.setZoomFactor(factor),
+    getVersion: (): Promise<string> => ipcRenderer.invoke('app:get-version'),
 
     window: {
         minimize: () => ipcRenderer.send('window:minimize'),

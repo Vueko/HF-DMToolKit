@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../components/ui'
 import { useCampaignStore } from '../../store/campaignStore'
@@ -6,6 +6,7 @@ import { useCardsStore } from '../../store/cardsStore'
 import { useFearStore } from '../../store/fearStore'
 import type { AdversaryCard, EncounterAdjustment, AbilityType } from '../../types'
 import { renderBold } from '../../utils/renderBold'
+import { SwordIcon, BoltIcon } from '../icons'
 
 const ROLE_COST: Record<string, number> = {
     Minion: 1, Social: 1, Support: 1,
@@ -19,10 +20,10 @@ const ADJUSTMENT_DELTAS: Record<EncounterAdjustment, number> = {
 }
 
 // Colors for dark text on parchment background
-const ABILITY_STYLES: Record<AbilityType, { icon: string; label: string; text: string; border: string; dot: string }> = {
-    action:   { icon: '⚔', label: 'Action',       text: 'text-orange-700', border: 'border-l-orange-600', dot: 'bg-orange-600' },
+const ABILITY_STYLES: Record<AbilityType, { icon: ReactNode; label: string; text: string; border: string; dot: string }> = {
+    action:   { icon: <SwordIcon className="w-3 h-3"/>, label: 'Action',       text: 'text-orange-700', border: 'border-l-orange-600', dot: 'bg-orange-600' },
     reaction: { icon: '↩', label: 'Reaction',     text: 'text-amber-700',  border: 'border-l-amber-600',  dot: 'bg-amber-600'  },
-    fear:     { icon: '⚡', label: 'Fear Feature', text: 'text-purple-700', border: 'border-l-purple-600', dot: 'bg-purple-600' },
+    fear:     { icon: <BoltIcon className="w-3 h-3"/>, label: 'Fear Feature', text: 'text-purple-700', border: 'border-l-purple-600', dot: 'bg-purple-600' },
     passive:  { icon: '◈', label: 'Passive',      text: 'text-blue-700',   border: 'border-l-blue-600',   dot: 'bg-blue-600'   },
 }
 

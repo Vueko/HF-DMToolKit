@@ -1,15 +1,16 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, type ReactNode } from 'react'
 import { useCampaignStore } from '../store/campaignStore'
 import { useFearStore } from '../store/fearStore'
 import type { Scene, SceneFlagType } from '../types'
 import { SharedMarkdown } from '../components/SharedMarkdown'
 import { Button, Input, Textarea } from '../components/ui'
+import { BoltIcon, ClockIcon, ScalesIcon } from '../components/icons'
 
-const FLAG_CONFIG: Record<SceneFlagType, { icon: string; bg: string; border: string; text: string; activeBg: string; placeholder: string }> = {
-    event:    { icon: '⚡', bg: 'bg-hope-primary/10', border: 'border-hope-primary/25', text: 'text-hope-primary', activeBg: 'bg-hope-primary/20 border-hope-primary/50',  placeholder: 'e.g. When the players enter the forest' },
+const FLAG_CONFIG: Record<SceneFlagType, { icon: ReactNode; bg: string; border: string; text: string; activeBg: string; placeholder: string }> = {
+    event:    { icon: <BoltIcon className="w-4 h-4"/>, bg: 'bg-hope-primary/10', border: 'border-hope-primary/25', text: 'text-hope-primary', activeBg: 'bg-hope-primary/20 border-hope-primary/50',  placeholder: 'e.g. When the players enter the forest' },
     fear:     { icon: '💀', bg: 'bg-purple-500/10',  border: 'border-purple-500/30',   text: 'text-purple-700',  activeBg: 'bg-purple-500/20 border-purple-500/50',         placeholder: 'e.g. When darkness has consumed the land' },
-    time:     { icon: '⏰', bg: 'bg-amber-500/10',   border: 'border-amber-400/30',    text: 'text-amber-700',   activeBg: 'bg-amber-500/20 border-amber-400/50',           placeholder: 'e.g. After 3 sessions / at the winter solstice' },
-    decision: { icon: '⚖', bg: 'bg-cyan-500/10',    border: 'border-cyan-500/30',     text: 'text-cyan-700',    activeBg: 'bg-cyan-500/20 border-cyan-500/50',             placeholder: 'e.g. If the players spared the merchant' },
+    time:     { icon: <ClockIcon className="w-4 h-4"/>, bg: 'bg-amber-500/10',   border: 'border-amber-400/30',    text: 'text-amber-700',   activeBg: 'bg-amber-500/20 border-amber-400/50',           placeholder: 'e.g. After 3 sessions / at the winter solstice' },
+    decision: { icon: <ScalesIcon className="w-4 h-4"/>, bg: 'bg-cyan-500/10',    border: 'border-cyan-500/30',     text: 'text-cyan-700',    activeBg: 'bg-cyan-500/20 border-cyan-500/50',             placeholder: 'e.g. If the players spared the merchant' },
 }
 
 function SceneTracker() {

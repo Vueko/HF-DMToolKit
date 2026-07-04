@@ -21,7 +21,8 @@ describe('VaultMarkdown — callouts', () => {
     it('renders a per-type class + icon and strips the marker, body preserved', () => {
         const html = render('> [!warning] Cuidado\n> Texto de aviso.')
         expect(html).toContain('callout-warning')
-        expect(html).toContain('⚠️')
+        expect(html).toContain('callout-icon')
+        expect(html).toContain('<svg')
         expect(html).toContain('Cuidado')
         expect(html).toContain('Texto de aviso.')
         expect(html).not.toContain('[!warning]')
@@ -37,7 +38,8 @@ describe('VaultMarkdown — callouts', () => {
     it('shows the type label when no title is given', () => {
         const html = render('> [!danger]\n> boom')
         expect(html).toContain('Danger')
-        expect(html).toContain('🔥')
+        expect(html).toContain('callout-icon')
+        expect(html).toContain('<svg')
     })
 
     it('leaves a normal blockquote alone', () => {

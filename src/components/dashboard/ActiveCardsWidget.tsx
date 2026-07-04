@@ -1,14 +1,16 @@
 import { useMemo } from 'react'
+import type { ReactNode } from 'react'
 import { useCampaignStore } from '../../store/campaignStore'
 import { useCardsStore } from '../../store/cardsStore'
 import { useFearStore } from '../../store/fearStore'
 import type { EnvironmentCard, EnvironmentFeatureType } from '../../types'
 import { renderBold } from '../../utils/renderBold'
+import { SwordIcon, BoltIcon } from '../icons'
 
-const FEATURE_STYLES: Record<EnvironmentFeatureType, { label: string; icon: string; text: string; border: string }> = {
-    action:  { label: 'Action',       icon: '⚔', text: 'text-orange-700', border: 'border-l-orange-600' },
+const FEATURE_STYLES: Record<EnvironmentFeatureType, { label: string; icon: ReactNode; text: string; border: string }> = {
+    action:  { label: 'Action',       icon: <SwordIcon className="w-3 h-3" />, text: 'text-orange-700', border: 'border-l-orange-600' },
     passive: { label: 'Passive',      icon: '◈', text: 'text-blue-700',   border: 'border-l-blue-600'   },
-    fear:    { label: 'Fear Feature', icon: '⚡', text: 'text-purple-700', border: 'border-l-purple-600' },
+    fear:    { label: 'Fear Feature', icon: <BoltIcon className="w-3 h-3" />, text: 'text-purple-700', border: 'border-l-purple-600' },
 }
 
 function ActiveCardsWidget() {

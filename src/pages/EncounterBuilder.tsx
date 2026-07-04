@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react'
+import type { ReactNode } from 'react'
 import { useCampaignStore } from '../store/campaignStore'
 import { useCardsStore } from '../store/cardsStore'
 import type { AbilityType, AdversaryCard, Encounter, EncounterAdjustment, EncounterCardInstance, EncounterEntry } from '../types'
 import { Button, Input, Select, PageHeader, EmptyState } from '../components/ui'
 import { renderBold } from '../utils/renderBold'
+import { SwordIcon, BoltIcon, DragonIcon } from '../components/icons'
 import {
     ADJUSTMENT_DELTAS, MANUAL_ADJUSTMENTS, AUTO_ADJUSTMENTS,
     computeAutoAdjustments, activeAdjustments, calcBattlePoints,
@@ -43,10 +45,10 @@ const ROLE_COLORS_CARD: Record<string, string> = {
     Solo:     'bg-pink-100/60 text-pink-700 border-pink-400/60',
 }
 
-const ABILITY_CARD_STYLES: Record<AbilityType, { label: string; icon: string; text: string; border: string }> = {
-    action:   { label: 'Action',       icon: '⚔', text: 'text-orange-700', border: 'border-l-orange-600' },
+const ABILITY_CARD_STYLES: Record<AbilityType, { label: string; icon: ReactNode; text: string; border: string }> = {
+    action:   { label: 'Action',       icon: <SwordIcon className="w-3 h-3" />, text: 'text-orange-700', border: 'border-l-orange-600' },
     reaction: { label: 'Reaction',     icon: '↩', text: 'text-amber-700',  border: 'border-l-amber-600'  },
-    fear:     { label: 'Fear Feature', icon: '⚡', text: 'text-purple-700', border: 'border-l-purple-600' },
+    fear:     { label: 'Fear Feature', icon: <BoltIcon className="w-3 h-3" />, text: 'text-purple-700', border: 'border-l-purple-600' },
     passive:  { label: 'Passive',      icon: '◈', text: 'text-blue-700',   border: 'border-l-blue-600'   },
 }
 
@@ -288,7 +290,7 @@ function EncounterBuilder() {
             {!displayEncounter ? (
                 <div className="flex-1 flex items-center justify-center">
                     <EmptyState
-                        icon="⚔️"
+                        icon={<SwordIcon className="w-8 h-8" />}
                         title="No encounters yet."
                         action={<Button variant="primary" onClick={handleCreate}>Create First Encounter</Button>}
                     />
@@ -389,7 +391,7 @@ function EncounterBuilder() {
                         <div className="flex-1 overflow-y-auto">
                             {adversaryCards.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full text-ui-muted gap-2">
-                                    <span className="text-4xl">🐉</span>
+                                    <DragonIcon className="w-10 h-10 text-ui-muted" />
                                     <p className="text-sm">No adversary cards yet.</p>
                                     <p className="text-xs">Create them in the Cards section.</p>
                                 </div>
@@ -711,7 +713,7 @@ function EncounterBuilder() {
             {/* Card Detail Modal */}
             {detailCard && (
                 <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    className="fixed inset-0 bg-ui-bg/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                     onClick={() => setDetailCardId(null)}
                 >
                     <div

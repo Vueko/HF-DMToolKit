@@ -37,11 +37,15 @@ function Layout() {
     useVaultStore.getState().load()
   }, [])
 
-  const fontSize = useSettingsStore((s) => s.fontSize)
+  const theme = useSettingsStore((s) => s.theme)
   useEffect(() => {
-    const sizes: Record<string, string> = { sm: '14px', md: '16px', lg: '18px' }
-    document.documentElement.style.fontSize = sizes[fontSize] ?? '16px'
-  }, [fontSize])
+    document.documentElement.dataset.theme = theme
+  }, [theme])
+
+  const uiScale = useSettingsStore((s) => s.uiScale)
+  useEffect(() => {
+    window.electron.setZoom(uiScale)
+  }, [uiScale])
 
   const location = useLocation()
 

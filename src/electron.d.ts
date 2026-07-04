@@ -4,6 +4,8 @@ declare global {
     interface Window {
         electron: {
             platform: string
+            setZoom: (factor: number) => void
+            getVersion: () => Promise<string>
             window: {
                 minimize: () => void
                 maximize: () => void

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import type { ReactNode } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useCardsStore } from '../store/cardsStore'
 import { useCampaignStore } from '../store/campaignStore'
@@ -6,32 +7,33 @@ import type { SessionCardInstance, AdversaryAbility, AbilityType, AdversaryCard,
 import { Button, Input, Select, Textarea, PageHeader, EmptyState } from '../components/ui'
 import { renderBold } from '../utils/renderBold'
 import { buildCardsExport, parseImport, mergeCardsById } from '../utils/backup'
+import { SwordIcon, BoltIcon } from '../components/icons'
 
 type Tab = 'environment' | 'adversary'
 
-const ABILITY_CONFIG: Record<AbilityType, { label: string; icon: string; bg: string; border: string; text: string; btnBg: string }> = {
-    action:   { label: 'Action',       icon: '⚔', bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-300', btnBg: 'bg-orange-500/15 hover:bg-orange-500/30 border-orange-500/40 text-orange-300' },
+const ABILITY_CONFIG: Record<AbilityType, { label: string; icon: ReactNode; bg: string; border: string; text: string; btnBg: string }> = {
+    action:   { label: 'Action',       icon: <SwordIcon className="w-3 h-3" />, bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-300', btnBg: 'bg-orange-500/15 hover:bg-orange-500/30 border-orange-500/40 text-orange-300' },
     reaction: { label: 'Reaction',     icon: '↩', bg: 'bg-amber-400/10',  border: 'border-amber-400/30',  text: 'text-amber-300',  btnBg: 'bg-amber-400/15 hover:bg-amber-400/30 border-amber-400/40 text-amber-300' },
-    fear:     { label: 'Fear Feature', icon: '⚡', bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', btnBg: 'bg-purple-500/15 hover:bg-purple-500/30 border-purple-500/40 text-purple-300' },
+    fear:     { label: 'Fear Feature', icon: <BoltIcon className="w-3 h-3" />, bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', btnBg: 'bg-purple-500/15 hover:bg-purple-500/30 border-purple-500/40 text-purple-300' },
     passive:  { label: 'Passive',      icon: '◈', bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   text: 'text-blue-300',   btnBg: 'bg-blue-500/15 hover:bg-blue-500/30 border-blue-500/40 text-blue-300' },
 }
 
-const FEATURE_CONFIG: Record<EnvironmentFeatureType, { label: string; icon: string; bg: string; border: string; text: string; btnBg: string }> = {
-    action:  { label: 'Action',       icon: '⚔', bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-300', btnBg: 'bg-orange-500/15 hover:bg-orange-500/30 border-orange-500/40 text-orange-300' },
+const FEATURE_CONFIG: Record<EnvironmentFeatureType, { label: string; icon: ReactNode; bg: string; border: string; text: string; btnBg: string }> = {
+    action:  { label: 'Action',       icon: <SwordIcon className="w-3 h-3" />, bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-300', btnBg: 'bg-orange-500/15 hover:bg-orange-500/30 border-orange-500/40 text-orange-300' },
     passive: { label: 'Passive',      icon: '◈', bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   text: 'text-blue-300',   btnBg: 'bg-blue-500/15 hover:bg-blue-500/30 border-blue-500/40 text-blue-300' },
-    fear:    { label: 'Fear Feature', icon: '⚡', bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', btnBg: 'bg-purple-500/15 hover:bg-purple-500/30 border-purple-500/40 text-purple-300' },
+    fear:    { label: 'Fear Feature', icon: <BoltIcon className="w-3 h-3" />, bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', btnBg: 'bg-purple-500/15 hover:bg-purple-500/30 border-purple-500/40 text-purple-300' },
 }
 
-const ENV_PREVIEW_STYLES: Record<EnvironmentFeatureType, { border: string; text: string; icon: string; label: string }> = {
-    action:  { border: 'border-l-orange-600', text: 'text-orange-700', icon: '⚔', label: 'Action' },
+const ENV_PREVIEW_STYLES: Record<EnvironmentFeatureType, { border: string; text: string; icon: ReactNode; label: string }> = {
+    action:  { border: 'border-l-orange-600', text: 'text-orange-700', icon: <SwordIcon className="w-3 h-3" />, label: 'Action' },
     passive: { border: 'border-l-blue-600',   text: 'text-blue-700',   icon: '◈', label: 'Passive' },
-    fear:    { border: 'border-l-purple-600', text: 'text-purple-700', icon: '⚡', label: 'Fear Feature' },
+    fear:    { border: 'border-l-purple-600', text: 'text-purple-700', icon: <BoltIcon className="w-3 h-3" />, label: 'Fear Feature' },
 }
 
-const ADV_PREVIEW_STYLES: Record<AbilityType, { border: string; text: string; icon: string; label: string }> = {
-    action:   { border: 'border-l-orange-600', text: 'text-orange-700', icon: '⚔', label: 'Action' },
+const ADV_PREVIEW_STYLES: Record<AbilityType, { border: string; text: string; icon: ReactNode; label: string }> = {
+    action:   { border: 'border-l-orange-600', text: 'text-orange-700', icon: <SwordIcon className="w-3 h-3" />, label: 'Action' },
     reaction: { border: 'border-l-amber-600',  text: 'text-amber-700',  icon: '↩', label: 'Reaction' },
-    fear:     { border: 'border-l-purple-600', text: 'text-purple-700', icon: '⚡', label: 'Fear Feature' },
+    fear:     { border: 'border-l-purple-600', text: 'text-purple-700', icon: <BoltIcon className="w-3 h-3" />, label: 'Fear Feature' },
     passive:  { border: 'border-l-blue-600',   text: 'text-blue-700',   icon: '◈', label: 'Passive' },
 }
 
@@ -445,7 +447,7 @@ function EnvironmentCards() {
                         onClick={() => setActiveTab(tab)}
                         className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
                             activeTab === tab
-                                ? 'bg-ui-surface text-ui-text border-b-2 border-fear-light'
+                                ? 'bg-ui-surface text-accent border-b-2 border-accent'
                                 : 'text-ui-muted hover:text-ui-text'
                         }`}
                     >
