@@ -251,7 +251,7 @@ body {
   @apply text-hope-gold;
 }
 
-/* --- Obsidian callouts --- */
+/* --- Callouts --- */
 .callout {
   @apply my-4 rounded-lg border-l-4 overflow-hidden bg-ui-surface2/20;
 }

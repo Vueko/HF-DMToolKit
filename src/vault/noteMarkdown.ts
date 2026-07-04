@@ -23,7 +23,7 @@ function angleUrl(url: string): string {
 
 function replaceEmbeds(text: string, imageIndex: Map<string, string>): string {
     return text.replace(/!\[\[([^\]]+)\]\]/g, (whole, inner: string) => {
-        // Strip Obsidian size/alias suffix: ![[img.png|200]] -> "img.png"
+        // Strip the size/alias suffix: ![[img.png|200]] -> "img.png"
         const name = inner.split('|')[0].trim()
         // Resolve by exact name, then fall back to basename (for ![[folder/img.png]]).
         let target = imageIndex.get(name.toLowerCase())
@@ -47,7 +47,7 @@ function replaceLinks(text: string, noteIndex: Map<string, string>): string {
     })
 }
 
-export function preprocessObsidian(
+export function preprocessNoteMarkdown(
     body: string,
     noteIndex: Map<string, string>,
     imageIndex: Map<string, string>,

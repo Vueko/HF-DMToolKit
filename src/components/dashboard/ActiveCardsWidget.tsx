@@ -46,7 +46,7 @@ function ActiveCardsWidget() {
 
             <div className="flex items-center justify-between">
                 <h3 className="text-ui-text font-display font-semibold">{t('dashboard.activeCards')}</h3>
-                <span className="text-ui-muted text-xs">{t('dashboard.envCardsInPlay', { count: envInstances.length })}</span>
+                <span className="text-ui-muted text-xs">{t(envInstances.length === 1 ? 'dashboard.envCardsInPlayOne' : 'dashboard.envCardsInPlayOther', { count: envInstances.length })}</span>
             </div>
 
             {envInstances.length === 0 ? (

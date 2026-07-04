@@ -10,7 +10,7 @@ import { VaultMarkdown } from './VaultMarkdown'
 // correctly under renderToStaticMarkup. Wikilink/image resolution DOES depend on
 // the store's index, which renderToStaticMarkup cannot see (Zustand's server
 // snapshot returns the initial empty state) — that path is covered by
-// preprocessObsidian's unit tests, plus the standalone angle-link test below
+// preprocessNoteMarkdown's unit tests, plus the standalone angle-link test below
 // that proves react-markdown turns "[x](<url with spaces>)" into a real anchor.
 
 function render(body: string): string {

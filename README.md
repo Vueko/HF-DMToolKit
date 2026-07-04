@@ -1,54 +1,59 @@
 # HF DM ToolKit
 
-## ¿Qué es?
-Una aplicación de escritorio para DMs que quieran llevar sus partidas de DaggerHeart desde un solo lugar. Centraliza notas, mapas, música y el sistema de cartas característico del juego, corriendo de forma nativa en Windows sin necesidad de navegador.
+HF DM ToolKit is a Windows desktop application for game masters running Daggerheart campaigns. It is built with Electron, React 19 and TypeScript, and consolidates campaign management, the game's card system, encounter building, maps, audio and lore notes into a single offline tool. There is no backend, no account and no telemetry; all state is persisted locally.
 
-## Características
-* **Gestión de Campañas:** Cada campaña contiene sus propias sesiones y escenarios de manera independiente.
-* **Sistema de Cartas:** Gestión y generador interactivo de *Adversary Cards* y *Environment Cards*.
-* **Mapas Interactivos:** Carga de imágenes para tus mapas con soporte para pines interactivos y niebla de guerra configurable.
-* **World Wiki:** Sistema de carpetas para todo el Lore de tu campaña, con soporte para texto enriquecido (Markdown) y un espacio definido para secretos solo visibles al DM.
-* **Reproductor de Música Local:** Manejo de audio con playlists categorizadas por ambiente (*Moods*) para transiciones rápidas en la mesa de juego.
-* **Herramientas del DM:** Tracker de *Fear* y *Hope*, referencia rápida de reglas y dificultades, constructor de encuentros y soporte para contenido *homebrew*.
-* **Pantalla de Jugador:** Segunda ventana proyectable en un monitor externo con control de mapa, niebla de guerra, overlays y contador de *Fear* en tiempo real.
-* **Portabilidad:** Exportación e importación mediante archivos JSON para trasladar el estado de tus campañas entre dispositivos.
+## Features
 
-## Persistencia de Datos
-La aplicación guarda todos los datos de forma **local** en el directorio de usuario del sistema operativo (`%APPDATA%`). Las imágenes y archivos de audio se almacenan en disco; el resto de la configuración en un archivo JSON. No se requiere conexión a internet ni cuenta de ningún tipo.
+- Campaign and session management with scenes, encounters and active cards.
+- Adversary and Environment card library with editor and JSON import/export (community/SRD sets supported).
+- Encounter builder based on battle points, with per-instance HP and stress tracking.
+- Scene tracker with trigger flags and countdown clocks.
+- World Wiki: renders a folder of Markdown notes from disk, with wikilinks, callouts, full-text search and note-linked map pins.
+- Campaign map with pan/zoom, travel paths and pins.
+- Player screen on a second display, with fog of war, image overlays and a live Fear counter.
+- Local music player and soundboard with mood-based ambient loops.
+- DM screen with Fear tracker, rules reference and NPC name generator.
+- Four themes, interface scaling, and UI in English and Spanish.
+- Versioned JSON backup/restore with automatic pre-migration backups.
+- Auto-update through GitHub Releases; downloads on confirm, installs on restart.
+
+## Data persistence
+
+All data is stored locally under the OS user-data directory (`%APPDATA%` on Windows). Audio, maps and images are stored as binary files; application state lives in a single JSON store written atomically with a debounced flush. Store schemas are versioned; migrations run automatically on startup and are preceded by a backup.
 
 > [!WARNING]
-> **Alerta de Datos:** Si se desinstala la aplicación y se borran los datos de usuario, se perderá la información de la campaña. Se recomienda usar el botón de **Exportar Datos** de manera regular.
+> Uninstalling the application and removing its user data deletes all campaign information. Use **Export Data** (available in Settings and Campaigns) regularly.
 
-## Instalación y Uso
-
-### Desarrollo
+## Development
 
 ```bash
-# 1. Clonar el repositorio
-git clone [URL_DEL_REPOSITORIO]
-
-# 2. Instalar las dependencias
+git clone https://github.com/Vueko/DaggerHeart-ToolKit.git
 npm install
-
-# 3. Iniciar en modo desarrollo (Vite + Electron)
-npm run dev:electron
+npm run dev:electron   # Vite dev server + Electron main process
 ```
 
-### Distribución (Windows)
+Additional scripts:
 
 ```bash
-# Genera el instalador en /release
-npm run dist:win
+npm run test       # Vitest suite
+npm run lint       # ESLint
+npm run dist:win   # Windows NSIS installer, emitted to /release
 ```
 
-## Notas
-El proyecto está pensado para uso personal en mesa de juego. No cuenta con backend ni sincronización en la nube; el objetivo es ser una herramienta ágil y sin dependencias externas.
+Stack: React 19, TypeScript, Vite, Tailwind CSS 4, Zustand 5 (persisted stores over IPC), Electron with context isolation and a validated IPC surface.
 
-Siendo un proyecto *Open Source*, se puede usar el código como base para crear herramientas similares. Se pide amablemente que se respete la licencia y se den los créditos correspondientes a los autores originales del juego.
+## Releases and updates
 
-> **DaggerHeart** es una propiedad intelectual de *Darrington Press / Critical Role*.
+Installed builds query GitHub Releases on startup and prompt before downloading. To publish a release: increment `version` in `package.json`, run `npm run dist:win`, create a public GitHub Release tagged with that version, and attach the installer `.exe`, `latest.yml` and the `.blockmap` produced in `/release`. `latest.yml` is required; electron-updater reads it to detect the new version and verify the download.
 
-## RoadMap (Posiblemente)
-- [ ] Soporte de múltiples idiomas (Inglés, Español).
-- [ ] Distribución para macOS y Linux.
-- [ ] Sincronización opcional de campañas entre dispositivos.
+## Contributing
+
+Issues and pull requests are welcome. For anything beyond a bug fix, open an issue first to discuss the approach. Keep pull requests focused, run `npm run lint` and `npm run test` before submitting, and follow the existing code conventions. Corrections to the Spanish translation are also welcome; UI strings are defined in `src/i18n/translations.ts`.
+
+## Notes
+
+The project is intended for personal use at the game table. It has no backend and no cloud synchronization; the goal is a fast tool with no external dependencies.
+
+As an open source project, the code may be used as a base for building similar tools. Please respect the license and give the corresponding credit to the original authors of the game.
+
+> **DaggerHeart** is an intellectual property of *Darrington Press / Critical Role*.

@@ -1,6 +1,6 @@
-// Remark plugin: turn Obsidian callout blockquotes into tagged nodes.
+// Remark plugin: turn callout blockquotes into tagged nodes.
 //
-// Obsidian syntax:
+// Callout syntax:
 //   > [!warning] Optional title
 //   > body line 1
 //   > body line 2

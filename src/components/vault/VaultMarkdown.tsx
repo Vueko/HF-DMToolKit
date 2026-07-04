@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useVaultStore } from '../../vault/vaultStore'
-import { preprocessObsidian } from '../../vault/obsidianMarkdown'
+import { preprocessNoteMarkdown } from '../../vault/noteMarkdown'
 import { remarkCallouts } from '../../vault/remarkCallouts'
 import { slugifyHeading } from '../../vault/slug'
 import {
@@ -73,7 +73,7 @@ function VaultImage({ rel, alt }: { rel: string; alt: string }) {
     return <img src={url} alt={alt} className="max-w-full h-auto rounded-lg border border-ui-surface2 my-2" />
 }
 
-// --- Obsidian callouts -------------------------------------------------------
+// --- Callouts ----------------------------------------------------------------
 // Colors live in index.css (.callout-<type>); here we only map type -> icon/label.
 // Detection is by className (reliably passed by react-markdown), set by remarkCallouts.
 
@@ -140,7 +140,7 @@ export function VaultMarkdown({ body, onNavigate }: VaultMarkdownProps) {
     const imageIndex = useVaultStore((s) => s.imageIndex)
 
     const processed = useMemo(
-        () => preprocessObsidian(body, noteIndex, imageIndex),
+        () => preprocessNoteMarkdown(body, noteIndex, imageIndex),
         [body, noteIndex, imageIndex],
     )
 
