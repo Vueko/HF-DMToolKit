@@ -11,6 +11,8 @@ import MusicBar from './components/MusicBar'
 import { SoundboardProvider } from './context/SoundboardContext'
 import AmbientBar from './components/AmbientBar'
 import SoundQuickBar from './components/SoundQuickBar'
+import { UpdateNotification } from './components/UpdateNotification'
+import { useUpdateStore } from './store/updateStore'
 
 const DMDashboard = lazy(() => import('./pages/DMDashboard'))
 const SceneTracker = lazy(() => import('./pages/SceneTracker'))
@@ -47,6 +49,12 @@ function Layout() {
     window.electron.setZoom(uiScale)
   }, [uiScale])
 
+  useEffect(() => {
+    const off = window.electron.updater.onEvent((ev) => useUpdateStore.getState().apply(ev))
+    window.electron.updater.check()
+    return off
+  }, [])
+
   const location = useLocation()
 
   return (
@@ -67,6 +75,7 @@ function Layout() {
       <SoundQuickBar />
       <MusicBar />
       <AmbientBar />
+      <UpdateNotification />
     </div>
   )
 }

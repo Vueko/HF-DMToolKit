@@ -4,6 +4,7 @@ import type { Theme } from '../store/settingsStore'
 import { PageHeader, Panel, Button } from '../components/ui'
 import { useVaultStore } from '../vault/vaultStore'
 import { BackupControls } from '../components/BackupControls'
+import { useUpdateStore } from '../store/updateStore'
 
 const SCALE_LABELS: Record<number, string> = { 0.9: '90%', 1.0: '100%', 1.1: '110%', 1.25: '125%' }
 const THEME_LABELS: Record<Theme, string> = { midnight: 'Midnight', ember: 'Ember', slate: 'Slate', daylight: 'Daylight' }
@@ -13,6 +14,19 @@ function Settings() {
     const pickVault = useVaultStore((s) => s.pickVault)
     const [version, setVersion] = useState('')
     useEffect(() => { window.electron.getVersion().then(setVersion) }, [])
+
+    const updateStatus = useUpdateStore((s) => s.status)
+    const updateVersion = useUpdateStore((s) => s.version)
+    const updatePercent = useUpdateStore((s) => s.percent)
+    const updateError = useUpdateStore((s) => s.error)
+    const updateText =
+        updateStatus === 'checking' ? 'Comprobando…'
+        : updateStatus === 'available' ? `Disponible: v${updateVersion}`
+        : updateStatus === 'not-available' ? 'Estás al día'
+        : updateStatus === 'downloading' ? `Descargando… ${updatePercent}%`
+        : updateStatus === 'downloaded' ? `Descargada v${updateVersion} — reinicia para instalar`
+        : updateStatus === 'error' ? (updateError ?? 'Error')
+        : ''
 
     const disconnectVault = () => {
         setVaultPath(null)
@@ -92,6 +106,23 @@ function Settings() {
                 <a href="https://github.com/Vueko/DaggerHeart-ToolKit" target="_blank" rel="noreferrer" className="text-accent hover:underline text-sm w-fit">
                     Repositorio en GitHub →
                 </a>
+            </Panel>
+
+            <Panel className="flex flex-col gap-3">
+                <div>
+                    <h3 className="text-ui-text font-display font-semibold">Actualizaciones</h3>
+                    <p className="text-ui-muted text-sm">Busca e instala nuevas versiones</p>
+                </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                    <Button
+                        variant="secondary"
+                        onClick={() => window.electron.updater.check()}
+                        disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
+                    >
+                        Buscar actualizaciones
+                    </Button>
+                    {updateText && <span className="text-ui-muted text-sm">{updateText}</span>}
+                </div>
             </Panel>
         </div>
     )

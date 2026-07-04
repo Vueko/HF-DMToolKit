@@ -64,6 +64,12 @@ declare global {
                 readImage: (rel: string) => Promise<Uint8Array | null>
                 search: (query: string) => Promise<import('./types').VaultSearchResult[]>
             }
+            updater: {
+                check: () => Promise<void>
+                download: () => Promise<void>
+                install: () => void
+                onEvent: (cb: (ev: import('./store/updateStore').UpdaterEvent) => void) => () => void
+            }
             on: (channel: 'player:set-map' | 'player:clear-map' | 'player:show-overlay' | 'player:clear-overlay' | 'player:closed' | 'player:set-fog' | 'player:set-viewport' | 'player:set-campaign-map' | 'player:set-fear' | 'player:set-rotation', cb: (...args: unknown[]) => void) => () => void
         }
     }

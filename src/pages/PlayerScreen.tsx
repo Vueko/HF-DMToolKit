@@ -26,6 +26,7 @@ function PlayerScreen() {
     const offsetRef = useRef(offset)
     const dragStartRef = useRef({ x: 0, y: 0 })
     const containerRef = useRef<HTMLDivElement>(null)
+    const currentMapIdRef = useRef<string | null>(null)
     // Intentionally update refs during render so event handlers always read the latest value without stale closures
     // eslint-disable-next-line react-hooks/refs
     scaleRef.current = scale
@@ -43,7 +44,12 @@ function PlayerScreen() {
         }
 
         const offMap = window.electron.on('player:set-map', (storedId) => {
-            toDataUrl(storedId as string).then((url) => {
+            const id = storedId as string
+            // Ignora el re-push del MISMO mapa para no recargar la imagen (ni resetear su pan/zoom).
+            // El fog y la rotación se aplican por sus propios handlers. Un mapa distinto carga + auto-fit.
+            if (id === currentMapIdRef.current) return
+            currentMapIdRef.current = id
+            toDataUrl(id).then((url) => {
                 if (!mounted || !url) return
                 setMapUrl((prev) => {
                     if (prev) URL.revokeObjectURL(prev)
@@ -64,6 +70,7 @@ function PlayerScreen() {
         })
 
         const offClearMap = window.electron.on('player:clear-map', () => {
+            currentMapIdRef.current = null
             setMapUrl((prev) => {
                 if (prev) URL.revokeObjectURL(prev)
                 return null

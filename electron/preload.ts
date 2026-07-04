@@ -86,6 +86,17 @@ contextBridge.exposeInMainWorld('electron', {
         search: (query: string): Promise<unknown> => ipcRenderer.invoke('vault:search', query),
     },
 
+    updater: {
+        check: (): Promise<void> => ipcRenderer.invoke('updater:check'),
+        download: (): Promise<void> => ipcRenderer.invoke('updater:download'),
+        install: (): void => ipcRenderer.send('updater:install'),
+        onEvent: (cb: (ev: unknown) => void): (() => void) => {
+            const handler = (_: IpcRendererEvent, ev: unknown) => cb(ev)
+            ipcRenderer.on('updater:event', handler)
+            return () => ipcRenderer.off('updater:event', handler)
+        },
+    },
+
     on: (channel: string, cb: (...args: unknown[]) => void): (() => void) => {
         if (!(PLAYER_CHANNELS as readonly string[]).includes(channel)) return () => {}
         const handler = (_: IpcRendererEvent, ...args: unknown[]) => cb(...args)

@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, shell, ipcMain, dialog, session, screen } fro
 import { join } from 'path'
 import * as path from 'path'
 import * as fs from 'fs'
+import { autoUpdater } from 'electron-updater'
 
 // Allows UUIDs and simple slug IDs (e.g. "shared-map"), blocks path traversal
 const SAFE_ID_RE = /^[a-zA-Z0-9_-]{1,80}$/
@@ -151,6 +152,10 @@ function setPendingFear(count: number): boolean {
   return true
 }
 
+function sendUpdaterEvent(ev: unknown): void {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('updater:event', ev)
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -285,6 +290,29 @@ app.whenReady().then(() => {
   ipcMain.on('window:close', () => mainWindow?.close())
   ipcMain.handle('window:is-maximized', () => mainWindow?.isMaximized() ?? false)
   ipcMain.handle('app:get-version', () => app.getVersion())
+
+  autoUpdater.autoDownload = false
+  autoUpdater.autoInstallOnAppQuit = false
+  autoUpdater.on('checking-for-update', () => sendUpdaterEvent({ type: 'checking' }))
+  autoUpdater.on('update-available', (info) => sendUpdaterEvent({ type: 'available', version: info.version }))
+  autoUpdater.on('update-not-available', () => sendUpdaterEvent({ type: 'not-available' }))
+  autoUpdater.on('download-progress', (p) => sendUpdaterEvent({ type: 'progress', percent: Math.round(p.percent) }))
+  autoUpdater.on('update-downloaded', (info) => sendUpdaterEvent({ type: 'downloaded', version: info.version }))
+  autoUpdater.on('error', (err) => sendUpdaterEvent({ type: 'error', message: err?.message ?? String(err) }))
+
+  ipcMain.handle('updater:check', async () => {
+    if (!app.isPackaged) {
+      sendUpdaterEvent({ type: 'error', message: 'Actualizaciones no disponibles en desarrollo' })
+      return
+    }
+    try { await autoUpdater.checkForUpdates() }
+    catch (e) { sendUpdaterEvent({ type: 'error', message: (e as Error)?.message ?? 'Error al comprobar' }) }
+  })
+  ipcMain.handle('updater:download', async () => {
+    try { await autoUpdater.downloadUpdate() }
+    catch (e) { sendUpdaterEvent({ type: 'error', message: (e as Error)?.message ?? 'Error al descargar' }) }
+  })
+  ipcMain.on('updater:install', () => { autoUpdater.quitAndInstall() })
 
   ipcMain.handle('store:get', (_, key: string) => store.get(key))
   ipcMain.on('store:set', (_, key: string, value: unknown) => { if (STORE_KEYS.has(key)) store.set(key, value) })

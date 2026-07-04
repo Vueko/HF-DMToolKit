@@ -25,6 +25,8 @@ interface SettingsState {
     setTheme: (theme: Theme) => void
     vaultPath: string | null
     setVaultPath: (path: string | null) => void
+    playerWidgetCollapsed: boolean
+    setPlayerWidgetCollapsed: (v: boolean) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -36,6 +38,8 @@ export const useSettingsStore = create<SettingsState>()(
             setTheme: (theme) => set({ theme }),
             vaultPath: null,
             setVaultPath: (vaultPath) => set({ vaultPath }),
+            playerWidgetCollapsed: false,
+            setPlayerWidgetCollapsed: (playerWidgetCollapsed) => set({ playerWidgetCollapsed }),
         }),
         {
             name: 'dh-settings',

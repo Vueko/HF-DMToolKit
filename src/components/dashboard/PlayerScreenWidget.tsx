@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useCampaignStore } from '../../store/campaignStore'
+import { useSettingsStore } from '../../store/settingsStore'
 import type { FogZone, PlayerScreenImage, MapLibraryEntry } from '../../types'
 import { generateId } from '../../utils/generateId'
 
@@ -15,6 +16,9 @@ function PlayerScreenWidget() {
         addPlayerScreenImage, removePlayerScreenImage, setActiveMap,
         addMapLibraryEntry, removeMapLibraryEntry, setActiveMapRotation,
     } = useCampaignStore()
+
+    const playerWidgetCollapsed = useSettingsStore((s) => s.playerWidgetCollapsed)
+    const setPlayerWidgetCollapsed = useSettingsStore((s) => s.setPlayerWidgetCollapsed)
 
     const campaign = useMemo(
         () => campaigns.find(c => c.id === currentCampaignId) ?? null,
@@ -119,12 +123,17 @@ function PlayerScreenWidget() {
     // Optional-chained dep (campaign?.activeMapStoredId) makes React Compiler flag this; intentional for open-window action
     // eslint-disable-next-line react-hooks/preserve-manual-memoization
     const handleOpenWindow = useCallback(() => {
+        // Un mapa activo sin revelados se fuerza a niebla total ([]), para que no salga descubierto
+        // a los jugadores al abrir la ventana. Si ya tenía revelados, se respetan.
+        if (currentCampaignId && campaign?.activeMapStoredId && (mapData?.fogZones?.length ?? 0) === 0) {
+            updateCampaignMap(currentCampaignId, { fogZones: [] })
+        }
         window.electron.player.open(selectedDisplay)
         setIsOpen(true)
         if (campaign?.activeMapStoredId) {
             window.electron.player.setMap(campaign.activeMapStoredId)
         }
-    }, [selectedDisplay, campaign?.activeMapStoredId])
+    }, [selectedDisplay, campaign?.activeMapStoredId, currentCampaignId, mapData, updateCampaignMap])
 
     const handleCloseWindow = useCallback(() => {
         window.electron.player.close()
@@ -349,6 +358,16 @@ function PlayerScreenWidget() {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-ui-surface2/40">
                 <div className="flex items-center gap-2.5">
+                    <button
+                        onClick={() => setPlayerWidgetCollapsed(!playerWidgetCollapsed)}
+                        title={playerWidgetCollapsed ? 'Desplegar' : 'Plegar'}
+                        aria-label={playerWidgetCollapsed ? 'Desplegar' : 'Plegar'}
+                        className="text-ui-muted hover:text-ui-text transition-colors -ml-1 p-0.5 rounded"
+                    >
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-150 ${playerWidgetCollapsed ? '' : 'rotate-90'}`}>
+                            <path d="M9 6l6 6-6 6" />
+                        </svg>
+                    </button>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-ui-muted">Player Screen</p>
                     {isOpen && (
                         <div className="flex items-center gap-1.5">
@@ -403,6 +422,7 @@ function PlayerScreenWidget() {
                 )}
             </div>
 
+            {!playerWidgetCollapsed && (<>
             {/* Toolbar */}
             <div className="flex items-center justify-between px-4 py-2 border-b border-ui-surface2/40 bg-ui-bg/30">
                 <span className="text-[10px] text-ui-muted italic hidden lg:block">
@@ -631,6 +651,7 @@ function PlayerScreenWidget() {
                     )}
                 </div>
             </div>
+            </>)}
         </div>
     )
 }
