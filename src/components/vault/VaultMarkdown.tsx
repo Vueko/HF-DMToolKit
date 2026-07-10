@@ -33,7 +33,7 @@ const H6 = HeadingRenderer('h6')
 
 const EXT_MIME: Record<string, string> = {
     png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
-    gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
+    gif: 'image/gif', webp: 'image/webp',
 }
 
 function mimeFor(rel: string): string {
@@ -44,7 +44,9 @@ function mimeFor(rel: string): string {
 function VaultImage({ rel, alt }: { rel: string; alt: string }) {
     const [url, setUrl] = useState<string | null>(null)
     const [failed, setFailed] = useState(false)
+    const mime = mimeFor(rel)
     useEffect(() => {
+        if (!mime) return
         let revoked: string | null = null
         let cancelled = false
         // Intentional: reset the failure flag when the image path changes before re-fetching.
@@ -57,8 +59,8 @@ function VaultImage({ rel, alt }: { rel: string; alt: string }) {
                 setFailed(true)
                 return
             }
-            // Give the Blob the right MIME type so Chromium renders it (esp. SVG).
-            const blob = new Blob([data as BlobPart], { type: mimeFor(rel) })
+            // Give the Blob the right MIME type so Chromium renders it consistently.
+            const blob = new Blob([data as BlobPart], { type: mime })
             const objectUrl = URL.createObjectURL(blob)
             revoked = objectUrl
             setUrl(objectUrl)
@@ -67,7 +69,8 @@ function VaultImage({ rel, alt }: { rel: string; alt: string }) {
             cancelled = true
             if (revoked) URL.revokeObjectURL(revoked)
         }
-    }, [rel])
+    }, [rel, mime])
+    if (!mime) return <span className="text-ui-muted text-xs italic"><ImageIcon className="w-4 h-4 inline"/> formato no soportado: {rel}</span>
     if (failed) return <span className="text-ui-muted text-xs italic"><ImageIcon className="w-4 h-4 inline"/> imagen no encontrada: {rel}</span>
     if (!url) return <span className="text-ui-muted text-xs italic">cargando imagen…</span>
     return <img src={url} alt={alt} className="max-w-full h-auto rounded-lg border border-ui-surface2 my-2" />

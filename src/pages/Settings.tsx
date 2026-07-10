@@ -122,11 +122,18 @@ function Settings() {
             <Panel className="flex flex-col gap-2">
                 <h3 className="text-ui-text font-display font-semibold">{t('settings.about')}</h3>
                 <p className="text-ui-muted text-sm">{t('settings.aboutVersion', { version: version || '—' })}</p>
-                <a href="https://github.com/Vueko/DaggerHeart-ToolKit" target="_blank" rel="noreferrer" className="text-accent hover:underline text-sm w-fit">
+                <a href="https://github.com/Vueko/HF-GM-Toolkit" target="_blank" rel="noreferrer" className="text-accent hover:underline text-sm w-fit">
                     {t('settings.githubRepo')}
                 </a>
             </Panel>
 
+            <Panel className="flex flex-col gap-2">
+                <h3 className="text-ui-text font-display font-semibold">{t('settings.legalTitle')}</h3>
+                <p className="text-ui-muted text-sm leading-relaxed">{t('settings.legalBody')}</p>
+                <a href="https://darringtonpress.com/license/" target="_blank" rel="noreferrer" className="text-accent hover:underline text-sm w-fit">
+                    Darrington Press Community Gaming License
+                </a>
+            </Panel>
             <Panel className="flex flex-col gap-3">
                 <div>
                     <h3 className="text-ui-text font-display font-semibold">{t('settings.updatesTitle')}</h3>

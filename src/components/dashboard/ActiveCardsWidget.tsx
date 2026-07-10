@@ -11,7 +11,7 @@ import { useT } from '../../i18n'
 const FEATURE_STYLES: Record<EnvironmentFeatureType, { label: string; icon: ReactNode; text: string; border: string }> = {
     action:  { label: 'Action',       icon: <SwordIcon className="w-3 h-3" />, text: 'text-orange-700', border: 'border-l-orange-600' },
     passive: { label: 'Passive',      icon: '◈', text: 'text-blue-700',   border: 'border-l-blue-600'   },
-    fear:    { label: 'Fear Feature', icon: <BoltIcon className="w-3 h-3" />, text: 'text-purple-700', border: 'border-l-purple-600' },
+    fear:    { label: 'Token Feature', icon: <BoltIcon className="w-3 h-3" />, text: 'text-purple-700', border: 'border-l-purple-600' },
 }
 
 function ActiveCardsWidget() {

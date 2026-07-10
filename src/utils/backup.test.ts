@@ -48,13 +48,17 @@ describe('parseImport', () => {
         expect(r.kind).toBe('full')
         if (r.kind === 'full') { expect(r.legacy).toBe(true); expect(r.data).toEqual({ 'dh-campaigns': '{"state":{}}' }) }
     })
+    it('recognizes the previous app id for old backups', () => {
+        const raw = JSON.stringify({ app: 'daggerheart-toolkit', kind: 'full', formatVersion: 1, exportedAt: AT, data: { 'dh-fear': '{}' } })
+        expect(parseImport(raw)).toEqual({ kind: 'full', data: { 'dh-fear': '{}' }, legacy: false })
+    })
     it('recognizes a cards envelope', () => {
         const raw = JSON.stringify({ app: APP_ID, kind: 'cards', formatVersion: 1, exportedAt: AT, cards: [card('a')] })
         const r = parseImport(raw)
         expect(r.kind).toBe('cards')
         if (r.kind === 'cards') expect(r.cards).toHaveLength(1)
     })
-    it('recognizes a raw array as cards-raw (SRD path)', () => {
+    it('recognizes a raw array as cards-raw', () => {
         const r = parseImport(JSON.stringify([{ name: 'X' }]))
         expect(r.kind).toBe('cards-raw')
         if (r.kind === 'cards-raw') expect(r.items).toHaveLength(1)

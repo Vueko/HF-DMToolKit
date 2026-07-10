@@ -9,12 +9,12 @@
 @import "tailwindcss";
 
 @theme {
-  /*Colores para Fear */
+  /* Dark accent palette */
   --color-fear-primary: #1A1129;
   --color-fear-secondary: #3D287A;
   --color-fear-light: #684FA8;
 
-  /*Colores para Hope */
+  /* Warm accent palette */
   --color-hope-primary: #E8640C;
   --color-hope-secondary: #C9962A;
   --color-hope-yellow: #F5C842;

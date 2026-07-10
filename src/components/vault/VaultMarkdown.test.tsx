@@ -71,6 +71,15 @@ describe('VaultMarkdown — image embeds reach VaultImage', () => {
         expect(html).not.toContain('<img')
         expect(html).not.toContain('![Escudo]')
     })
+
+    it('does not render SVG vault images', () => {
+        const html = renderToStaticMarkup(
+            <VaultMarkdown body={'![Icono](<vault-img:imagenes/icono.svg>)'} onNavigate={() => {}} />,
+        )
+
+        expect(html).toContain('formato no soportado')
+        expect(html).not.toContain('<img')
+    })
 })
 
 describe('react-markdown angle-bracket links (the spaces fix)', () => {

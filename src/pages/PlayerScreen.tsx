@@ -258,7 +258,7 @@ function PlayerScreen() {
                 </div>
             )}
 
-            {/* Fear counter — always visible, top-center */}
+            {/* Token counter, always visible at the top center. */}
             <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-4 py-2 bg-black/60 backdrop-blur-sm rounded-full pointer-events-none">
                 {Array.from({ length: 12 }, (_, i) => (
                     <span

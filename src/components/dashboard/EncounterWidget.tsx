@@ -24,7 +24,7 @@ const ADJUSTMENT_DELTAS: Record<EncounterAdjustment, number> = {
 const ABILITY_STYLES: Record<AbilityType, { icon: ReactNode; label: string; text: string; border: string; dot: string }> = {
     action:   { icon: <SwordIcon className="w-3 h-3"/>, label: 'Action',       text: 'text-orange-700', border: 'border-l-orange-600', dot: 'bg-orange-600' },
     reaction: { icon: '↩', label: 'Reaction',     text: 'text-amber-700',  border: 'border-l-amber-600',  dot: 'bg-amber-600'  },
-    fear:     { icon: <BoltIcon className="w-3 h-3"/>, label: 'Fear Feature', text: 'text-purple-700', border: 'border-l-purple-600', dot: 'bg-purple-600' },
+    fear:     { icon: <BoltIcon className="w-3 h-3"/>, label: 'Token Feature', text: 'text-purple-700', border: 'border-l-purple-600', dot: 'bg-purple-600' },
     passive:  { icon: '◈', label: 'Passive',      text: 'text-blue-700',   border: 'border-l-blue-600',   dot: 'bg-blue-600'   },
 }
 

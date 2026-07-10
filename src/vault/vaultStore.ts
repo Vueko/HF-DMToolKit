@@ -37,12 +37,6 @@ export const useVaultStore = create<VaultState>((set, get) => ({
         const notes = listNotes(tree)
         const noteIndex = buildNoteIndex(tree)
         const imageIndex = buildImageIndex(tree)
-        if (import.meta.env.DEV) {
-            console.log(
-                `[vault] indexed ${notes.length} notes, ${imageIndex.size} images.`,
-                'image keys (first 20):', [...imageIndex.keys()].slice(0, 20),
-            )
-        }
         set({ tree, notes, noteIndex, imageIndex, status: 'ready' })
     },
 

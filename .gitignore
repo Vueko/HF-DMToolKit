@@ -31,3 +31,7 @@ docs/
 
 # Agent context (no versionar)
 CLAUDE.md
+*.tsbuildinfo
+AGENTS.md
+GEMINI.md
+src/types/index.js

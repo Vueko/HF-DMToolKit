@@ -1,6 +1,7 @@
 import type { Campaign, Card } from '../types'
 
-export const APP_ID = 'daggerheart-toolkit'
+export const APP_ID = 'hf-gm-toolkit'
+const LEGACY_APP_IDS = new Set(['daggerheart-toolkit'])
 export const FORMAT_VERSION = 1
 export const FULL_STORE_KEYS = [
     'dh-fear', 'dh-campaigns', 'dh-cards', 'dh-music', 'dh-soundboard', 'dh-settings',
@@ -79,7 +80,7 @@ export function parseImport(raw: string): ParsedImport {
 
     const obj = parsed as Record<string, unknown>
 
-    if (obj.app === APP_ID && (obj.kind === 'full' || obj.kind === 'cards')) {
+    if ((obj.app === APP_ID || LEGACY_APP_IDS.has(String(obj.app))) && (obj.kind === 'full' || obj.kind === 'cards')) {
         const version = obj.formatVersion
         if (typeof version !== 'number' || version > FORMAT_VERSION) {
             return { kind: 'invalid', reason: 'Backup de una versión más nueva; actualiza la app.' }

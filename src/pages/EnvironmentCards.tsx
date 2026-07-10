@@ -14,26 +14,26 @@ type Tab = 'environment' | 'adversary'
 const ABILITY_CONFIG: Record<AbilityType, { label: string; icon: ReactNode; bg: string; border: string; text: string; btnBg: string }> = {
     action:   { label: 'Action',       icon: <SwordIcon className="w-3 h-3" />, bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-300', btnBg: 'bg-orange-500/15 hover:bg-orange-500/30 border-orange-500/40 text-orange-300' },
     reaction: { label: 'Reaction',     icon: '↩', bg: 'bg-amber-400/10',  border: 'border-amber-400/30',  text: 'text-amber-300',  btnBg: 'bg-amber-400/15 hover:bg-amber-400/30 border-amber-400/40 text-amber-300' },
-    fear:     { label: 'Fear Feature', icon: <BoltIcon className="w-3 h-3" />, bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', btnBg: 'bg-purple-500/15 hover:bg-purple-500/30 border-purple-500/40 text-purple-300' },
+    fear:     { label: 'Token Feature', icon: <BoltIcon className="w-3 h-3" />, bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', btnBg: 'bg-purple-500/15 hover:bg-purple-500/30 border-purple-500/40 text-purple-300' },
     passive:  { label: 'Passive',      icon: '◈', bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   text: 'text-blue-300',   btnBg: 'bg-blue-500/15 hover:bg-blue-500/30 border-blue-500/40 text-blue-300' },
 }
 
 const FEATURE_CONFIG: Record<EnvironmentFeatureType, { label: string; icon: ReactNode; bg: string; border: string; text: string; btnBg: string }> = {
     action:  { label: 'Action',       icon: <SwordIcon className="w-3 h-3" />, bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-300', btnBg: 'bg-orange-500/15 hover:bg-orange-500/30 border-orange-500/40 text-orange-300' },
     passive: { label: 'Passive',      icon: '◈', bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   text: 'text-blue-300',   btnBg: 'bg-blue-500/15 hover:bg-blue-500/30 border-blue-500/40 text-blue-300' },
-    fear:    { label: 'Fear Feature', icon: <BoltIcon className="w-3 h-3" />, bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', btnBg: 'bg-purple-500/15 hover:bg-purple-500/30 border-purple-500/40 text-purple-300' },
+    fear:    { label: 'Token Feature', icon: <BoltIcon className="w-3 h-3" />, bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-300', btnBg: 'bg-purple-500/15 hover:bg-purple-500/30 border-purple-500/40 text-purple-300' },
 }
 
 const ENV_PREVIEW_STYLES: Record<EnvironmentFeatureType, { border: string; text: string; icon: ReactNode; label: string }> = {
     action:  { border: 'border-l-orange-600', text: 'text-orange-700', icon: <SwordIcon className="w-3 h-3" />, label: 'Action' },
     passive: { border: 'border-l-blue-600',   text: 'text-blue-700',   icon: '◈', label: 'Passive' },
-    fear:    { border: 'border-l-purple-600', text: 'text-purple-700', icon: <BoltIcon className="w-3 h-3" />, label: 'Fear Feature' },
+    fear:    { border: 'border-l-purple-600', text: 'text-purple-700', icon: <BoltIcon className="w-3 h-3" />, label: 'Token Feature' },
 }
 
 const ADV_PREVIEW_STYLES: Record<AbilityType, { border: string; text: string; icon: ReactNode; label: string }> = {
     action:   { border: 'border-l-orange-600', text: 'text-orange-700', icon: <SwordIcon className="w-3 h-3" />, label: 'Action' },
     reaction: { border: 'border-l-amber-600',  text: 'text-amber-700',  icon: '↩', label: 'Reaction' },
-    fear:     { border: 'border-l-purple-600', text: 'text-purple-700', icon: <BoltIcon className="w-3 h-3" />, label: 'Fear Feature' },
+    fear:     { border: 'border-l-purple-600', text: 'text-purple-700', icon: <BoltIcon className="w-3 h-3" />, label: 'Token Feature' },
     passive:  { border: 'border-l-blue-600',   text: 'text-blue-700',   icon: '◈', label: 'Passive' },
 }
 
@@ -252,7 +252,7 @@ function EnvironmentCards() {
         setTimeout(() => setImportStatus(null), 5000)
     }
 
-    // Importador de formato externo/SRD: array crudo, heurística de tipo, dedup por título.
+    // Importador de formato externo: array crudo, heurística de tipo, dedup por título.
     function importRawCards(items: unknown[]) {
         const data = items as Record<string, unknown>[]
         const first = data[0]
@@ -306,7 +306,7 @@ function EnvironmentCards() {
     async function handleExportCards() {
         const envelope = buildCardsExport(cards)
         const result = await window.electron.dialog.saveJson(JSON.stringify(envelope, null, 2), {
-            defaultPath: `daggerheart-cards-${new Date().toISOString().split('T')[0]}.json`,
+            defaultPath: `hf-gm-toolkit-cards-${new Date().toISOString().split('T')[0]}.json`,
             filters: [{ name: 'JSON', extensions: ['json'] }],
         })
         if (result.canceled) return

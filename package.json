@@ -1,7 +1,9 @@
 {
-  "name": "daggerheart-toolkit",
+  "name": "hf-gm-toolkit",
   "private": true,
   "version": "0.1.0",
+  "description": "Independent desktop toolkit for fantasy tabletop game masters.",
+  "author": "Carlos",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -36,7 +38,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.0.0",
-    "electron": "^36.0.0",
+    "electron": "^43.1.0",
     "electron-builder": "^26.0.0",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -50,11 +52,15 @@
     "wait-on": "^8.0.0"
   },
   "build": {
-    "appId": "com.daggerheart.toolkit",
-    "productName": "HF DMToolKit",
+    "appId": "com.hfgmtoolkit.app",
+    "productName": "HF GM Toolkit",
     "copyright": "Copyright © 2025 Carlos",
     "publish": [
-      { "provider": "github", "owner": "Vueko", "repo": "DaggerHeart-ToolKit" }
+      {
+        "provider": "github",
+        "owner": "Vueko",
+        "repo": "HF-GM-Toolkit"
+      }
     ],
     "directories": {
       "output": "release"
@@ -64,7 +70,8 @@
       "dist-electron/**/*"
     ],
     "win": {
-      "artifactName": "HF DMToolkit.exe",
+      "icon": "public/icon.ico",
+      "artifactName": "HF GM Toolkit.exe",
       "target": [
         {
           "target": "nsis",

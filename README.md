@@ -1,18 +1,18 @@
-# HF DM ToolKit
+# HF GM Toolkit
 
-HF DM ToolKit is a Windows desktop application for game masters running Daggerheart campaigns. It is built with Electron, React 19 and TypeScript, and consolidates campaign management, the game's card system, encounter building, maps, audio and lore notes into a single offline tool. There is no backend, no account and no telemetry; all state is persisted locally.
+HF GM Toolkit is an independent Windows desktop application for game masters running fantasy tabletop campaigns. It is built with Electron, React 19 and TypeScript, and consolidates campaign management, card-based encounter tools, encounter building, maps, audio and lore notes into a single offline tool. There is no backend, no account and no telemetry; all state is persisted locally.
 
 ## Features
 
 - Campaign and session management with scenes, encounters and active cards.
-- Adversary and Environment card library with editor and JSON import/export (community/SRD sets supported).
+- Adversary and Environment card library with editor and JSON import/export for user-provided or community-created data.
 - Encounter builder based on battle points, with per-instance HP and stress tracking.
 - Scene tracker with trigger flags and countdown clocks.
 - World Wiki: renders a folder of Markdown notes from disk, with wikilinks, callouts, full-text search and note-linked map pins.
 - Campaign map with pan/zoom, travel paths and pins.
-- Player screen on a second display, with fog of war, image overlays and a live Fear counter.
+- Player screen on a second display, with fog of war, image overlays and a live token counter.
 - Local music player and soundboard with mood-based ambient loops.
-- DM screen with Fear tracker, rules reference and NPC name generator.
+- GM tools with table notes and NPC name generator.
 - Four themes, interface scaling, and UI in English and Spanish.
 - Versioned JSON backup/restore with automatic pre-migration backups.
 - Auto-update through GitHub Releases; downloads on confirm, installs on restart.
@@ -27,7 +27,7 @@ All data is stored locally under the OS user-data directory (`%APPDATA%` on Wind
 ## Development
 
 ```bash
-git clone https://github.com/Vueko/DaggerHeart-ToolKit.git
+git clone https://github.com/Vueko/HF-GM-Toolkit.git
 npm install
 npm run dev:electron   # Vite dev server + Electron main process
 ```
@@ -54,6 +54,6 @@ Issues and pull requests are welcome. For anything beyond a bug fix, open an iss
 
 The project is intended for personal use at the game table. It has no backend and no cloud synchronization; the goal is a fast tool with no external dependencies.
 
-As an open source project, the code may be used as a base for building similar tools. Please respect the license and give the corresponding credit to the original authors of the game.
+As an open source project, the code may be used as a base for building similar tools. Please respect the licenses and rights of any game systems or content you use with it.
 
-> **DaggerHeart** is an intellectual property of *Darrington Press / Critical Role*.
+HF GM Toolkit is independent and unofficial. Daggerheart™ Compatible. It is not published, sponsored, approved, or endorsed by Darrington Press or Critical Role. Terms and license information: https://darringtonpress.com/license/

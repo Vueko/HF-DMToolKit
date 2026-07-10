@@ -12,7 +12,7 @@ export function BackupControls() {
         }))
         const envelope = buildFullExport(blobs)
         await window.electron.dialog.saveJson(JSON.stringify(envelope, null, 2), {
-            defaultPath: `daggerheart-backup-${new Date().toISOString().split('T')[0]}.json`,
+            defaultPath: `hf-gm-toolkit-backup-${new Date().toISOString().split('T')[0]}.json`,
             filters: [{ name: 'JSON Backup', extensions: ['json'] }],
         })
     }

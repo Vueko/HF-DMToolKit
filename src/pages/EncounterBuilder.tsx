@@ -48,7 +48,7 @@ const ROLE_COLORS_CARD: Record<string, string> = {
 const ABILITY_CARD_STYLES: Record<AbilityType, { label: string; icon: ReactNode; text: string; border: string }> = {
     action:   { label: 'Action',       icon: <SwordIcon className="w-3 h-3" />, text: 'text-orange-700', border: 'border-l-orange-600' },
     reaction: { label: 'Reaction',     icon: '↩', text: 'text-amber-700',  border: 'border-l-amber-600'  },
-    fear:     { label: 'Fear Feature', icon: <BoltIcon className="w-3 h-3" />, text: 'text-purple-700', border: 'border-l-purple-600' },
+    fear:     { label: 'Token Feature', icon: <BoltIcon className="w-3 h-3" />, text: 'text-purple-700', border: 'border-l-purple-600' },
     passive:  { label: 'Passive',      icon: '◈', text: 'text-blue-700',   border: 'border-l-blue-600'   },
 }
 

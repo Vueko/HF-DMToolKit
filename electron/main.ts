@@ -53,7 +53,7 @@ let playerWin: BrowserWindow | null = null
 let vaultRoot: string | null = null
 let didBackupThisSession = false
 
-const VAULT_IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'])
+const VAULT_IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp'])
 
 function toPosix(p: string): string {
   return p.split(path.sep).join('/')
