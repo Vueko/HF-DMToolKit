@@ -6,6 +6,7 @@ import type { AbilityType, AdversaryCard, Encounter, EncounterAdjustment, Encoun
 import { Button, Input, Select, PageHeader, EmptyState } from '../components/ui'
 import { renderBold } from '../utils/renderBold'
 import { SwordIcon, BoltIcon, DragonIcon } from '../components/icons'
+import { CardRollButtons } from '../components/dice/CardRollButtons'
 import {
     ADJUSTMENT_DELTAS, MANUAL_ADJUSTMENTS, AUTO_ADJUSTMENTS,
     computeAutoAdjustments, activeAdjustments, calcBattlePoints,
@@ -760,19 +761,14 @@ function EncounterBuilder() {
                             {(detailCard.attackModifier || detailCard.attackName || detailCard.attackDamage) && (
                                 <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
                                     <span className="font-black text-red-700 shrink-0">ATK:</span>
-                                    {detailCard.attackModifier && <span className="text-card-text font-bold">{detailCard.attackModifier}</span>}
+                                    <CardRollButtons title={detailCard.title} attackModifier={detailCard.attackModifier} />
                                     {(detailCard.attackName || detailCard.attackDistance) && (
                                         <><span className="text-card-border/50 select-none">|</span><span className="text-card-text">{[detailCard.attackName, detailCard.attackDistance].filter(Boolean).join(' · ')}</span></>
                                     )}
                                     {detailCard.attackDamage && (
                                         <>
                                             <span className="text-card-border/50 select-none">|</span>
-                                            <span className="text-card-text font-mono">{detailCard.attackDamage}</span>
-                                            {detailCard.attackDamageType && (
-                                                <span className={`font-semibold ${detailCard.attackDamageType === 'physical' ? 'text-orange-700' : 'text-blue-700'}`}>
-                                                    {detailCard.attackDamageType === 'physical' ? 'phys' : 'magic'}
-                                                </span>
-                                            )}
+                                            <CardRollButtons title={detailCard.title} attackDamage={detailCard.attackDamage} attackDamageType={detailCard.attackDamageType} />
                                             {displayEncounter?.adjustments.includes('bonus_damage') && (
                                                 <span className="text-red-700 font-bold text-[10px] bg-red-500/15 px-1 rounded">+1d4</span>
                                             )}

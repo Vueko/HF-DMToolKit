@@ -1,8 +1,9 @@
 import type { StoreApi } from 'zustand'
 import type {
-    Campaign, Session, Scene, SessionCardInstance, Track, Playlist,
+    Campaign, Session, Scene, SceneCountdown, SessionCardInstance, SessionItem, Track, Playlist,
     CampaignMapData, Encounter, EncounterCardInstance, PlayerScreenImage, MapLibraryEntry,
 } from '../../types'
+import type { CountdownRollOutcome } from '../../scene/countdowns'
 
 export interface CampaignState {
     campaigns: Campaign[]
@@ -21,9 +22,14 @@ export interface CampaignState {
     removeSceneFromSession: (campaignId: string, sessionId: string, sceneId: string) => void
     addEncounterToSession: (campaignId: string, sessionId: string, encounterId: string) => void
     removeEncounterFromSession: (campaignId: string, sessionId: string, encounterId: string) => void
+    addSessionItem: (campaignId: string, sessionId: string, item: SessionItem) => void
+    updateSessionItem: (campaignId: string, sessionId: string, itemId: string, updates: Partial<SessionItem>) => void
+    removeSessionItem: (campaignId: string, sessionId: string, itemId: string) => void
 
     addScene: (campaignId: string, scene: Scene) => void
     updateScene: (campaignId: string, sceneId: string, updates: Partial<Scene>) => void
+    updateSceneCountdown: (campaignId: string, sceneId: string, countdownId: string, updates: Partial<SceneCountdown>) => void
+    applyRollOutcomeToActiveScenes: (campaignId: string, outcome: CountdownRollOutcome) => void
     removeScene: (campaignId: string, sceneId: string) => void
 
     addCardToSession: (campaignId: string, sessionId: string, instance: SessionCardInstance) => void

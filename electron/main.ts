@@ -3,11 +3,13 @@ import { join } from 'path'
 import * as path from 'path'
 import * as fs from 'fs'
 import { autoUpdater } from 'electron-updater'
+import { resolveBuiltinPathFromDirs } from './builtinAudio'
+import { STORE_KEYS } from './storeKeys'
+import { isAllowedVaultBinaryExtension, isAllowedVaultImageExtension, VAULT_IMAGE_EXT } from './mainSecurity'
 
 // Allows UUIDs and simple slug IDs (e.g. "shared-map"), blocks path traversal
 const SAFE_ID_RE = /^[a-zA-Z0-9_-]{1,80}$/
 
-const STORE_KEYS = new Set(['dh-fear', 'dh-campaigns', 'dh-cards', 'dh-music', 'dh-soundboard', 'dh-settings'])
 
 class DataStore {
   private readonly filePath: string
@@ -53,7 +55,6 @@ let playerWin: BrowserWindow | null = null
 let vaultRoot: string | null = null
 let didBackupThisSession = false
 
-const VAULT_IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp'])
 
 function toPosix(p: string): string {
   return p.split(path.sep).join('/')
@@ -67,13 +68,13 @@ function isInsideRoot(root: string, target: string): boolean {
 interface VaultNodeShape {
   name: string
   path: string
-  type: 'folder' | 'note' | 'image'
+  type: 'folder' | 'note' | 'image' | 'pdf' | 'doc'
   children?: VaultNodeShape[]
 }
 
 function buildVaultTree(absDir: string, root: string): VaultNodeShape {
   const children: VaultNodeShape[] = []
-  let entries: fs.Dirent[] = []
+  let entries: fs.Dirent[]
   try { entries = fs.readdirSync(absDir, { withFileTypes: true }) } catch { entries = [] }
   for (const e of entries) {
     if (e.name.startsWith('.')) continue
@@ -84,6 +85,8 @@ function buildVaultTree(absDir: string, root: string): VaultNodeShape {
       const ext = path.extname(e.name).toLowerCase()
       if (ext === '.md') children.push({ name: e.name, path: toPosix(path.relative(root, abs)), type: 'note' })
       else if (VAULT_IMAGE_EXT.has(ext)) children.push({ name: e.name, path: toPosix(path.relative(root, abs)), type: 'image' })
+      else if (ext === '.pdf') children.push({ name: e.name, path: toPosix(path.relative(root, abs)), type: 'pdf' })
+      else if (ext === '.docx') children.push({ name: e.name, path: toPosix(path.relative(root, abs)), type: 'doc' })
     }
   }
   children.sort((a, b) => {
@@ -113,7 +116,7 @@ function searchVault(root: string, query: string): VaultSearchResult[] {
   if (q.length < 2) return []
   const results: VaultSearchResult[] = []
   const walk = (absDir: string): void => {
-    let entries: fs.Dirent[] = []
+    let entries: fs.Dirent[]
     try { entries = fs.readdirSync(absDir, { withFileTypes: true }) } catch { return }
     for (const e of entries) {
       if (e.name.startsWith('.')) continue
@@ -251,7 +254,7 @@ app.whenReady().then(() => {
         responseHeaders: {
           ...details.responseHeaders,
           'Content-Security-Policy': [
-            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self';"
+            "default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self';"
           ],
         },
       })
@@ -262,6 +265,12 @@ app.whenReady().then(() => {
 
   const store = new DataStore()
   const audioDir = join(app.getPath('userData'), 'audio')
+  const builtinSoundDirs = app.isPackaged
+    ? [join(process.resourcesPath, 'sounds')]
+    : [
+        join(app.getAppPath(), 'resources', 'sounds'),
+        join(process.cwd(), 'resources', 'sounds'),
+      ]
   const mapsDir = join(app.getPath('userData'), 'maps')
   const playerScreenDir = join(app.getPath('userData'), 'player-screen')
   ensureDir(audioDir)
@@ -346,6 +355,10 @@ app.whenReady().then(() => {
     if (!SAFE_ID_RE.test(id)) return null
     const p = join(audioDir, id)
     return fs.existsSync(p) ? fs.readFileSync(p) : null
+  })
+  ipcMain.handle('fs:get-builtin-audio', (_, file: string): Uint8Array | null => {
+    const p = resolveBuiltinPathFromDirs(builtinSoundDirs, file, fs.existsSync)
+    return p ? fs.readFileSync(p) : null
   })
   ipcMain.handle('fs:delete-audio', (_, id: string) => {
     if (!SAFE_ID_RE.test(id)) return
@@ -521,7 +534,14 @@ app.whenReady().then(() => {
   ipcMain.handle('vault:read-image', (_, rel: string): Uint8Array | null => {
     if (!vaultRoot || typeof rel !== 'string') return null
     const abs = path.resolve(vaultRoot, rel)
-    if (!isInsideRoot(vaultRoot, abs) || !VAULT_IMAGE_EXT.has(path.extname(abs).toLowerCase())) return null
+    if (!isInsideRoot(vaultRoot, abs) || !isAllowedVaultImageExtension(path.extname(abs))) return null
+    return fs.existsSync(abs) ? fs.readFileSync(abs) : null
+  })
+
+  ipcMain.handle('vault:read-binary', (_, rel: string): Uint8Array | null => {
+    if (!vaultRoot || typeof rel !== 'string') return null
+    const abs = path.resolve(vaultRoot, rel)
+    if (!isInsideRoot(vaultRoot, abs) || !isAllowedVaultBinaryExtension(path.extname(abs))) return null
     return fs.existsSync(abs) ? fs.readFileSync(abs) : null
   })
 

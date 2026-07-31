@@ -4,7 +4,7 @@ import type { Sound } from '../types'
 
 const snd = (id: string, categoryId: string): Sound => ({ id, name: 'S', storedId: 'st', type: 'oneshot', categoryId })
 
-beforeEach(() => useSoundboardStore.setState({ categories: [], sounds: [], activeAmbientIds: [] }))
+beforeEach(() => useSoundboardStore.setState({ categories: [], sounds: [], activeAmbientIds: [], hiddenBuiltinIds: [] }))
 
 describe('soundboardStore', () => {
     it('addCategory assigns an incrementing order', () => {
@@ -28,5 +28,14 @@ describe('soundboardStore', () => {
         useSoundboardStore.getState().removeSound('s1')
         expect(useSoundboardStore.getState().sounds).toEqual([])
         expect(useSoundboardStore.getState().activeAmbientIds).toEqual([])
+    })
+    it('hideBuiltin records hidden starter sounds and clears active ambience', () => {
+        useSoundboardStore.getState().setActiveAmbientIds(['builtin-rain'])
+        useSoundboardStore.getState().hideBuiltin('builtin-rain')
+        useSoundboardStore.getState().hideBuiltin('builtin-rain')
+        expect(useSoundboardStore.getState().hiddenBuiltinIds).toEqual(['builtin-rain'])
+        expect(useSoundboardStore.getState().activeAmbientIds).toEqual([])
+        useSoundboardStore.getState().unhideBuiltin('builtin-rain')
+        expect(useSoundboardStore.getState().hiddenBuiltinIds).toEqual([])
     })
 })

@@ -9,6 +9,7 @@ interface SoundboardState {
     categories: SoundCategory[]
     sounds: Sound[]
     activeAmbientIds: string[]
+    hiddenBuiltinIds: string[]
 
     addCategory: (name: string) => void
     removeCategory: (id: string) => void
@@ -17,6 +18,20 @@ interface SoundboardState {
     removeSound: (id: string) => void
     updateSound: (id: string, updates: Partial<Sound>) => void
     setActiveAmbientIds: (ids: string[]) => void
+    hideBuiltin: (id: string) => void
+    unhideBuiltin: (id: string) => void
+}
+
+function migrateV1toV2(state: unknown): unknown {
+    if (!state || typeof state !== 'object') {
+        return { categories: [], sounds: [], hiddenBuiltinIds: [] }
+    }
+    const s = state as Partial<Pick<SoundboardState, 'categories' | 'sounds' | 'hiddenBuiltinIds'>>
+    return {
+        categories: Array.isArray(s.categories) ? s.categories : [],
+        sounds: Array.isArray(s.sounds) ? s.sounds : [],
+        hiddenBuiltinIds: Array.isArray(s.hiddenBuiltinIds) ? s.hiddenBuiltinIds : [],
+    }
 }
 
 export const useSoundboardStore = create<SoundboardState>()(
@@ -25,6 +40,7 @@ export const useSoundboardStore = create<SoundboardState>()(
             categories: [],
             sounds: [],
             activeAmbientIds: [],
+            hiddenBuiltinIds: [],
 
             addCategory: (name) =>
                 set((s) => ({
@@ -60,13 +76,30 @@ export const useSoundboardStore = create<SoundboardState>()(
                 })),
 
             setActiveAmbientIds: (ids) => set({ activeAmbientIds: ids }),
+
+            hideBuiltin: (id) =>
+                set((s) => ({
+                    hiddenBuiltinIds: s.hiddenBuiltinIds.includes(id)
+                        ? s.hiddenBuiltinIds
+                        : [...s.hiddenBuiltinIds, id],
+                    activeAmbientIds: s.activeAmbientIds.filter((aid) => aid !== id),
+                })),
+
+            unhideBuiltin: (id) =>
+                set((s) => ({
+                    hiddenBuiltinIds: s.hiddenBuiltinIds.filter((hiddenId) => hiddenId !== id),
+                })),
         }),
         {
             name: 'dh-soundboard',
-            version: 1,
-            migrate: createMigrate<SoundboardState>(1, {}),
+            version: 2,
+            migrate: createMigrate<SoundboardState>(2, { 2: migrateV1toV2 }),
             storage: createJSONStorage(() => electronStorage),
-            partialize: (s) => ({ categories: s.categories, sounds: s.sounds }),
+            partialize: (s) => ({
+                categories: s.categories,
+                sounds: s.sounds,
+                hiddenBuiltinIds: s.hiddenBuiltinIds,
+            }),
         }
     )
 )

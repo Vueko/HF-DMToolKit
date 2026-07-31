@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { useCampaignStore } from './campaignStore'
 import type {
     Campaign, Scene, Session, Track, Playlist, Encounter,
-    SessionCardInstance, EncounterCardInstance,
+    SessionCardInstance, EncounterCardInstance, SessionItem
 } from '../types'
 
 const get = () => useCampaignStore.getState()
@@ -82,6 +82,28 @@ describe('scenes', () => {
         expect(camp().scenes.map((s) => s.id)).toEqual(['sc1'])
         get().updateScene('c1', 'sc1', { title: 'New' })
         expect(camp().scenes[0].title).toBe('New')
+    })
+    it('updateSceneCountdown updates one countdown', () => {
+        get().addScene('c1', { ...mkScene('sc1'), countdowns: [
+            { id: 'a', title: 'Gate', type: 'progress', value: 4, max: 4 },
+            { id: 'b', title: 'Alarm', type: 'consequence', value: 5, max: 5 },
+        ] })
+        get().updateSceneCountdown('c1', 'sc1', 'b', { value: 2 })
+
+        expect(camp().scenes[0].countdowns?.map((c) => [c.id, c.value])).toEqual([['a', 4], ['b', 2]])
+    })
+    it('applyRollOutcomeToActiveScenes updates active scene countdowns only', () => {
+        get().addScene('c1', { ...mkScene('active'), status: 'active', countdowns: [
+            { id: 'p', title: 'Gate', type: 'progress', value: 6, max: 6 },
+            { id: 'c', title: 'Alarm', type: 'consequence', value: 6, max: 6 },
+        ] })
+        get().addScene('c1', { ...mkScene('upcoming'), status: 'upcoming', countdowns: [
+            { id: 'p2', title: 'Later', type: 'progress', value: 6, max: 6 },
+        ] })
+        get().applyRollOutcomeToActiveScenes('c1', { outcome: 'success', tone: 'fear' })
+
+        expect(camp().scenes[0].countdowns?.map((c) => [c.id, c.value])).toEqual([['p', 5], ['c', 5]])
+        expect(camp().scenes[1].countdowns?.[0].value).toBe(6)
     })
     it('removeScene cascades: removes the sceneId from every session', () => {
         get().addScene('c1', mkScene('sc1'))
@@ -204,5 +226,25 @@ describe('player screen images', () => {
         expect(camp().playerScreenImages?.map((i) => i.id)).toEqual(['pi1'])
         get().removePlayerScreenImage('c1', 'pi1')
         expect(camp().playerScreenImages).toEqual([])
+    })
+})
+
+describe('session items', () => {
+    const mkItem = (id: string, title = 'Clue'): SessionItem => ({ id, kind: 'clue', title, done: false })
+
+    beforeEach(() => {
+        get().addCampaign(mkCampaign('c1'))
+        get().addSession('c1', mkSession('s1'))
+    })
+
+    it('adds, updates and removes session log items', () => {
+        get().addSessionItem('c1', 's1', mkItem('i1'))
+        expect(camp().sessions[0].items?.map((i) => i.id)).toEqual(['i1'])
+
+        get().updateSessionItem('c1', 's1', 'i1', { title: 'Revealed sigil', done: true })
+        expect(camp().sessions[0].items?.[0]).toMatchObject({ title: 'Revealed sigil', done: true })
+
+        get().removeSessionItem('c1', 's1', 'i1')
+        expect(camp().sessions[0].items).toEqual([])
     })
 })

@@ -32,6 +32,8 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.invoke('fs:save-audio', id, new Uint8Array(data)),
         getAudio: (id: string): Promise<Uint8Array | null> =>
             ipcRenderer.invoke('fs:get-audio', id),
+        getBuiltinAudio: (file: string): Promise<Uint8Array | null> =>
+            ipcRenderer.invoke('fs:get-builtin-audio', file),
         deleteAudio: (id: string): Promise<void> =>
             ipcRenderer.invoke('fs:delete-audio', id),
         saveMapImage: (id: string, data: ArrayBuffer): Promise<void> =>
@@ -83,6 +85,7 @@ contextBridge.exposeInMainWorld('electron', {
         readTree: (root: string): Promise<unknown> => ipcRenderer.invoke('vault:read-tree', root),
         readFile: (rel: string): Promise<string | null> => ipcRenderer.invoke('vault:read-file', rel),
         readImage: (rel: string): Promise<Uint8Array | null> => ipcRenderer.invoke('vault:read-image', rel),
+        readBinary: (rel: string): Promise<Uint8Array | null> => ipcRenderer.invoke('vault:read-binary', rel),
         search: (query: string): Promise<unknown> => ipcRenderer.invoke('vault:search', query),
     },
 

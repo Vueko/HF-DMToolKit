@@ -5,6 +5,10 @@ export interface Sound {
     type: 'oneshot' | 'ambient'
     categoryId: string
     mood?: 'calm' | 'tense' | 'epic' | 'mystery' | 'ambient'
+    icon?: string
+    color?: string
+    tags?: string[]
+    builtin?: boolean
 }
 
 export interface SoundCategory {

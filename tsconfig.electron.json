@@ -8,7 +8,12 @@
     "types": ["node"],
     "skipLibCheck": true,
     "strict": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "incremental": true,
+    "tsBuildInfoFile": "node_modules/.cache/tsconfig.electron.tsbuildinfo"
   },
-  "include": ["electron/**/*"]
+  "include": ["electron/**/*"],
+  // Tests are run by Vitest (own transform), so they must not be emitted into
+  // dist-electron — electron-builder ships that folder into the packaged app.
+  "exclude": ["electron/**/*.test.ts"]
 }

@@ -11,7 +11,11 @@ HF GM Toolkit is an independent Windows desktop application for game masters run
 - World Wiki: renders a folder of Markdown notes from disk, with wikilinks, callouts, full-text search and note-linked map pins.
 - Campaign map with pan/zoom, travel paths and pins.
 - Player screen on a second display, with fog of war, image overlays and a live token counter.
-- Local music player and soundboard with mood-based ambient loops.
+- PC resource tracking: HP, stress, armour slots, evasion and damage thresholds per character.
+- Dice tray with duality (hope/fear) rolls, d20, free-form notation and advantage/disadvantage, plus
+  attack and damage roll buttons on cards.
+- Audio hub combining a local music player and a soundboard, with five ambient loops bundled in the
+  installer so it works before you add any audio of your own.
 - GM tools with table notes and NPC name generator.
 - Four themes, interface scaling, and UI in English and Spanish.
 - Versioned JSON backup/restore with automatic pre-migration backups.
@@ -27,7 +31,7 @@ All data is stored locally under the OS user-data directory (`%APPDATA%` on Wind
 ## Development
 
 ```bash
-git clone https://github.com/Vueko/HF-GM-Toolkit.git
+git clone https://github.com/Vueko/HF-DMToolKit.git
 npm install
 npm run dev:electron   # Vite dev server + Electron main process
 ```
@@ -44,7 +48,19 @@ Stack: React 19, TypeScript, Vite, Tailwind CSS 4, Zustand 5 (persisted stores o
 
 ## Releases and updates
 
-Installed builds query GitHub Releases on startup and prompt before downloading. To publish a release: increment `version` in `package.json`, run `npm run dist:win`, create a public GitHub Release tagged with that version, and attach the installer `.exe`, `latest.yml` and the `.blockmap` produced in `/release`. `latest.yml` is required; electron-updater reads it to detect the new version and verify the download.
+Installed builds query GitHub Releases on startup and prompt before downloading. To publish a release:
+
+1. Increment `version` in `package.json` and add a section to `CHANGELOG.md`.
+2. Run `npm run lint`, `npm run test` and `npm run dist:win`.
+3. Create a public GitHub Release tagged `v<version>` (semver, e.g. `v1.1.0`).
+4. Attach the installer `.exe`, `latest.yml` and the `.blockmap` produced in `/release`.
+
+`latest.yml` is required; electron-updater reads it to detect the new version and verify the download.
+
+> [!IMPORTANT]
+> The version in `package.json` is what electron-updater compares against the running app. If it is
+> not incremented, installed builds report "no update available" no matter what is published — the
+> git tag alone has no effect.
 
 ## Contributing
 
@@ -55,5 +71,7 @@ Issues and pull requests are welcome. For anything beyond a bug fix, open an iss
 The project is intended for personal use at the game table. It has no backend and no cloud synchronization; the goal is a fast tool with no external dependencies.
 
 As an open source project, the code may be used as a base for building similar tools. Please respect the licenses and rights of any game systems or content you use with it.
+
+The MIT license covers the source code only. The bundled ambient audio in `resources/sounds` keeps the license of its original authors; see `resources/sounds/CREDITS.md` for attribution and licensing status.
 
 HF GM Toolkit is independent and unofficial. Daggerheart™ Compatible. It is not published, sponsored, approved, or endorsed by Darrington Press or Critical Role. Terms and license information: https://darringtonpress.com/license/

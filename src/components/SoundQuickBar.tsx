@@ -1,50 +1,22 @@
 import { useState } from 'react'
 import { useSoundboardStore } from '../store/soundboardStore'
 import { useSoundboard } from '../context/SoundboardContext'
+import { useAllSounds } from '../audio/useAllSounds'
+import { allTags } from '../audio/filterSounds'
 import { useT } from '../i18n'
+import DiceTray from './dice/DiceTray'
 import type { Sound } from '../types'
-
-const MOOD_OPTIONS = ['calm', 'tense', 'epic', 'mystery', 'ambient'] as const
-type SoundMood = typeof MOOD_OPTIONS[number]
-
-const MOOD_LABELS: Record<SoundMood, string> = {
-    calm: 'soundboard.moodCalm',
-    tense: 'soundboard.moodTense',
-    epic: 'soundboard.moodEpic',
-    mystery: 'soundboard.moodMystery',
-    ambient: 'soundboard.moodAmbient',
-}
-
-const MOOD_TAB_COLORS: Record<SoundMood, string> = {
-    calm: 'text-hope-secondary',
-    tense: 'text-hope-primary',
-    epic: 'text-hope-yellow',
-    mystery: 'text-fear-light',
-    ambient: 'text-ui-muted',
-}
-
-const MOOD_TAB_ACTIVE: Record<SoundMood, string> = {
-    calm: 'bg-hope-secondary/15 text-hope-secondary',
-    tense: 'bg-hope-primary/15 text-hope-primary',
-    epic: 'bg-hope-yellow/15 text-hope-yellow',
-    mystery: 'bg-fear-light/15 text-fear-light',
-    ambient: 'bg-ui-muted/15 text-ui-muted',
-}
 
 function SoundQuickBar() {
     const t = useT()
-    const { sounds, activeAmbientIds } = useSoundboardStore()
+    const sounds = useAllSounds()
+    const { activeAmbientIds } = useSoundboardStore()
     const { toggleAmbient, playOneshot } = useSoundboard()
-    const [activeTab, setActiveTab] = useState<SoundMood | null>(null)
+    const [activeTab, setActiveTab] = useState<string | null>(null)
 
-    const moodsWithSounds = MOOD_OPTIONS.filter((m) => sounds.some((s) => s.mood === m))
-
-    if (moodsWithSounds.length === 0) return null
-
-    const effectiveTab: SoundMood =
-        activeTab && moodsWithSounds.includes(activeTab) ? activeTab : moodsWithSounds[0]
-
-    const tabSounds = sounds.filter((s) => s.mood === effectiveTab)
+    const tags = allTags(sounds)
+    const effectiveTab = activeTab && tags.includes(activeTab) ? activeTab : tags[0]
+    const tabSounds = effectiveTab ? sounds.filter((s) => (s.tags ?? []).includes(effectiveTab)) : []
 
     function handlePlay(sound: Sound) {
         if (sound.type === 'ambient') toggleAmbient(sound)
@@ -53,47 +25,57 @@ function SoundQuickBar() {
 
     return (
         <div className="bg-ui-surface border-t border-ui-surface2/40 px-4 flex items-center gap-3 h-10 shrink-0">
-            <div className="flex items-center gap-0.5 shrink-0">
-                {moodsWithSounds.map((m) => (
-                    <button
-                        key={m}
-                        onClick={() => setActiveTab(m)}
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide transition-colors ${
-                            m === effectiveTab
-                                ? MOOD_TAB_ACTIVE[m]
-                                : `${MOOD_TAB_COLORS[m]} opacity-40 hover:opacity-70`
-                        }`}
-                    >
-                        {t(MOOD_LABELS[m])}
-                    </button>
-                ))}
-            </div>
+            {tags.length > 0 ? (
+                <>
+                    <div className="flex items-center gap-0.5 shrink-0 overflow-x-auto max-w-[40%]">
+                        {tags.map((tag) => (
+                            <button
+                                key={tag}
+                                onClick={() => setActiveTab(tag)}
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide transition-colors shrink-0 ${
+                                    tag === effectiveTab
+                                        ? 'bg-hope-primary/15 text-hope-primary'
+                                        : 'text-ui-muted opacity-60 hover:opacity-100'
+                                }`}
+                            >
+                                {tag}
+                            </button>
+                        ))}
+                    </div>
 
-            <div className="w-px h-5 bg-ui-surface2 shrink-0" />
+                    <div className="w-px h-5 bg-ui-surface2 shrink-0" />
 
-            <div className="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto">
-                {tabSounds.map((sound) => {
-                    const isActive = activeAmbientIds.includes(sound.id)
-                    return (
-                        <button
-                            key={sound.id}
-                            onClick={() => handlePlay(sound)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors shrink-0 flex items-center gap-1 ${
-                                sound.type === 'ambient' && isActive
-                                    ? 'bg-fear-light/20 text-fear-light border border-fear-light/40'
-                                    : sound.type === 'ambient'
-                                    ? 'bg-ui-surface2 text-ui-muted border border-fear-light/20 hover:text-ui-text'
-                                    : 'bg-ui-surface2 text-ui-muted border border-ui-surface2/60 hover:text-ui-text'
-                            }`}
-                        >
-                            {sound.name}
-                            {sound.type === 'ambient' && isActive && (
-                                <span className="text-[9px] opacity-60">{t('soundboard.loop')}</span>
-                            )}
-                        </button>
-                    )
-                })}
-            </div>
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto">
+                        {tabSounds.map((sound) => {
+                            const isActive = activeAmbientIds.includes(sound.id)
+                            return (
+                                <button
+                                    key={sound.id}
+                                    onClick={() => handlePlay(sound)}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors shrink-0 flex items-center gap-1 ${
+                                        sound.type === 'ambient' && isActive
+                                            ? 'bg-fear-light/20 text-fear-light border border-fear-light/40'
+                                            : sound.type === 'ambient'
+                                            ? 'bg-ui-surface2 text-ui-muted border border-fear-light/20 hover:text-ui-text'
+                                            : 'bg-ui-surface2 text-ui-muted border border-ui-surface2/60 hover:text-ui-text'
+                                    }`}
+                                >
+                                    {sound.name}
+                                    {sound.type === 'ambient' && isActive && (
+                                        <span className="text-[9px] opacity-60">{t('audio.loop')}</span>
+                                    )}
+                                </button>
+                            )
+                        })}
+                    </div>
+
+                    <div className="w-px h-5 bg-ui-surface2 shrink-0" />
+                </>
+            ) : (
+                <div className="flex-1" />
+            )}
+
+            <DiceTray />
         </div>
     )
 }

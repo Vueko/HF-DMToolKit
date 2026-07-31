@@ -4,7 +4,7 @@ export const APP_ID = 'hf-gm-toolkit'
 const LEGACY_APP_IDS = new Set(['daggerheart-toolkit'])
 export const FORMAT_VERSION = 1
 export const FULL_STORE_KEYS = [
-    'dh-fear', 'dh-campaigns', 'dh-cards', 'dh-music', 'dh-soundboard', 'dh-settings',
+    'dh-fear', 'dh-campaigns', 'dh-cards', 'dh-party', 'dh-music', 'dh-soundboard', 'dh-settings',
 ] as const
 
 export interface FullEnvelope {

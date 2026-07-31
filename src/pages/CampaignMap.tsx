@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { useCampaignStore } from '../store/campaignStore'
 import type { MapMarker } from '../types'
 import { useVaultStore } from '../vault/vaultStore'

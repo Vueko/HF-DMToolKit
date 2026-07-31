@@ -1,3 +1,5 @@
+import type { SessionItem } from './sessionItem'
+
 export interface SessionCardInstance {
     instanceId: string
     cardId: string
@@ -13,4 +15,5 @@ export interface Session {
     sceneIds: string[]
     encounterIds: string[]
     cardInstances: SessionCardInstance[]
+    items?: SessionItem[]
 }

@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink } from 'react-router'
 import { useCampaignStore } from '../store/campaignStore'
 import { useT } from '../i18n'
 
@@ -8,11 +8,10 @@ const navItems = [
     { path: '/scenes', label: 'nav.scenes' },
     { path: '/cards', label: 'nav.cards' },
     { path: '/encounter', label: 'nav.encounter' },
-    { path: '/dm-screen', label: 'nav.dmScreen' },
-    { path: '/music', label: 'nav.music' },
+    { path: '/party', label: 'nav.party' },
+    { path: '/audio', label: 'nav.audio' },
     { path: '/journal', label: 'nav.wiki' },
     { path: '/map', label: 'nav.map' },
-    { path: '/soundboard', label: 'nav.soundboard' },
 ]
 
 function Sidebar() {

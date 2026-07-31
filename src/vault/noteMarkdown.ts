@@ -4,14 +4,13 @@ import { parseWikiTarget, resolveNote } from './wikilinks'
 export function extractFrontmatter(md: string): { frontmatter: Record<string, unknown> | null; body: string } {
     const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(md)
     if (!match) return { frontmatter: null, body: md }
-    let frontmatter: Record<string, unknown> | null = null
     try {
         const parsed = parseYaml(match[1])
-        frontmatter = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null
+        const frontmatter = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null
+        return { frontmatter, body: md.slice(match[0].length) }
     } catch {
-        frontmatter = null
+        return { frontmatter: null, body: md.slice(match[0].length) }
     }
-    return { frontmatter, body: md.slice(match[0].length) }
 }
 
 // Wrap a URL in <...> so destinations with spaces/parens stay a single token in

@@ -8,6 +8,7 @@ import { Button, Input, Select, Textarea, PageHeader, EmptyState } from '../comp
 import { renderBold } from '../utils/renderBold'
 import { buildCardsExport, parseImport, mergeCardsById } from '../utils/backup'
 import { SwordIcon, BoltIcon } from '../components/icons'
+import { CardRollButtons } from '../components/dice/CardRollButtons'
 
 type Tab = 'environment' | 'adversary'
 
@@ -92,7 +93,11 @@ function CardPreview({ card }: { card: EnvironmentCard | AdversaryCard }) {
                         {(card.attackModifier || card.attackName || card.attackDamage) && (
                             <p className="text-[11px] text-card-text col-span-3">
                                 <span className="font-bold text-red-700">ATK:</span>{' '}
-                                {[card.attackModifier, [card.attackName, card.attackDistance].filter(Boolean).join(' · ') || null, [card.attackDamage, card.attackDamageType === 'physical' ? 'phys' : card.attackDamageType === 'magical' ? 'magic' : null].filter(Boolean).join(' ') || null].filter(Boolean).join(' | ')}
+                                <CardRollButtons title={card.title} attackModifier={card.attackModifier} />
+                                {(card.attackModifier && (card.attackName || card.attackDistance)) && <span className="text-card-border/50"> | </span>}
+                                {(card.attackName || card.attackDistance) && <span>{[card.attackName, card.attackDistance].filter(Boolean).join(' · ')}</span>}
+                                {card.attackDamage && <span className="text-card-border/50"> | </span>}
+                                <CardRollButtons title={card.title} attackDamage={card.attackDamage} attackDamageType={card.attackDamageType} />
                             </p>
                         )}
                     </div>
@@ -632,7 +637,11 @@ function EnvironmentCards() {
                                         {(card.attackModifier || card.attackName || card.attackDamage) && (
                                             <p className="text-[11px] text-card-text col-span-3">
                                                 <span className="font-bold text-red-700">ATK:</span>{' '}
-                                                {[card.attackModifier, [card.attackName, card.attackDistance].filter(Boolean).join(' · ') || null, [card.attackDamage, card.attackDamageType === 'physical' ? 'phys' : card.attackDamageType === 'magical' ? 'magic' : null].filter(Boolean).join(' ') || null].filter(Boolean).join(' | ')}
+                                                <CardRollButtons title={card.title} attackModifier={card.attackModifier} />
+                                {(card.attackModifier && (card.attackName || card.attackDistance)) && <span className="text-card-border/50"> | </span>}
+                                {(card.attackName || card.attackDistance) && <span>{[card.attackName, card.attackDistance].filter(Boolean).join(' · ')}</span>}
+                                {card.attackDamage && <span className="text-card-border/50"> | </span>}
+                                <CardRollButtons title={card.title} attackDamage={card.attackDamage} attackDamageType={card.attackDamageType} />
                                             </p>
                                         )}
                                     </div>

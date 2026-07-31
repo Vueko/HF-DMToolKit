@@ -3,6 +3,7 @@ import { useCampaignStore } from '../../store/campaignStore'
 import { useFearStore } from '../../store/fearStore'
 import type { Scene, SceneFlagType } from '../../types'
 import { useT } from '../../i18n'
+import { CountdownControls } from '../scenes/CountdownControls'
 
 const FLAG_CONFIG: Record<SceneFlagType, { icon: string; bg: string; border: string; text: string }> = {
     event: { icon: '', bg: 'bg-hope-primary/10', border: 'border-hope-primary/25', text: 'text-hope-primary' },
@@ -119,7 +120,6 @@ function SceneWidget() {
                     const count = scene.count ?? 0
                     const max = scene.countMax ?? 0
                     const hasCountdown = max > 0
-                    const pct = hasCountdown ? Math.min(100, (count / max) * 100) : 0
                     const isFull = hasCountdown && count >= max
 
                     return (
@@ -156,53 +156,11 @@ function SceneWidget() {
                                     {scene.description.replace(/[#*_`[\]]/g, '').trim()}
                                 </p>
                             )}
-
-                            {/* Countdown clock */}
-                            {hasCountdown ? (
-                                <div className="flex flex-col gap-1.5">
-                                    <div className="flex items-center justify-between">
-                                        <span className={`text-[10px] font-black uppercase tracking-widest ${isFull ? 'text-hope-gold' : 'text-card-text/50'}`}>
-                                            {isFull ? `⚠ ${t('dashboard.clockFull')}` : `⏱ ${t('dashboard.clock')}`}
-                                        </span>
-                                        <span className={`text-xs font-bold tabular-nums ${isFull ? 'text-hope-gold' : 'text-card-text/80'}`}>
-                                            {count} / {max}
-                                        </span>
-                                    </div>
-                                    <div className="h-1.5 bg-card-border/40 rounded-full overflow-hidden">
-                                        <div
-                                            className={`h-full rounded-full transition-all duration-300 ${isFull ? 'bg-hope-gold' : 'bg-hope-primary'}`}
-                                            style={{ width: `${pct}%` }}
-                                        />
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <button
-                                            onClick={() => updateScene(currentCampaignId, scene.id, { count: Math.max(0, count - 1) })}
-                                            disabled={count <= 0}
-                                            className="w-6 h-6 bg-card-border/30 hover:bg-fear-light/30 text-card-text text-xs font-bold rounded transition-colors flex items-center justify-center disabled:opacity-30"
-                                        >−</button>
-                                        <button
-                                            onClick={() => updateScene(currentCampaignId, scene.id, { count: Math.min(max, count + 1) })}
-                                            disabled={isFull}
-                                            className="w-6 h-6 bg-card-border/30 hover:bg-hope-primary/30 text-card-text text-xs font-bold rounded transition-colors flex items-center justify-center disabled:opacity-30"
-                                        >+</button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[10px] uppercase font-bold text-card-text/50 tracking-wider">{t('dashboard.count')}</span>
-                                    <div className="flex items-center gap-1 ml-auto bg-card-border/20 rounded-lg px-1.5 py-0.5">
-                                        <button
-                                            onClick={() => updateScene(currentCampaignId, scene.id, { count: Math.max(0, count - 1) })}
-                                            className="text-card-text/50 hover:text-card-text transition-colors text-xs w-4 text-center"
-                                        >−</button>
-                                        <span className="text-xs font-mono font-bold text-card-text w-5 text-center">{count}</span>
-                                        <button
-                                            onClick={() => updateScene(currentCampaignId, scene.id, { count: count + 1 })}
-                                            className="text-card-text/50 hover:text-card-text transition-colors text-xs w-4 text-center"
-                                        >+</button>
-                                    </div>
-                                </div>
-                            )}
+                            <CountdownControls
+                                scene={scene}
+                                compact
+                                onUpdate={(updates) => updateScene(currentCampaignId, scene.id, updates)}
+                            />
                         </div>
                     )
                 })}

@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { Button } from '../../components/ui'
 import { useCampaignStore } from '../../store/campaignStore'
 import { useCardsStore } from '../../store/cardsStore'
@@ -8,6 +8,7 @@ import type { AdversaryCard, EncounterAdjustment, AbilityType } from '../../type
 import { renderBold } from '../../utils/renderBold'
 import { SwordIcon, BoltIcon } from '../icons'
 import { useT } from '../../i18n'
+import { CardRollButtons } from '../dice/CardRollButtons'
 
 const ROLE_COST: Record<string, number> = {
     Minion: 1, Social: 1, Support: 1,
@@ -224,7 +225,7 @@ function EncounterWidget() {
                                     {(card.attackModifier || card.attackName || card.attackDamage) && (
                                         <div className="flex items-center gap-1.5 flex-wrap text-xs">
                                             <span className="font-black text-red-700 shrink-0">ATK:</span>
-                                            {card.attackModifier && <span className="text-card-text font-bold">{card.attackModifier}</span>}
+                                            <CardRollButtons title={card.title} attackModifier={card.attackModifier} />
                                             {(card.attackName || card.attackDistance) && (
                                                 <>
                                                     {card.attackModifier && <span className="text-card-border/50 select-none">|</span>}
@@ -234,12 +235,7 @@ function EncounterWidget() {
                                             {card.attackDamage && (
                                                 <>
                                                     <span className="text-card-border/50 select-none">|</span>
-                                                    <span className="text-card-text font-mono">{card.attackDamage}</span>
-                                                    {card.attackDamageType && (
-                                                        <span className={`font-semibold ${card.attackDamageType === 'physical' ? 'text-orange-700' : 'text-blue-700'}`}>
-                                                            {card.attackDamageType === 'physical' ? 'phys' : 'magic'}
-                                                        </span>
-                                                    )}
+                                                    <CardRollButtons title={card.title} attackDamage={card.attackDamage} attackDamageType={card.attackDamageType} />
                                                 </>
                                             )}
                                         </div>

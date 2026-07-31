@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { useVaultStore } from '../vault/vaultStore'
 import { parseWikiTarget } from '../vault/wikilinks'
 import { LinkIcon } from './icons'

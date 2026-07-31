@@ -1,5 +1,5 @@
 import { useEffect, lazy, Suspense } from 'react'
-import { Routes, Route, Outlet, useLocation } from 'react-router-dom'
+import { Routes, Route, Outlet, useLocation, Navigate } from 'react-router'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { PageLoader } from './components/ui'
 import { useFearStore } from './store/fearStore'
@@ -17,15 +17,14 @@ import { useUpdateStore } from './store/updateStore'
 const DMDashboard = lazy(() => import('./pages/DMDashboard'))
 const SceneTracker = lazy(() => import('./pages/SceneTracker'))
 const EnvironmentCards = lazy(() => import('./pages/EnvironmentCards'))
-const DMScreen = lazy(() => import('./pages/DMScreen'))
-const MusicPlayer = lazy(() => import('./pages/MusicPlayer'))
+const AudioHub = lazy(() => import('./pages/AudioHub'))
 const WorldWiki = lazy(() => import('./pages/WorldWiki'))
 const CampaignMap = lazy(() => import('./pages/CampaignMap'))
 const Campaigns = lazy(() => import('./pages/Campaigns'))
 const EncounterBuilder = lazy(() => import('./pages/EncounterBuilder'))
-const Soundboard = lazy(() => import('./pages/Soundboard'))
 const Settings = lazy(() => import('./pages/Settings'))
 const PlayerScreen = lazy(() => import('./pages/PlayerScreen'))
+const Party = lazy(() => import('./pages/Party'))
 
 function Layout() {
   useEffect(() => {
@@ -91,11 +90,12 @@ function App() {
             <Route path="/scenes" element={<SceneTracker />} />
             <Route path="/cards" element={<EnvironmentCards />} />
             <Route path="/encounter" element={<EncounterBuilder />} />
-            <Route path="/dm-screen" element={<DMScreen />} />
-            <Route path="/music" element={<MusicPlayer />} />
+            <Route path="/party" element={<Party />} />
+            <Route path="/audio" element={<AudioHub />} />
+            <Route path="/music" element={<Navigate to="/audio?tab=music" replace />} />
             <Route path="/journal" element={<WorldWiki />} />
             <Route path="/map" element={<CampaignMap />} />
-            <Route path="/soundboard" element={<Soundboard />} />
+            <Route path="/soundboard" element={<Navigate to="/audio?tab=sounds" replace />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
           <Route

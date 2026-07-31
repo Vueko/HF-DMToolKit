@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import type { Campaign } from '../../types'
 import { useSettingsStore } from '../../store/settingsStore'
 import { buildPrepSteps } from './prepSteps'

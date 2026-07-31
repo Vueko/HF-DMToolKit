@@ -122,7 +122,7 @@ function Settings() {
             <Panel className="flex flex-col gap-2">
                 <h3 className="text-ui-text font-display font-semibold">{t('settings.about')}</h3>
                 <p className="text-ui-muted text-sm">{t('settings.aboutVersion', { version: version || '—' })}</p>
-                <a href="https://github.com/Vueko/HF-GM-Toolkit" target="_blank" rel="noreferrer" className="text-accent hover:underline text-sm w-fit">
+                <a href="https://github.com/Vueko/HF-DMToolKit" target="_blank" rel="noreferrer" className="text-accent hover:underline text-sm w-fit">
                     {t('settings.githubRepo')}
                 </a>
             </Panel>

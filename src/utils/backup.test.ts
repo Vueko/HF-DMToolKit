@@ -20,6 +20,11 @@ describe('buildFullExport', () => {
         expect(env.data['dh-fear']).toBe('{"state":{}}')
         expect('dh-campaigns' in env.data).toBe(false)
     })
+    it('includes the Daggerheart party resource store in full backups', () => {
+        const env = buildFullExport({ 'dh-party': '{"state":{"membersByCampaign":{}}}' }, AT)
+
+        expect(env.data['dh-party']).toBe('{"state":{"membersByCampaign":{}}}')
+    })
     it('strips vaultPath from dh-settings but keeps other settings', () => {
         const settings = JSON.stringify({ state: { fontSize: 'lg', vaultPath: 'C:/secret' }, version: 1 })
         const env = buildFullExport({ 'dh-settings': settings }, AT)
